@@ -3254,3 +3254,72 @@ textarea.w-input, textarea.w-select {
   font-style: normal;
   font-display: swap;
 }
+
+
+
+/* Team Page Specific Styles */
+.team-section {
+    padding: 80px 0;
+    text-align: center;
+    background-color: #050505; /* Matches your site's dark theme */
+    color: white;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    color: #ffffff;
+}
+
+.section-subtitle {
+    font-size: 1.1rem;
+    color: #aaaaaa;
+    margin-bottom: 50px;
+}
+
+.team-grid {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 30px;
+}
+
+.team-card {
+    background: #121212;
+    padding: 30px;
+    border-radius: 20px;
+    width: 280px;
+    border: 1px solid #222;
+    transition: all 0.3s ease;
+}
+
+.team-card:hover {
+    transform: translateY(-10px);
+    border-color: #6c63ff; /* Or your site's primary accent color */
+    box-shadow: 0 10px 30px rgba(108, 99, 255, 0.2);
+}
+
+.member-photo-wrapper {
+    margin-bottom: 20px;
+}
+
+.member-img {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #333;
+}
+
+.member-name {
+    font-size: 1.4rem;
+    margin: 10px 0 5px;
+}
+
+.member-role {
+    color: #6c63ff;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+}

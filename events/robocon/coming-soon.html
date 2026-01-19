@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coming Soon - Robodarshan</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Specific styles for this landing page */
+        .coming-soon-body {
+            background-color: #050505;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Vollkorn', serif;
+        }
+
+        .hero-logo {
+            width: 300px;
+            margin-bottom: 30px;
+            animation: fadeIn 2s ease-in-out;
+        }
+
+        .main-title {
+            font-size: 4rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #ffffff, #6c63ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+        }
+
+        .sub-text {
+            color: #aaaaaa;
+            font-size: 1.2rem;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        .back-home {
+            margin-top: 40px;
+            padding: 12px 30px;
+            background-color: #6c63ff;
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .back-home:hover {
+            box-shadow: 0 0 20px rgba(108, 99, 255, 0.6);
+            transform: scale(1.05);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="coming-soon-body">
+
+    <img src="https://assets-global.website-files.com/657cba550bc392281580fd5e/657cc0ca198cae9affbdd1fd_Robodarshan%20Text%20Logo%20White.png" 
+         alt="Robodarshan Logo" class="hero-logo">
+
+    <h1 class="main-title">Coming Soon</h1>
+    <p class="sub-text">
+        Robodarshan IIEST Shibpur is building something revolutionary for the robotics community. 
+        Stay tuned as we prepare to launch our new portal.
+    </p>
+
+    <a href="../../index.html" class="back-home">Return to Home</a>
+
+</body>
+</html>

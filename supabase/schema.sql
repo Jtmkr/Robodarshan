@@ -625,3 +625,10 @@ create policy announcement_images_write on storage.objects
     bucket_id = 'announcement-images'
     and public.user_role(auth.uid()) in ('veteran', 'admin')
   );
+
+create policy announcement_images_delete on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'announcement-images'
+    and public.user_role(auth.uid()) in ('veteran', 'admin')
+  );

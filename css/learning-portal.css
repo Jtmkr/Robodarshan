@@ -1,0 +1,1027 @@
+/*
+  Shared stylesheet for the Learning Portal pages:
+  learning-portal.html, stage-1.html .. stage-4.html.
+
+  Design tokens + component styles only -- no page content lives here.
+  Extracted from what used to be 5 near-identical <style> blocks so the
+  whole portal has one consistent, maintainable design system.
+*/
+
+:root {
+  --rd-bg: #050505;
+  --rd-bg-raised: #111111;
+  --rd-bg-raised-2: #1b1b1b;
+  --rd-border: #262626;
+  --rd-border-strong: #333333;
+
+  --rd-blue: #2563eb;
+  --rd-blue-light: #3b82f6;
+  --rd-blue-pale: #dbeafe;
+  --rd-blue-tint: rgba(37, 99, 235, 0.12);
+
+  --rd-white: #ffffff;
+  --rd-text: #e5e7eb;
+  --rd-text-muted: #64748b;
+  --rd-text-dim: #94a3b8;
+
+  --rd-success: #22c55e;
+  --rd-warning: #d99a2b;
+  --rd-danger: #ef4444;
+
+  --rd-space-1: 4px;
+  --rd-space-2: 8px;
+  --rd-space-3: 12px;
+  --rd-space-4: 16px;
+  --rd-space-5: 20px;
+  --rd-space-6: 24px;
+  --rd-space-8: 32px;
+  --rd-space-10: 40px;
+  --rd-space-12: 48px;
+
+  --rd-radius-sm: 6px;
+  --rd-radius-md: 10px;
+  --rd-radius-lg: 16px;
+
+  --rd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --rd-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --rd-shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.35);
+
+  --rd-font-mono: 'Share Tech Mono', ui-monospace, monospace;
+  --rd-container-max: 1280px;
+  --rd-content-max: 860px;
+  --rd-quiz-max: 640px;
+}
+
+/* =========================================================
+   Base page + container
+   ========================================================= */
+
+.section-middle {
+  background-color: var(--rd-bg);
+  padding-top: var(--rd-space-8);
+  padding-bottom: var(--rd-space-12);
+}
+
+.rd-container {
+  width: 100%;
+  max-width: var(--rd-container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--rd-space-5);
+  padding-right: var(--rd-space-5);
+  box-sizing: border-box;
+}
+
+.section-middle .paragraph {
+  color: var(--rd-text-dim);
+}
+
+.heading-section.events {
+  color: var(--rd-white);
+  font-size: 26px;
+  line-height: 1.25;
+  margin-top: 0;
+  margin-bottom: var(--rd-space-2);
+}
+
+.paragraph.big {
+  color: var(--rd-text-dim);
+  font-size: 14px;
+  max-width: var(--rd-content-max);
+  margin-bottom: var(--rd-space-6);
+}
+
+/* =========================================================
+   Header (nav)
+   ========================================================= */
+
+.navbar.w-nav {
+  background-color: var(--rd-bg);
+  border-bottom: 1px solid var(--rd-border);
+}
+
+.navbar .div-block-nav {
+  max-width: var(--rd-container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding: var(--rd-space-3) var(--rd-space-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar .brand.w-nav-brand {
+  max-width: 150px;
+}
+
+.navbar .brand img {
+  display: block;
+  max-height: 32px;
+  width: auto;
+}
+
+.navbar .nav-menu.w-nav-menu {
+  align-items: center;
+  gap: var(--rd-space-2);
+}
+
+.navbar .nav-link.w-nav-link {
+  color: var(--rd-text-dim);
+  padding: var(--rd-space-2) var(--rd-space-3);
+  font-size: 14px;
+  border-radius: var(--rd-radius-sm);
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.navbar .nav-link.w-nav-link:hover,
+.navbar .nav-link.w-nav-link.w--current {
+  color: var(--rd-white);
+  background-color: var(--rd-bg-raised);
+}
+
+.navbar .menu-button.w-nav-button {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--rd-radius-sm);
+}
+
+.navbar .menu-button.w-nav-button:hover {
+  background-color: var(--rd-bg-raised);
+}
+
+/* =========================================================
+   Footer
+   ========================================================= */
+
+.section-middle + .footer {
+  background-color: var(--rd-bg-raised);
+  border-top: 1px solid var(--rd-border);
+}
+
+.footer .div-block-nav.footer {
+  max-width: var(--rd-container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding: var(--rd-space-8) var(--rd-space-5) var(--rd-space-5);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rd-space-8);
+  justify-content: space-between;
+}
+
+.footer .brand.footer img {
+  max-height: 28px;
+  width: auto;
+}
+
+.footer .text-block,
+.footer .text-block-2 {
+  color: var(--rd-text-muted);
+  font-size: 13px;
+}
+
+.footer .link-footer {
+  color: var(--rd-text-dim);
+  font-size: 13px;
+  transition: color 0.2s ease;
+}
+
+.footer .link-footer:hover {
+  color: var(--rd-white);
+}
+
+.footer .div-block-right-footer-inside {
+  flex-direction: column;
+  gap: var(--rd-space-2);
+  display: flex;
+}
+
+.footer .div-block-footer-base {
+  max-width: var(--rd-container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding: var(--rd-space-4) var(--rd-space-5);
+  border-top: 1px solid var(--rd-border);
+  color: var(--rd-text-muted);
+  font-size: 12px;
+}
+
+/* =========================================================
+   Progress bar (shared: overview, stage cards, section headers)
+   ========================================================= */
+
+.progress-bar {
+  height: 8px;
+  background-color: var(--rd-bg-raised-2);
+  border: 1px solid var(--rd-border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-image: linear-gradient(90deg, var(--rd-blue), var(--rd-blue-light));
+  border-radius: 5px;
+  transition: width 0.6s ease;
+}
+
+.progress-label {
+  color: var(--rd-text-muted);
+  font-family: var(--rd-font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   Portal overview (learning-portal.html): heading + overall
+   progress card + Sessions/Topics/Projects stat row
+   ========================================================= */
+
+.overall-progress-section {
+  max-width: var(--rd-content-max);
+  margin: 0 auto var(--rd-space-8);
+}
+
+.portal-overview-card {
+  background-color: var(--rd-bg-raised);
+  border: 1px solid var(--rd-border);
+  border-radius: var(--rd-radius-lg);
+  padding: var(--rd-space-6);
+}
+
+.portal-overview-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--rd-space-3);
+  margin-bottom: var(--rd-space-3);
+}
+
+.portal-overview-label {
+  color: var(--rd-text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--rd-space-4);
+  margin-top: var(--rd-space-6);
+  padding-top: var(--rd-space-5);
+  border-top: 1px solid var(--rd-border);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rd-space-1);
+}
+
+.stat-label {
+  color: var(--rd-text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.stat-value {
+  color: var(--rd-white);
+  font-family: var(--rd-font-mono);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* =========================================================
+   Stage cards grid (learning-portal.html)
+   ========================================================= */
+
+.stages-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--rd-space-5);
+}
+
+.stage-card {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--rd-bg-raised);
+  border: 1px solid var(--rd-border);
+  border-radius: var(--rd-radius-lg);
+  padding: var(--rd-space-5);
+  text-decoration: none;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stage-card:hover {
+  border-color: var(--rd-blue);
+  box-shadow: var(--rd-shadow-md);
+  transform: translateY(-2px);
+}
+
+.stage-card-number {
+  display: inline-flex;
+  align-items: center;
+  color: var(--rd-blue-light);
+  background-color: var(--rd-blue-tint);
+  border-radius: var(--rd-radius-sm);
+  padding: var(--rd-space-1) var(--rd-space-2);
+  font-family: var(--rd-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  width: fit-content;
+  margin-bottom: var(--rd-space-3);
+}
+
+.stage-card-title {
+  color: var(--rd-white);
+  font-size: 17px;
+  line-height: 1.3;
+  margin: 0 0 var(--rd-space-2);
+}
+
+.stage-card-theme {
+  display: inline-flex;
+  align-items: center;
+  color: var(--rd-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--rd-space-5);
+}
+
+.stage-card-progress {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--rd-space-2);
+}
+
+.stage-card-progress .progress-label {
+  text-align: right;
+}
+
+/* =========================================================
+   Stage page hero
+   ========================================================= */
+
+.stage-hero {
+  margin-bottom: var(--rd-space-8);
+}
+
+.stage-hero-eyebrow {
+  display: inline-flex;
+  color: var(--rd-blue-light);
+  font-family: var(--rd-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--rd-space-2);
+}
+
+.stage-hero-title {
+  color: var(--rd-white);
+  font-size: 26px;
+  line-height: 1.25;
+  margin: 0 0 var(--rd-space-2);
+}
+
+.stage-hero-tag {
+  display: inline-flex;
+  color: var(--rd-blue-light);
+  background-color: var(--rd-blue-tint);
+  border-radius: var(--rd-radius-sm);
+  padding: var(--rd-space-1) var(--rd-space-3);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--rd-space-3);
+}
+
+.stage-hero-desc {
+  color: var(--rd-text-dim);
+  font-size: 14px;
+  max-width: var(--rd-content-max);
+  margin: 0;
+}
+
+/* =========================================================
+   Section header component (Sessions / Topics / Projects)
+   ========================================================= */
+
+.section-block {
+  max-width: var(--rd-content-max);
+  margin: 0 auto;
+}
+
+.section-block + .section-block {
+  margin-top: var(--rd-space-10);
+}
+
+.section-header {
+  margin-bottom: var(--rd-space-4);
+}
+
+.section-header-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--rd-space-3);
+  margin-bottom: var(--rd-space-2);
+}
+
+.stage-section-heading {
+  color: var(--rd-white);
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.section-header .progress-label {
+  font-size: 13px;
+}
+
+/* =========================================================
+   Learning item cards (session / topic / project)
+   ========================================================= */
+
+.checklist-item {
+  background-color: var(--rd-bg-raised);
+  border: 1px solid var(--rd-border);
+  border-radius: var(--rd-radius-md);
+  margin-bottom: var(--rd-space-3);
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.checklist-item:hover {
+  border-color: var(--rd-border-strong);
+}
+
+.checklist-item.item-done {
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.lesson-header {
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--rd-space-3);
+  padding: var(--rd-space-4);
+}
+
+.lesson-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rd-blue-light);
+  background-color: var(--rd-blue-tint);
+  border-radius: var(--rd-radius-sm);
+}
+
+.lesson-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.lesson-text {
+  flex: 1;
+  min-width: 0;
+  padding-top: var(--rd-space-1);
+}
+
+.lesson-title {
+  color: var(--rd-white);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.lesson-desc {
+  color: var(--rd-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: var(--rd-space-1);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lesson-controls {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--rd-space-3);
+  padding-top: var(--rd-space-1);
+}
+
+.xp-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.xp-badge {
+  display: inline-flex;
+  align-items: center;
+  color: var(--rd-blue-light);
+  background-color: var(--rd-blue-tint);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.xp-badge-note {
+  color: var(--rd-text-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.lesson-expand-button {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rd-text-muted);
+  background: none;
+  border: 0;
+  border-radius: var(--rd-radius-sm);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.lesson-expand-button:hover {
+  color: var(--rd-white);
+  background-color: var(--rd-bg-raised-2);
+}
+
+.lesson-expand-icon {
+  display: inline-flex;
+  transition: transform 0.2s ease;
+}
+
+.lesson-expand-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.lesson-header.expanded .lesson-expand-icon {
+  transform: rotate(180deg);
+}
+
+.lesson-body {
+  border-top: 1px solid var(--rd-border);
+  padding: var(--rd-space-5);
+}
+
+.lesson-body-section {
+  margin-bottom: var(--rd-space-5);
+}
+
+.lesson-body-section:last-child {
+  margin-bottom: 0;
+}
+
+.lesson-body-heading {
+  color: var(--rd-text-dim);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 var(--rd-space-3);
+}
+
+.lesson-body-text {
+  color: var(--rd-text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   PDF / study material button
+   ========================================================= */
+
+.pdf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rd-space-2);
+  color: var(--rd-white);
+  background-color: var(--rd-blue);
+  border-radius: var(--rd-radius-sm);
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.pdf-link:hover {
+  background-color: var(--rd-blue-light);
+}
+
+.pdf-link svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.pdf-missing {
+  color: var(--rd-text-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* =========================================================
+   Quiz
+   ========================================================= */
+
+.topic-quiz {
+  max-width: var(--rd-quiz-max);
+}
+
+.quiz-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--rd-space-3);
+  margin-bottom: var(--rd-space-3);
+}
+
+.quiz-attempt-count {
+  color: var(--rd-text-muted);
+  font-family: var(--rd-font-mono);
+  font-size: 12px;
+}
+
+.quiz-history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rd-space-2);
+  margin-bottom: var(--rd-space-4);
+}
+
+.quiz-history-empty {
+  color: var(--rd-text-muted);
+  font-size: 13px;
+  font-style: italic;
+  margin: 0 0 var(--rd-space-4);
+}
+
+.quiz-history-item {
+  color: var(--rd-blue-light);
+  background-color: var(--rd-blue-tint);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.quiz-question {
+  background-color: var(--rd-bg);
+  border: 1px solid var(--rd-border);
+  border-radius: var(--rd-radius-md);
+  padding: var(--rd-space-4);
+  margin-bottom: var(--rd-space-3);
+}
+
+.quiz-question-text {
+  color: var(--rd-white);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 var(--rd-space-3);
+}
+
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rd-space-2);
+}
+
+.quiz-option {
+  display: flex;
+  align-items: center;
+  gap: var(--rd-space-3);
+  color: var(--rd-text);
+  font-size: 14px;
+  padding: var(--rd-space-2) var(--rd-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--rd-radius-sm);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.quiz-option:hover {
+  background-color: var(--rd-bg-raised-2);
+}
+
+.quiz-option:has(input:checked) {
+  background-color: var(--rd-blue-tint);
+  border-color: var(--rd-blue);
+}
+
+.quiz-option.quiz-correct {
+  color: var(--rd-success);
+  background-color: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.4);
+  font-weight: 600;
+}
+
+.quiz-option.quiz-incorrect {
+  color: var(--rd-danger);
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.4);
+  font-weight: 600;
+}
+
+.quiz-submit-button {
+  display: inline-flex;
+  align-items: center;
+  color: var(--rd-white);
+  cursor: pointer;
+  background-color: var(--rd-blue);
+  border: 0;
+  border-radius: var(--rd-radius-sm);
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.quiz-submit-button:hover:not(:disabled) {
+  background-color: var(--rd-blue-light);
+}
+
+.quiz-submit-button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.quiz-result {
+  color: var(--rd-blue-light);
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: var(--rd-space-3);
+}
+
+/* Radio buttons: custom styled, whole row clickable via <label> */
+.quiz-option input[type='radio'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin: 0;
+  border: 2px solid var(--rd-text-muted);
+  border-radius: 50%;
+  transition: border-color 0.2s ease, border-width 0.2s ease;
+}
+
+.quiz-option:hover input[type='radio'] {
+  border-color: var(--rd-blue-light);
+}
+
+.quiz-option input[type='radio']:checked {
+  border-color: var(--rd-blue);
+  border-width: 5px;
+}
+
+.quiz-option input[type='radio']:focus-visible {
+  outline: none;
+  box-shadow: var(--rd-shadow-focus);
+}
+
+/* =========================================================
+   Completion checkbox (topics) + approval checkbox (sessions/
+   projects): custom styled, native input kept for a11y/logic
+   ========================================================= */
+
+.mark-complete-checkbox,
+.submit-approval-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  margin: 0;
+  display: inline-grid;
+  place-content: center;
+  border: 2px solid var(--rd-text-muted);
+  border-radius: var(--rd-radius-sm);
+  background-color: transparent;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.mark-complete-checkbox:hover:not(:disabled),
+.submit-approval-checkbox:hover:not(:disabled) {
+  border-color: var(--rd-blue-light);
+}
+
+.mark-complete-checkbox:focus-visible,
+.submit-approval-checkbox:focus-visible {
+  outline: none;
+  box-shadow: var(--rd-shadow-focus);
+}
+
+.mark-complete-checkbox:checked,
+.submit-approval-checkbox:checked {
+  background-color: var(--rd-blue);
+  border-color: var(--rd-blue);
+}
+
+.mark-complete-checkbox:checked::after,
+.submit-approval-checkbox:checked::after {
+  content: '';
+  width: 7px;
+  height: 11px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.mark-complete-checkbox:disabled,
+.submit-approval-checkbox:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.topic-complete-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--rd-space-2);
+  color: var(--rd-text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* =========================================================
+   Status pills: approval-pending / approval-verified / completed
+   ========================================================= */
+
+.approval-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rd-space-1);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.approval-status.approval-pending {
+  color: var(--rd-warning);
+  background-color: rgba(217, 154, 43, 0.12);
+}
+
+.approval-status.approval-verified {
+  color: var(--rd-success);
+  background-color: rgba(34, 197, 94, 0.12);
+}
+
+.lesson-completion-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rd-space-1);
+  color: var(--rd-text-muted);
+  font-size: 13px;
+  margin-top: var(--rd-space-3);
+}
+
+.lesson-completion-status.is-complete {
+  color: var(--rd-success);
+  font-weight: 600;
+}
+
+.lesson-completion-status svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* =========================================================
+   Misc / legacy hooks kept for JS compatibility
+   ========================================================= */
+
+.portal-card-body {
+  color: var(--rd-text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   Responsive: tablet
+   ========================================================= */
+
+@media screen and (max-width: 991px) {
+  .stages-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* =========================================================
+   Responsive: mobile (covers 320-479px range explicitly)
+   ========================================================= */
+
+@media screen and (max-width: 767px) {
+  .stages-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--rd-space-2);
+  }
+}
+
+@media screen and (max-width: 479px) {
+  .rd-container,
+  .navbar .div-block-nav,
+  .footer .div-block-nav.footer,
+  .footer .div-block-footer-base {
+    padding-left: var(--rd-space-4);
+    padding-right: var(--rd-space-4);
+  }
+
+  .section-middle {
+    padding-top: var(--rd-space-6);
+    padding-bottom: var(--rd-space-8);
+  }
+
+  .heading-section.events,
+  .stage-hero-title {
+    font-size: 21px;
+  }
+
+  .navbar .brand.w-nav-brand {
+    max-width: 120px;
+  }
+
+  .navbar .brand img {
+    max-height: 26px;
+  }
+
+  .portal-overview-card {
+    padding: var(--rd-space-4);
+  }
+
+  .stat-row {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--rd-space-2);
+  }
+
+  .stat-value {
+    font-size: 15px;
+  }
+
+  .stage-card {
+    padding: var(--rd-space-4);
+  }
+
+  .lesson-header {
+    flex-wrap: wrap;
+    padding: var(--rd-space-3);
+  }
+
+  .lesson-controls {
+    flex-basis: 100%;
+    justify-content: space-between;
+    padding-top: var(--rd-space-2);
+    margin-left: calc(36px + var(--rd-space-3));
+  }
+
+  .lesson-body {
+    padding: var(--rd-space-4);
+  }
+
+  .quiz-question {
+    padding: var(--rd-space-3);
+  }
+
+  .quiz-option {
+    padding: var(--rd-space-2);
+  }
+
+  .footer .div-block-nav.footer {
+    flex-direction: column;
+    gap: var(--rd-space-5);
+    padding-top: var(--rd-space-6);
+  }
+}

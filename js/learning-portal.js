@@ -212,8 +212,8 @@ async function fetchStageItems(stageId) {
       .select('*')
       .eq('stage_id', stageId)
       .eq('status', 'published')
-      .order('created_at', { ascending: true }),
-    supabaseClient.from('projects').select('*').eq('stage_id', stageId).order('created_at', { ascending: true }),
+      .order('order_index', { ascending: true }),
+    supabaseClient.from('projects').select('*').eq('stage_id', stageId).order('order_index', { ascending: true }),
   ]);
 
   return {

@@ -82,6 +82,7 @@ create table public.topics (
   quiz jsonb,
   troubleshooting text,
   pdf_url text,
+  order_index integer not null default 0,
   xp_value integer not null default 10,
   status text not null default 'draft' check (status in ('draft', 'pending_approval', 'published')),
   created_at timestamptz not null default now()
@@ -100,6 +101,7 @@ create table public.projects (
   instructions text,
   quiz jsonb,
   pdf_url text,
+  order_index integer not null default 0,
   xp_value integer not null default 100,
   created_at timestamptz not null default now()
 );
@@ -173,6 +175,7 @@ create table public.announcements (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   body text not null,
+  image_url text,
   posted_by uuid references public.users(id),
   created_at timestamptz not null default now()
 );
@@ -261,8 +264,43 @@ as $$
   select assigned_trainee_id from public.users where id = uid;
 $$;
 
--- Auto-promote member -> rookie at 2000 XP. Never touches
--- trainee/veteran/admin (those are admin-assigned only).
+-- Computed Member -> Rookie XP threshold: every session/topic/
+-- project XP value in Stage 1 + Stage 2 (fully) plus just the
+-- Session XP of Stage 3. Computed live, not a flat number, so it
+-- stays correct if XP values or item counts change later.
+create or replace function public.rookie_xp_threshold()
+returns integer
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    coalesce((
+      select sum(s.xp_value) from public.sessions s
+      join public.stages st on st.id = s.stage_id
+      where st.number in (1, 2)
+    ), 0)
+    + coalesce((
+      select sum(t.xp_value) from public.topics t
+      join public.stages st on st.id = t.stage_id
+      where st.number in (1, 2)
+    ), 0)
+    + coalesce((
+      select sum(p.xp_value) from public.projects p
+      join public.stages st on st.id = p.stage_id
+      where st.number in (1, 2)
+    ), 0)
+    + coalesce((
+      select sum(s.xp_value) from public.sessions s
+      join public.stages st on st.id = s.stage_id
+      where st.number = 3
+    ), 0);
+$$;
+
+-- Auto-promote member -> rookie once total_xp reaches the
+-- threshold above. Never touches trainee/veteran/admin (those
+-- are admin-assigned only).
 create or replace function public.promote_role_by_xp()
 returns trigger
 language plpgsql
@@ -270,7 +308,7 @@ security definer
 set search_path = public
 as $$
 begin
-  if new.role = 'member' and new.total_xp >= 2000 then
+  if new.role = 'member' and new.total_xp >= public.rookie_xp_threshold() then
     new.role := 'rookie';
   end if;
   return new;
@@ -498,15 +536,16 @@ create policy kit_assignments_write on public.kit_assignments
     or public.user_role(auth.uid()) in ('veteran', 'admin')
   );
 
--- announcements: any logged-in user can read; only admins write
+-- announcements: anyone (including logged-out visitors -- shown on the
+-- public Home page) can read; Veteran or Admin can manage.
 create policy announcements_select on public.announcements
-  for select to authenticated
+  for select to anon, authenticated
   using (true);
 
-create policy announcements_admin_write on public.announcements
+create policy announcements_write on public.announcements
   for all to authenticated
-  using (public.is_admin(auth.uid()))
-  with check (public.is_admin(auth.uid()));
+  using (public.user_role(auth.uid()) in ('veteran', 'admin'))
+  with check (public.user_role(auth.uid()) in ('veteran', 'admin'));
 
 -- contact_submissions: anyone (including logged-out visitors) can
 -- submit the contact form; only admins can read submissions
@@ -566,4 +605,23 @@ create policy profile_pictures_owner_update on storage.objects
   with check (
     bucket_id = 'profile-pictures'
     and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- =========================================================
+-- Storage: announcement images -- public bucket; only Veteran/
+-- Admin may upload.
+-- =========================================================
+insert into storage.buckets (id, name, public)
+values ('announcement-images', 'announcement-images', true)
+on conflict (id) do nothing;
+
+create policy announcement_images_public_read on storage.objects
+  for select to public
+  using (bucket_id = 'announcement-images');
+
+create policy announcement_images_write on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'announcement-images'
+    and public.user_role(auth.uid()) in ('veteran', 'admin')
   );

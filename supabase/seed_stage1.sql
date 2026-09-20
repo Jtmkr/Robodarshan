@@ -290,3 +290,23 @@ https://youtu.be/vAi58PjUsc8?si=oWoVOz0sdZVoQUsl$c$,
 where not exists (
   select 1 from public.projects where stage_id = (select id from public.stages where number = 1) and title = 'Obstacle Avoiding Car'
 );
+
+-- ---------------------------------------------------------
+-- Explicit curriculum order (see migration
+-- 009_explicit_item_ordering.sql for why this matters -- rows
+-- inserted in one script share the same created_at, so ordering
+-- by created_at alone is not reliable).
+-- ---------------------------------------------------------
+update public.topics set order_index = 1 where stage_id = (select id from public.stages where number = 1) and title = 'Introduction to Robotics';
+update public.topics set order_index = 2 where stage_id = (select id from public.stages where number = 1) and title = 'Basic Electronics';
+update public.topics set order_index = 3 where stage_id = (select id from public.stages where number = 1) and title = 'Tools & Workshop Skills';
+update public.topics set order_index = 4 where stage_id = (select id from public.stages where number = 1) and title = 'Breadboard & Circuit Building';
+update public.topics set order_index = 5 where stage_id = (select id from public.stages where number = 1) and title = 'Arduino Fundamentals';
+update public.topics set order_index = 6 where stage_id = (select id from public.stages where number = 1) and title = 'ESP32 Fundamentals';
+update public.topics set order_index = 7 where stage_id = (select id from public.stages where number = 1) and title = 'Tinkercad';
+update public.topics set order_index = 8 where stage_id = (select id from public.stages where number = 1) and title = 'Digital, Analog and PWM';
+update public.topics set order_index = 9 where stage_id = (select id from public.stages where number = 1) and title = 'Sensors';
+update public.topics set order_index = 10 where stage_id = (select id from public.stages where number = 1) and title = 'Motors & motor drivers';
+
+update public.projects set order_index = 1 where stage_id = (select id from public.stages where number = 1) and title = 'Bluetooth Controlled Car';
+update public.projects set order_index = 2 where stage_id = (select id from public.stages where number = 1) and title = 'Obstacle Avoiding Car';

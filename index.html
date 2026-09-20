@@ -33,6 +33,79 @@
     <link
         href="https://assets-global.website-files.com/657cba550bc392281580fd5e/6580d2a2d19d786bea7c1609_RoboDarsha%20Logo%20Black%20Trans%20(1).png"
         rel="apple-touch-icon" />
+    <style>
+        .section-announcements {
+            background-color: #000;
+            padding: 60px 20px;
+        }
+
+        .section-announcements .paragraph {
+            color: #ccc;
+        }
+
+        .heading-section.announcements {
+            color: #fff;
+            text-align: center;
+        }
+
+        .announcements-list {
+            max-width: 700px;
+            margin: 30px auto 0;
+        }
+
+        .announcement-item {
+            background-color: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .announcement-title-row {
+            cursor: pointer;
+            color: #fff;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            display: flex;
+        }
+
+        .announcement-title {
+            font-weight: bold;
+        }
+
+        .announcement-arrow {
+            color: #7342ff;
+            font-size: 22px;
+            line-height: 1;
+            transition: transform .2s ease;
+        }
+
+        .announcement-arrow.expanded {
+            transform: rotate(90deg);
+        }
+
+        .announcement-body {
+            border-top: 1px solid #333;
+            padding: 16px 20px;
+        }
+
+        .announcement-image {
+            max-width: 100%;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .announcement-details {
+            color: #ccc;
+        }
+
+        .announcement-date {
+            color: #7342ff;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 
 <body class="body">
@@ -207,6 +280,12 @@
             </div>
         </div>
     </section>
+    <section class="section-announcements">
+        <h1 class="heading-section announcements">Announcements</h1>
+        <div id="announcements-list" class="announcements-list">
+            <p class="paragraph">Loading announcements...</p>
+        </div>
+    </section>
     <section class="footer">
         <div class="div-block-nav footer">
             <div class="div-block-left-footer">
@@ -271,6 +350,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/supabase-client.js"></script>
     <script src="/js/nav-auth.js"></script>
+    <script src="/js/announcements.js"></script>
 </body>
 
 </html>

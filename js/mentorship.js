@@ -172,17 +172,20 @@ async function renderTraineeSection(container, profile) {
 }
 
 async function renderVeteranSection(container, profile) {
-  const [{ data: rookies, error: rookiesError }, { data: trainees, error: traineesError }] = await Promise.all([
-    supabaseClient
-      .from('users')
-      .select('id, name, gsuite_email, total_xp, assigned_trainee_id')
-      .eq('role', 'rookie')
-      .order('name', { ascending: true }),
-    supabaseClient.from('users').select('id, name, gsuite_email').eq('role', 'trainee').order('name', { ascending: true }),
-  ]);
+  const [{ data: rookies, error: rookiesError }, { data: trainees, error: traineesError }, { data: announcements, error: announcementsError }] =
+    await Promise.all([
+      supabaseClient
+        .from('users')
+        .select('id, name, gsuite_email, total_xp, assigned_trainee_id')
+        .eq('role', 'rookie')
+        .order('name', { ascending: true }),
+      supabaseClient.from('users').select('id, name, gsuite_email').eq('role', 'trainee').order('name', { ascending: true }),
+      supabaseClient.from('announcements').select('*').order('created_at', { ascending: false }),
+    ]);
 
   if (rookiesError) console.error('Failed to load rookies:', rookiesError.message);
   if (traineesError) console.error('Failed to load trainees:', traineesError.message);
+  if (announcementsError) console.error('Failed to load announcements:', announcementsError.message);
 
   const traineeOptions = (trainees || [])
     .map((trainee) => `<option value="${escM(trainee.id)}">${escM(trainee.name)}</option>`)
@@ -223,6 +226,30 @@ async function renderVeteranSection(container, profile) {
           : '<p class="paragraph">No Trainees yet.</p>'
       }
     </div>
+
+    <div class="dashboard-card role-section">
+      <h3>Manage Announcements</h3>
+      <form id="announcement-form" class="announcement-form">
+        <input type="text" id="announcement-title-input" placeholder="Title" required maxlength="200" />
+        <textarea id="announcement-body-input" placeholder="Details" required rows="3"></textarea>
+        <label class="announcement-image-label">Image (optional)</label>
+        <input type="file" id="announcement-image-input" accept="image/*" />
+        <button type="submit" class="announcement-submit-button">Post Announcement</button>
+        <p id="announcement-form-error" class="announcement-form-error" hidden></p>
+      </form>
+
+      <h4 class="announcement-existing-heading">Existing Announcements</h4>
+      ${
+        (announcements || []).length
+          ? `<ul class="announcement-existing-list">${announcements
+              .map(
+                (a) =>
+                  `<li>${escM(a.title)} <span class="announcement-existing-date">(${new Date(a.created_at).toLocaleDateString()})</span></li>`
+              )
+              .join('')}</ul>`
+          : '<p class="paragraph">No announcements yet.</p>'
+      }
+    </div>
   `;
 
   container.querySelectorAll('.assign-trainee-select').forEach((select) => {
@@ -241,5 +268,58 @@ async function renderVeteranSection(container, profile) {
       }
       select.disabled = false;
     });
+  });
+
+  const announcementForm = document.getElementById('announcement-form');
+  const announcementError = document.getElementById('announcement-form-error');
+
+  announcementForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    announcementError.hidden = true;
+
+    const title = document.getElementById('announcement-title-input').value.trim();
+    const body = document.getElementById('announcement-body-input').value.trim();
+    const file = document.getElementById('announcement-image-input').files[0];
+    const submitButton = announcementForm.querySelector('.announcement-submit-button');
+
+    submitButton.disabled = true;
+    submitButton.textContent = 'Posting...';
+
+    try {
+      let imageUrl = null;
+
+      if (file) {
+        const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const path = `${Date.now()}-${safeName}`;
+
+        const { error: uploadError } = await supabaseClient.storage.from('announcement-images').upload(path, file, {
+          contentType: file.type,
+        });
+
+        if (uploadError) throw new Error(`Failed to upload image: ${uploadError.message}`);
+
+        const {
+          data: { publicUrl },
+        } = supabaseClient.storage.from('announcement-images').getPublicUrl(path);
+        imageUrl = publicUrl;
+      }
+
+      const { error: insertError } = await supabaseClient.from('announcements').insert({
+        title,
+        body,
+        image_url: imageUrl,
+        posted_by: profile.id,
+      });
+
+      if (insertError) throw new Error(`Failed to post announcement: ${insertError.message}`);
+
+      await renderVeteranSection(container, profile);
+    } catch (err) {
+      console.error('Failed to post announcement:', err.message);
+      announcementError.textContent = err.message;
+      announcementError.hidden = false;
+      submitButton.disabled = false;
+      submitButton.textContent = 'Post Announcement';
+    }
   });
 }

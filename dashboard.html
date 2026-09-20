@@ -260,6 +260,68 @@
         .trainee-list {
             padding-left: 18px;
         }
+
+        .announcement-form {
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+            display: flex;
+        }
+
+        .announcement-form input[type="text"],
+        .announcement-form textarea {
+            color: #fff;
+            background-color: #1a1a1f;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 8px 10px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .announcement-image-label {
+            color: #999;
+            font-size: 12px;
+            margin-bottom: -4px;
+        }
+
+        .announcement-submit-button {
+            color: #fff;
+            cursor: pointer;
+            background-color: #7342ff;
+            border: 0;
+            border-radius: 4px;
+            padding: 8px 14px;
+            font-size: 13px;
+            align-self: flex-start;
+        }
+
+        .announcement-submit-button:disabled {
+            cursor: default;
+            opacity: .6;
+        }
+
+        .announcement-form-error {
+            color: #ea384c;
+            font-size: 13px;
+        }
+
+        .announcement-existing-heading {
+            color: #7342ff;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        .announcement-existing-list {
+            padding-left: 18px;
+        }
+
+        .announcement-existing-date {
+            color: #999;
+            font-size: 12px;
+        }
     </style>
 </head>
 
@@ -271,9 +333,11 @@
                     loading="lazy" sizes="(max-width: 479px) 88vw, (max-width: 767px) 60vw, 300px"
                     srcset="https://assets-global.website-files.com/657cba550bc392281580fd5e/657cc0ca198cae9affbdd1fd_Robodarshan%20Text%20Logo%20White-p-500.png 500w, https://assets-global.website-files.com/657cba550bc392281580fd5e/657cc0ca198cae9affbdd1fd_Robodarshan%20Text%20Logo%20White.png 736w"
                     alt="" /></a>
-            <nav role="navigation" class="nav-menu w-nav-menu"><a href="/learning-portal.html"
-                    class="nav-link w-nav-link">Learning Portal</a><a href="/dashboard.html" aria-current="page"
-                    class="nav-link w-nav-link w--current">Dashboard</a><a href="#" id="logout-link"
+            <nav role="navigation" class="nav-menu w-nav-menu"><a href="/events.html" class="nav-link w-nav-link">Events</a><a
+                    href="/merch.html" class="nav-link w-nav-link">Merch</a><a href="/about.html" class="nav-link w-nav-link">About</a><a
+                    href="/gallery.html" class="nav-link w-nav-link">Gallery</a><a href="/contact.html"
+                    class="nav-link w-nav-link">Contact</a><a href="/team.html" class="nav-link w-nav-link">Team</a><a
+                    href="/learning-portal.html" class="nav-link w-nav-link">Study Portal</a><a href="#" id="logout-link"
                     class="nav-link w-nav-link">Logout</a>
             </nav>
             <div class="menu-button w-nav-button">
@@ -338,7 +402,8 @@
 
             const card = document.getElementById('dashboard-card');
             const profile = user.profile;
-            const display = getXpDisplay(profile.role, profile.total_xp);
+            const rookieThreshold = await getRookieXpThreshold();
+            const display = getXpDisplay(profile.role, profile.total_xp, rookieThreshold);
 
             card.innerHTML = `
                 <div class="dashboard-header">

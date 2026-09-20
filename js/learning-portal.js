@@ -5,7 +5,9 @@
 //   - Stages overview page: <div id="stages-grid"></div> (+ optional
 //                            <div id="overall-progress"></div>)
 //   - Stage detail page:    a container with [data-stage-id="<number>"] wrapping
-//                            #sessions-list, #topics-list, #projects-list
+//                            #sessions-list, #topics-list, #projects-list, each
+//                            paired with a #<section>-progress bar and a
+//                            #<section>-count label (see setSectionProgress).
 //
 // Each topic/project shows exactly three things when expanded: a link to its
 // PDF study material, a quiz, and a mark-complete checkbox. Quiz attempts are
@@ -35,39 +37,102 @@ function completionKey(itemType, itemId) {
   return `${itemType}:${itemId}`;
 }
 
-function progressBar(done, total) {
-  const percent = total ? Math.round((done / total) * 100) : 0;
-  return `
-    <div class="progress-bar"><div class="progress-bar-fill" style="width:${percent}%"></div></div>
-    <div class="progress-label">${done}/${total} completed</div>
-  `;
+// Tracks which checklist items are currently expanded (by their
+// completionKey) so that a re-render -- e.g. after a quiz submit refreshes
+// attempt history and unlock state -- can restore the same items open
+// instead of collapsing everything back down.
+const expandedItems = new Set();
+
+function applyExpansionState(container) {
+  container.querySelectorAll('.checklist-item[data-key]').forEach((item) => {
+    if (!expandedItems.has(item.dataset.key)) return;
+    const header = item.querySelector('.lesson-header');
+    const body = item.querySelector('.lesson-body');
+    body.hidden = false;
+    header.classList.add('expanded');
+    const button = header.querySelector('.lesson-expand-button');
+    if (button) button.setAttribute('aria-expanded', 'true');
+  });
 }
 
-// Single, uniform card theme (light blue) -- no per-item color rotation.
-const CARD_ICON = '📘';
-const CARD_GRADIENT = 'linear-gradient(135deg, #2563eb, #60a5fa)';
+// Small, consistent line-icon set (stroke-based, 24x24 viewBox) used across
+// the portal so every item type/action reads the same way at a glance.
+const ICONS = {
+  session:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  topic:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+  project:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><line x1="9" y1="2" x2="9" y2="6"/><line x1="15" y1="2" x2="15" y2="6"/><line x1="9" y1="18" x2="9" y2="22"/><line x1="15" y1="18" x2="15" y2="22"/><line x1="2" y1="9" x2="6" y2="9"/><line x1="2" y1="15" x2="6" y2="15"/><line x1="18" y1="9" x2="22" y2="9"/><line x1="18" y1="15" x2="22" y2="15"/></svg>',
+  pdf:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>',
+  check:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.2 2.2 5-5.2"/></svg>',
+  chevron:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+};
 
-function renderCardHeader(title, subtitle, sideContent) {
+function progressBar(done, total) {
+  const percent = total ? Math.round((done / total) * 100) : 0;
+  return `<div class="progress-bar"><div class="progress-bar-fill" style="width:${percent}%"></div></div>`;
+}
+
+function progressCount(done, total) {
+  return `${done}/${total} completed`;
+}
+
+// The collapsed summary row shared by sessions/topics/projects: icon, title,
+// a secondary description, and whatever controls (XP badge, checkbox/status)
+// belong on the right, plus a dedicated expand button with a tap target
+// larger than its visible chevron.
+function renderCardHeader(iconKey, title, description, controlsHtml) {
   return `
-    <div class="lesson-card-header" style="background-image:${CARD_GRADIENT}">
-      <div class="lesson-card-icon">${CARD_ICON}</div>
-      <div class="lesson-card-text">
-        <div class="lesson-card-title">${esc(title)}</div>
-        ${subtitle ? `<div class="lesson-card-subtitle">${esc(subtitle)}</div>` : ''}
+    <div class="lesson-header">
+      <div class="lesson-icon">${ICONS[iconKey] || ''}</div>
+      <div class="lesson-text">
+        <div class="lesson-title">${esc(title)}</div>
+        ${description ? `<div class="lesson-desc">${esc(description)}</div>` : ''}
       </div>
-      <div class="lesson-card-side">${sideContent}</div>
+      <div class="lesson-controls">
+        ${controlsHtml}
+        <button type="button" class="lesson-expand-button" aria-expanded="false" aria-label="Expand details">
+          <span class="lesson-expand-icon">${ICONS.chevron}</span>
+        </button>
+      </div>
     </div>
   `;
 }
 
+function toggleChecklistItem(item) {
+  const header = item.querySelector('.lesson-header');
+  const body = item.querySelector('.lesson-body');
+  body.hidden = !body.hidden;
+  header.classList.toggle('expanded', !body.hidden);
+  const button = header.querySelector('.lesson-expand-button');
+  if (button) button.setAttribute('aria-expanded', String(!body.hidden));
+
+  const key = item.dataset.key;
+  if (key) {
+    if (body.hidden) expandedItems.delete(key);
+    else expandedItems.add(key);
+  }
+}
+
+// Clicking anywhere on the header toggles it (except on real controls), and
+// the expand button itself is a proper, larger, keyboard-accessible target
+// that does the same thing -- both paths share toggleChecklistItem().
 function wireCardToggles(container) {
-  container.querySelectorAll('.lesson-card-header').forEach((header) => {
+  container.querySelectorAll('.lesson-header').forEach((header) => {
     header.addEventListener('click', (event) => {
-      if (event.target.closest('input, button, a, label')) return;
-      const item = header.closest('.checklist-item');
-      const body = item.querySelector('.checklist-item-body');
-      body.hidden = !body.hidden;
-      header.classList.toggle('expanded', !body.hidden);
+      if (event.target.closest('input, .lesson-expand-button, a, label')) return;
+      toggleChecklistItem(header.closest('.checklist-item'));
+    });
+  });
+
+  container.querySelectorAll('.lesson-expand-button').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      toggleChecklistItem(button.closest('.checklist-item'));
     });
   });
 }
@@ -76,7 +141,7 @@ function renderPdfLink(pdfUrl) {
   if (!pdfUrl) {
     return '<p class="pdf-missing">Study material PDF coming soon.</p>';
   }
-  return `<a href="${esc(pdfUrl)}" target="_blank" rel="noopener noreferrer" class="pdf-link">&#128196; Open Study Material (PDF)</a>`;
+  return `<a href="${esc(pdfUrl)}" target="_blank" rel="noopener noreferrer" class="pdf-link">${ICONS.pdf}<span>Open Study Material (PDF)</span></a>`;
 }
 
 function renderQuizHistory(attempts) {
@@ -93,14 +158,18 @@ function renderQuizHistory(attempts) {
 // Renders a quiz as an interactive form (radio per question) with a "Check
 // Answers" button. Scoring never affects XP -- every attempt is just saved
 // as history (via wireQuizzes' submit handler) and multiple attempts are
-// allowed.
+// allowed (no cap).
 function renderQuiz(quiz, itemType, itemId, attempts) {
   if (!quiz || !Array.isArray(quiz) || !quiz.length) return '';
 
+  const nextAttemptNumber = attempts.length + 1;
+
   return `
     <div class="topic-quiz">
-      <h5>Quiz</h5>
-      <div class="quiz-history-container">${renderQuizHistory(attempts)}</div>
+      <div class="quiz-top">
+        <span class="quiz-attempt-count">${quiz.length} question${quiz.length === 1 ? '' : 's'} &middot; Attempt #${nextAttemptNumber}</span>
+      </div>
+      ${renderQuizHistory(attempts)}
       <form class="quiz-form" data-quiz="${escAttr(JSON.stringify(quiz))}" data-item-type="${esc(itemType)}" data-item-id="${esc(itemId)}">
         ${quiz
           .map(
@@ -113,7 +182,7 @@ function renderQuiz(quiz, itemType, itemId, attempts) {
                       (opt, oi) => `
                         <label class="quiz-option">
                           <input type="radio" name="q${qi}" value="${oi}" />
-                          ${esc(opt)}
+                          <span>${esc(opt)}</span>
                         </label>
                       `
                     )
@@ -298,11 +367,26 @@ async function renderOverallProgress(user) {
   const totalItems = sessions.length + topics.length + projects.length;
 
   container.innerHTML = `
-    ${progressBar(totalDone, totalItems)}
-    <div class="progress-chips">
-      <span class="progress-chip chip-session">Sessions ${sessionsDone}/${sessions.length}</span>
-      <span class="progress-chip chip-topic">Topics ${topicsDone}/${topics.length}</span>
-      <span class="progress-chip chip-project">Projects ${projectsDone}/${projects.length}</span>
+    <div class="portal-overview-card">
+      <div class="portal-overview-top">
+        <span class="portal-overview-label">Overall Progress</span>
+        <span class="progress-label">${progressCount(totalDone, totalItems)}</span>
+      </div>
+      ${progressBar(totalDone, totalItems)}
+      <div class="stat-row">
+        <div class="stat-item">
+          <span class="stat-label">Sessions</span>
+          <span class="stat-value">${sessionsDone}/${sessions.length}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Topics</span>
+          <span class="stat-value">${topicsDone}/${topics.length}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Projects</span>
+          <span class="stat-value">${projectsDone}/${projects.length}</span>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -340,10 +424,13 @@ async function renderStagesList() {
 
       return `
         <a href="stage-${stage.number}.html" class="stage-card">
-          <div class="stage-card-number">Stage ${esc(stage.number)}</div>
+          <span class="stage-card-number">Stage ${esc(stage.number)}</span>
           <h3 class="stage-card-title">${esc(stage.title)}</h3>
-          <p class="stage-card-theme">${esc(stage.theme)}</p>
-          ${progressBar(done, allItems.length)}
+          <span class="stage-card-theme">${esc(stage.theme)}</span>
+          <div class="stage-card-progress">
+            ${progressBar(done, allItems.length)}
+            <span class="progress-label">${progressCount(done, allItems.length)}</span>
+          </div>
         </a>
       `;
     })
@@ -372,31 +459,41 @@ async function renderStagePage() {
   const sessionsSubmitted =
     sessions.length === 0 || sessions.every((s) => completionMap.has(completionKey('session', s.id)));
 
-  setSectionProgress('sessions-progress', countVerified(sessions, 'session', completionMap), sessions.length);
-  setSectionProgress('topics-progress', countVerified(topics, 'topic', completionMap), topics.length);
-  setSectionProgress('projects-progress', countVerified(projects, 'project', completionMap), projects.length);
+  setSectionProgress('sessions-progress', 'sessions-count', countVerified(sessions, 'session', completionMap), sessions.length);
+  setSectionProgress('topics-progress', 'topics-count', countVerified(topics, 'topic', completionMap), topics.length);
+  setSectionProgress('projects-progress', 'projects-count', countVerified(projects, 'project', completionMap), projects.length);
 
   renderSessions(sessions, sessionsError, completionMap);
   renderTopics(topics, topicsError, completionMap, attemptsMap, sessionsSubmitted);
   renderProjects(projects, projectsError, completionMap, attemptsMap);
 }
 
-function setSectionProgress(elementId, done, total) {
-  const el = document.getElementById(elementId);
-  if (el) el.innerHTML = progressBar(done, total);
+function setSectionProgress(barId, countId, done, total) {
+  const barEl = document.getElementById(barId);
+  if (barEl) barEl.innerHTML = progressBar(done, total);
+
+  const countEl = document.getElementById(countId);
+  if (countEl) countEl.textContent = progressCount(done, total);
+}
+
+function completionStatusHtml(isDone, pendingLabel) {
+  if (isDone) {
+    return `<div class="lesson-completion-status is-complete">${ICONS.check}<span>Completed</span></div>`;
+  }
+  return `<div class="lesson-completion-status">${esc(pendingLabel)}</div>`;
 }
 
 function renderApprovalCheckbox(itemType, itemId, status, label, unlocked, lockedTitle) {
   if (status === 'verified') {
-    return '<div class="approval-status approval-verified">&#10003; Verified</div>';
+    return `<div class="approval-status approval-verified">${ICONS.check}<span>Verified</span></div>`;
   }
   if (status === 'pending') {
-    return '<div class="approval-status approval-pending">Pending admin approval</div>';
+    return '<div class="approval-status approval-pending"><span>Pending admin approval</span></div>';
   }
   return `
     <label class="topic-complete-checkbox">
       <input type="checkbox" class="submit-approval-checkbox" data-item-type="${esc(itemType)}" data-item-id="${esc(itemId)}" ${unlocked ? '' : 'disabled'} title="${unlocked ? 'Mark Attendance' : esc(lockedTitle)}" />
-      ${unlocked ? esc(label) : esc(lockedTitle)}
+      <span>${unlocked ? esc(label) : esc(lockedTitle)}</span>
     </label>
   `;
 }
@@ -405,7 +502,7 @@ function buildApprovalStatusElement(completion) {
   const status = document.createElement('div');
   const isVerified = completion?.status === 'verified';
   status.className = `approval-status ${isVerified ? 'approval-verified' : 'approval-pending'}`;
-  status.innerHTML = isVerified ? '&#10003; Verified' : 'Pending admin approval';
+  status.innerHTML = isVerified ? `${ICONS.check}<span>Verified</span>` : '<span>Pending admin approval</span>';
   return status;
 }
 
@@ -446,12 +543,24 @@ function renderSessions(data, error, completionMap) {
     .map((session) => {
       const status = completionMap.get(completionKey('session', session.id));
       const isDone = status === 'verified';
+      const controls = `
+        <span class="xp-info">
+          <span class="xp-badge">+${esc(session.xp_value)} XP</span>
+          <span class="xp-badge-note">Admin approval</span>
+        </span>
+      `;
+
       return `
-        <div class="checklist-item ${isDone ? 'item-done' : ''}">
-          ${renderCardHeader(session.title, `+${session.xp_value} XP · admin approval required`, '')}
-          <div class="checklist-item-body" hidden>
-            <div class="portal-card-body">${esc(session.content)}</div>
-            ${renderApprovalCheckbox('session', session.id, status, 'Mark Attendance', true, '')}
+        <div class="checklist-item ${isDone ? 'item-done' : ''}" data-key="${esc(completionKey('session', session.id))}">
+          ${renderCardHeader('session', session.title, session.content, controls)}
+          <div class="lesson-body" hidden>
+            <div class="lesson-body-section">
+              <h5 class="lesson-body-heading">Details</h5>
+              <p class="lesson-body-text">${esc(session.content)}</p>
+            </div>
+            <div class="lesson-body-section">
+              ${renderApprovalCheckbox('session', session.id, status, 'Mark Attendance', true, '')}
+            </div>
           </div>
         </div>
       `;
@@ -460,11 +569,12 @@ function renderSessions(data, error, completionMap) {
 
   wireCardToggles(container);
   wireApprovalCheckboxes(container);
+  applyExpansionState(container);
 }
 
-// Topics render as light-blue, collapsible lesson cards. Expanding one shows
-// exactly three things: the PDF study material link, the quiz, and the
-// mark-complete checkbox.
+// Topics render as collapsible lesson cards. Expanding one shows exactly
+// three things: the PDF study material link, the quiz, and the
+// mark-complete checkbox/completion status.
 function renderTopics(data, error, completionMap, attemptsMap, sessionsSubmitted) {
   const container = document.getElementById('topics-list');
   if (!container) return;
@@ -488,22 +598,32 @@ function renderTopics(data, error, completionMap, attemptsMap, sessionsSubmitted
       const attempted = attempts.length > 0;
       const canMark = sessionsSubmitted && attempted;
 
-      let checkboxTitle = 'Mark chapter complete';
-      if (!sessionsSubmitted) checkboxTitle = 'Mark Session Attendance first to unlock';
-      else if (!attempted) checkboxTitle = 'Attempt the quiz at least once to unlock';
+      let pendingLabel = 'Mark chapter complete to finish';
+      if (!sessionsSubmitted) pendingLabel = 'Mark Session Attendance first to unlock';
+      else if (!attempted) pendingLabel = 'Attempt the quiz at least once to unlock';
 
+      const checkboxTitle = isDone ? 'Completed' : pendingLabel;
       const checkbox = `
-        <input type="checkbox" class="mark-complete-checkbox" data-topic-id="${esc(topic.id)}" ${isDone || !canMark ? 'disabled' : ''} ${isDone ? 'checked' : ''} title="${isDone ? 'Completed' : esc(checkboxTitle)}" />
+        <input type="checkbox" class="mark-complete-checkbox" data-topic-id="${esc(topic.id)}" ${isDone || !canMark ? 'disabled' : ''} ${isDone ? 'checked' : ''} aria-label="Mark chapter complete" title="${esc(checkboxTitle)}" />
       `;
-      const side = `<span class="xp-chip">+${esc(topic.xp_value)} XP</span>${checkbox}`;
+      const controls = `
+        <span class="xp-badge">+${esc(topic.xp_value)} XP</span>
+        ${checkbox}
+      `;
 
       return `
-        <div class="checklist-item ${isDone ? 'item-done' : ''}">
-          ${renderCardHeader(topic.title, topic.learning_objectives, side)}
-          <div class="checklist-item-body" hidden>
-            ${renderPdfLink(topic.pdf_url)}
-            ${renderQuiz(topic.quiz, 'topic', topic.id, attempts)}
-            <div class="checklist-item-footer">${isDone ? 'Completed' : esc(checkboxTitle)}</div>
+        <div class="checklist-item ${isDone ? 'item-done' : ''}" data-key="${esc(completionKey('topic', topic.id))}">
+          ${renderCardHeader('topic', topic.title, topic.learning_objectives, controls)}
+          <div class="lesson-body" hidden>
+            <div class="lesson-body-section">
+              <h5 class="lesson-body-heading">Study Material</h5>
+              ${renderPdfLink(topic.pdf_url)}
+            </div>
+            <div class="lesson-body-section">
+              <h5 class="lesson-body-heading">Quiz</h5>
+              ${renderQuiz(topic.quiz, 'topic', topic.id, attempts)}
+            </div>
+            ${completionStatusHtml(isDone, pendingLabel)}
           </div>
         </div>
       `;
@@ -512,6 +632,7 @@ function renderTopics(data, error, completionMap, attemptsMap, sessionsSubmitted
 
   wireCardToggles(container);
   wireQuizzes(container);
+  applyExpansionState(container);
 
   container.querySelectorAll('.mark-complete-checkbox').forEach((checkbox) => {
     checkbox.addEventListener('click', (event) => event.stopPropagation());
@@ -522,7 +643,11 @@ function renderTopics(data, error, completionMap, attemptsMap, sessionsSubmitted
       try {
         await markTopicComplete(checkbox.dataset.topicId);
         item.classList.add('item-done');
-        item.querySelector('.checklist-item-footer').textContent = 'Completed';
+        const statusEl = item.querySelector('.lesson-completion-status');
+        if (statusEl) {
+          statusEl.classList.add('is-complete');
+          statusEl.innerHTML = `${ICONS.check}<span>Completed</span>`;
+        }
       } catch (err) {
         console.error('Failed to mark topic complete:', err.message);
         checkbox.checked = false;
@@ -553,14 +678,32 @@ function renderProjects(data, error, completionMap, attemptsMap) {
       const isDone = status === 'verified';
       const attempts = attemptsMap.get(completionKey('project', project.id)) || [];
       const attempted = attempts.length > 0;
+      const description = project.requirements || project.instructions || '';
+
+      const controls = `
+        <span class="xp-info">
+          <span class="xp-badge">+${esc(project.xp_value)} XP</span>
+          <span class="xp-badge-note">Admin approval</span>
+        </span>
+      `;
 
       return `
-        <div class="checklist-item ${isDone ? 'item-done' : ''}">
-          ${renderCardHeader(project.title, `+${project.xp_value} XP · admin approval required`, '')}
-          <div class="checklist-item-body" hidden>
-            ${renderPdfLink(project.pdf_url)}
-            ${renderQuiz(project.quiz, 'project', project.id, attempts)}
-            ${renderApprovalCheckbox('project', project.id, status, 'Submit for Review', attempted, 'Attempt the quiz at least once to unlock')}
+        <div class="checklist-item ${isDone ? 'item-done' : ''}" data-key="${esc(completionKey('project', project.id))}">
+          ${renderCardHeader('project', project.title, description, controls)}
+          <div class="lesson-body" hidden>
+            ${project.requirements ? `<div class="lesson-body-section"><h5 class="lesson-body-heading">Requirements</h5><p class="lesson-body-text">${esc(project.requirements)}</p></div>` : ''}
+            ${project.instructions ? `<div class="lesson-body-section"><h5 class="lesson-body-heading">Instructions</h5><p class="lesson-body-text">${esc(project.instructions)}</p></div>` : ''}
+            <div class="lesson-body-section">
+              <h5 class="lesson-body-heading">Study Material</h5>
+              ${renderPdfLink(project.pdf_url)}
+            </div>
+            <div class="lesson-body-section">
+              <h5 class="lesson-body-heading">Quiz</h5>
+              ${renderQuiz(project.quiz, 'project', project.id, attempts)}
+            </div>
+            <div class="lesson-body-section">
+              ${renderApprovalCheckbox('project', project.id, status, 'Submit for Review', attempted, 'Attempt the quiz at least once to unlock')}
+            </div>
           </div>
         </div>
       `;
@@ -570,6 +713,7 @@ function renderProjects(data, error, completionMap, attemptsMap) {
   wireCardToggles(container);
   wireApprovalCheckboxes(container);
   wireQuizzes(container);
+  applyExpansionState(container);
 }
 
 renderStagesList();

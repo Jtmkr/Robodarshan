@@ -7,7 +7,7 @@
        (e.g. 2, 3, ...) -- learning-portal.js looks up the stage's real
        `id` from this number via a query, so this does not need to match
        the primary key directly.
-    2. Update the <title> and the visible stage heading text.
+    2. Update the <title> and the stage-hero eyebrow/title/tag text.
     3. Make sure learning-portal.js links to it via "stage-<number>.html"
        (it already builds that filename from the `number` column).
 -->
@@ -26,6 +26,7 @@
     <link href="https://fonts.googleapis.com" rel="preconnect" />
     <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous" />
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+    <link href="/css/learning-portal.css" rel="stylesheet" type="text/css" />
     <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js" type="text/javascript"></script>
     <script
         type="text/javascript">WebFont.load({ google: { families: ["Vollkorn:400,400italic,700,700italic"] } });</script>
@@ -37,336 +38,6 @@
     <link
         href="https://assets-global.website-files.com/657cba550bc392281580fd5e/6580d2a2d19d786bea7c1609_RoboDarsha%20Logo%20Black%20Trans%20(1).png"
         rel="apple-touch-icon" />
-    <style>
-        .section-middle {
-            background-color: #eaf2ff;
-        }
-
-        .section-middle .paragraph {
-            color: #1e3a5c;
-        }
-
-        .heading-section.events {
-            color: #1d4ed8;
-        }
-
-        .paragraph.big {
-            color: #4b6584;
-        }
-
-        .stage-section-heading {
-            color: #1d4ed8;
-            margin-top: 40px;
-        }
-
-        .section-heading-row {
-            align-items: baseline;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 8px;
-            display: flex;
-        }
-
-        .progress-bar {
-            height: 8px;
-            background-color: #dbeafe;
-            border: 1px solid #bfdbfe;
-            border-radius: 4px;
-            width: 160px;
-            overflow: hidden;
-        }
-
-        .progress-bar-fill {
-            height: 100%;
-            background-image: linear-gradient(90deg, #2563eb, #60a5fa);
-            transition: width .8s ease;
-        }
-
-        .progress-label {
-            color: #4b6584;
-            margin-top: 4px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 11px;
-            text-align: right;
-        }
-
-        .checklist-item {
-            background-color: #fff;
-            border: 1px solid #bfdbfe;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            box-shadow: 0 1px 3px rgba(37, 99, 235, .08);
-            overflow: hidden;
-        }
-
-        .checklist-item.item-done {
-            border-color: rgba(34, 197, 94, .5);
-        }
-
-        .lesson-card-header {
-            cursor: pointer;
-            color: #fff;
-            align-items: center;
-            gap: 14px;
-            padding: 16px;
-            display: flex;
-            position: relative;
-        }
-
-        .lesson-card-header::after {
-            content: '\203A';
-            color: rgba(255, 255, 255, .9);
-            font-size: 22px;
-            line-height: 1;
-            transition: transform .2s ease;
-        }
-
-        .lesson-card-header.expanded::after {
-            transform: rotate(90deg);
-        }
-
-        .lesson-card-icon {
-            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .25));
-            font-size: 26px;
-            flex-shrink: 0;
-        }
-
-        .lesson-card-text {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .lesson-card-title {
-            font-weight: bold;
-        }
-
-        .lesson-card-subtitle {
-            color: rgba(255, 255, 255, .9);
-            margin-top: 2px;
-            font-size: 13px;
-        }
-
-        .lesson-card-side {
-            align-items: center;
-            gap: 10px;
-            flex-shrink: 0;
-            display: flex;
-        }
-
-        .lesson-card-side input {
-            width: 20px;
-            height: 20px;
-            accent-color: #fff;
-            flex-shrink: 0;
-        }
-
-        .xp-chip {
-            color: #fff;
-            background-color: rgba(255, 255, 255, .22);
-            border-radius: 12px;
-            padding: 3px 10px;
-            font-size: 12px;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-
-        .checklist-item-body {
-            border-top: 1px solid #dbeafe;
-            padding: 16px;
-        }
-
-        .checklist-item-footer {
-            color: #4b6584;
-            font-style: italic;
-            margin-top: 10px;
-        }
-
-        .pdf-link {
-            color: #fff;
-            cursor: pointer;
-            background-color: #2563eb;
-            border-radius: 6px;
-            margin-bottom: 14px;
-            padding: 10px 16px;
-            font-weight: bold;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .pdf-link:hover {
-            background-color: #1d4ed8;
-        }
-
-        .pdf-missing {
-            color: #4b6584;
-            font-style: italic;
-            margin-bottom: 14px;
-        }
-
-        .topic-quiz {
-            background-color: #f4f8ff;
-            border: 1px solid #dbeafe;
-            border-radius: 6px;
-            margin: 10px 0;
-            padding: 12px;
-        }
-
-        .topic-quiz h5 {
-            color: #1d4ed8;
-            margin-top: 0;
-            margin-bottom: 10px;
-        }
-
-        .quiz-history {
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 12px;
-            display: flex;
-        }
-
-        .quiz-history-empty {
-            color: #4b6584;
-            font-style: italic;
-            margin: 0 0 12px;
-        }
-
-        .quiz-history-item {
-            color: #1d4ed8;
-            background-color: rgba(37, 99, 235, .1);
-            border-radius: 12px;
-            padding: 3px 10px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .quiz-question {
-            background-color: #fff;
-            border: 1px solid #dbeafe;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            padding: 12px;
-        }
-
-        .quiz-question-text {
-            color: #1e3a5c;
-            margin-top: 0;
-            font-weight: bold;
-        }
-
-        .quiz-options {
-            flex-direction: column;
-            gap: 6px;
-            display: flex;
-        }
-
-        .quiz-option {
-            color: #1e3a5c;
-            cursor: pointer;
-            align-items: center;
-            gap: 8px;
-            padding: 4px 0;
-            display: flex;
-        }
-
-        .quiz-option input {
-            accent-color: #2563eb;
-        }
-
-        .quiz-option.quiz-correct {
-            color: #16a34a;
-            font-weight: bold;
-        }
-
-        .quiz-option.quiz-incorrect {
-            color: #dc2626;
-            font-weight: bold;
-        }
-
-        .quiz-submit-button {
-            color: #fff;
-            cursor: pointer;
-            background-color: #2563eb;
-            border: 0;
-            border-radius: 4px;
-            padding: 8px 16px;
-            font-size: 14px;
-        }
-
-        .quiz-submit-button:disabled {
-            cursor: default;
-            opacity: .6;
-        }
-
-        .quiz-result {
-            color: #1d4ed8;
-            margin-top: 10px;
-            font-weight: bold;
-        }
-
-        .topic-complete-checkbox {
-            cursor: pointer;
-            color: #1e3a5c;
-            align-items: center;
-            gap: 8px;
-            margin-top: 10px;
-            font-weight: bold;
-            display: flex;
-        }
-
-        .topic-complete-checkbox input {
-            width: 18px;
-            height: 18px;
-            accent-color: #2563eb;
-        }
-
-        .approval-status {
-            border-radius: 4px;
-            margin-top: 10px;
-            padding: 8px 0;
-            font-weight: bold;
-            display: inline-block;
-        }
-
-        .approval-status.approval-pending {
-            color: #b45309;
-        }
-
-        .approval-status.approval-verified {
-            color: #16a34a;
-        }
-
-        @media screen and (max-width: 479px) {
-            .lesson-card-header {
-                gap: 10px;
-                padding: 12px;
-            }
-
-            .lesson-card-icon {
-                font-size: 20px;
-            }
-
-            .lesson-card-side {
-                gap: 6px;
-            }
-
-            .xp-chip {
-                padding: 2px 7px;
-                font-size: 11px;
-            }
-
-            .checklist-item-body {
-                padding: 12px;
-            }
-
-            .progress-bar {
-                width: 100px;
-            }
-
-            .quiz-question {
-                padding: 10px;
-            }
-        }
-    </style>
 </head>
 
 <body class="body">
@@ -386,32 +57,53 @@
         </div>
     </div>
     <section class="section-middle" data-stage-id="3">
-        <h1 class="heading-section events">Stage 3 - Advanced Robotics | AUTONOMY</h1>
-        <p class="paragraph big">Expand any session, topic, or project below to view its study material (PDF),
-            take the quiz, and mark it complete.</p>
+        <div class="rd-container">
+            <div class="stage-hero">
+                <span class="stage-hero-eyebrow">STAGE 3</span>
+                <h1 class="stage-hero-title">Advanced Robotics</h1>
+                <span class="stage-hero-tag">AUTONOMY</span>
+                <p class="stage-hero-desc">Expand any session, topic, or project below to view its study material
+                    (PDF), take the quiz, and mark it complete.</p>
+            </div>
 
-        <div class="section-heading-row">
-            <h2 class="stage-section-heading">Sessions</h2>
-            <div id="sessions-progress"></div>
-        </div>
-        <div id="sessions-list">
-            <p class="paragraph">Loading sessions...</p>
-        </div>
+            <div class="section-block">
+                <div class="section-header">
+                    <div class="section-header-top">
+                        <h2 class="stage-section-heading">Sessions</h2>
+                        <span id="sessions-count" class="progress-label"></span>
+                    </div>
+                    <div id="sessions-progress"></div>
+                </div>
+                <div id="sessions-list">
+                    <p class="paragraph">Loading sessions...</p>
+                </div>
+            </div>
 
-        <div class="section-heading-row">
-            <h2 class="stage-section-heading">Topics</h2>
-            <div id="topics-progress"></div>
-        </div>
-        <div id="topics-list">
-            <p class="paragraph">Loading topics...</p>
-        </div>
+            <div class="section-block">
+                <div class="section-header">
+                    <div class="section-header-top">
+                        <h2 class="stage-section-heading">Topics</h2>
+                        <span id="topics-count" class="progress-label"></span>
+                    </div>
+                    <div id="topics-progress"></div>
+                </div>
+                <div id="topics-list">
+                    <p class="paragraph">Loading topics...</p>
+                </div>
+            </div>
 
-        <div class="section-heading-row">
-            <h2 class="stage-section-heading">Projects</h2>
-            <div id="projects-progress"></div>
-        </div>
-        <div id="projects-list">
-            <p class="paragraph">Loading projects...</p>
+            <div class="section-block">
+                <div class="section-header">
+                    <div class="section-header-top">
+                        <h2 class="stage-section-heading">Projects</h2>
+                        <span id="projects-count" class="progress-label"></span>
+                    </div>
+                    <div id="projects-progress"></div>
+                </div>
+                <div id="projects-list">
+                    <p class="paragraph">Loading projects...</p>
+                </div>
+            </div>
         </div>
     </section>
     <section class="footer">
@@ -423,6 +115,15 @@
                             sizes="(max-width: 479px) 92vw, (max-width: 767px) 63vw, (max-width: 991px) 36vw, 300px"
                             srcset="https://assets-global.website-files.com/657cba550bc392281580fd5e/657cc0ca198cae9affbdd1fd_Robodarshan%20Text%20Logo%20White-p-500.png 500w, https://assets-global.website-files.com/657cba550bc392281580fd5e/657cc0ca198cae9affbdd1fd_Robodarshan%20Text%20Logo%20White.png 736w"
                             alt="" /></a>
+                    <div class="text-block">Address:</div>
+                    <div class="text-block-2">IIEST, Botanical Garden Area, Howrah, West Bengal 711103</div>
+                </div>
+            </div>
+            <div class="div-block-right-footer">
+                <div class="w-layout-vflex flex-block-2">
+                    <div class="div-block-right-footer-inside"><a href="/about.html" class="link-footer">About Us</a><a
+                            href="/team.html" class="link-footer">Team</a><a href="/contact.html"
+                            class="link-footer">Contact</a></div>
                 </div>
             </div>
         </div>

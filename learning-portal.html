@@ -15,6 +15,7 @@
     <link href="https://fonts.googleapis.com" rel="preconnect" />
     <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous" />
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+    <link href="/css/learning-portal.css" rel="stylesheet" type="text/css" />
     <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js" type="text/javascript"></script>
     <script
         type="text/javascript">WebFont.load({ google: { families: ["Vollkorn:400,400italic,700,700italic"] } });</script>
@@ -26,116 +27,6 @@
     <link
         href="https://assets-global.website-files.com/657cba550bc392281580fd5e/6580d2a2d19d786bea7c1609_RoboDarsha%20Logo%20Black%20Trans%20(1).png"
         rel="apple-touch-icon" />
-    <style>
-        .section-middle {
-            background-color: #eaf2ff;
-        }
-
-        .section-middle .paragraph {
-            color: #1e3a5c;
-        }
-
-        .heading-section.events {
-            color: #1d4ed8;
-        }
-
-        .stages-grid {
-            grid-column-gap: 20px;
-            grid-row-gap: 20px;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            display: grid;
-        }
-
-        .stage-card {
-            color: #1e3a5c;
-            background-color: #fff;
-            border: 1px solid #bfdbfe;
-            border-radius: 8px;
-            padding: 20px;
-            text-decoration: none;
-            display: block;
-            box-shadow: 0 1px 3px rgba(37, 99, 235, .08);
-            transition: border-color .2s, box-shadow .2s;
-        }
-
-        .stage-card:hover {
-            border-color: #2563eb;
-            box-shadow: 0 2px 8px rgba(37, 99, 235, .15);
-        }
-
-        .stage-card-number {
-            color: #2563eb;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-        }
-
-        .stage-card-title {
-            color: #1e3a5c;
-            margin-top: 0;
-        }
-
-        .stage-card-theme {
-            color: #4b6584;
-        }
-
-        .overall-progress-section {
-            max-width: 600px;
-            margin: 0 auto 40px;
-        }
-
-        .progress-bar {
-            height: 10px;
-            background-color: #dbeafe;
-            border: 1px solid #bfdbfe;
-            border-radius: 5px;
-            margin-top: 14px;
-            overflow: hidden;
-        }
-
-        .progress-bar-fill {
-            height: 100%;
-            background-image: linear-gradient(90deg, #2563eb, #60a5fa);
-            transition: width .8s ease;
-        }
-
-        .progress-label {
-            color: #4b6584;
-            margin-top: 6px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 12px;
-        }
-
-        .progress-chips {
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 14px;
-            display: flex;
-        }
-
-        .progress-chip {
-            border-radius: 14px;
-            padding: 4px 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .chip-session, .chip-topic, .chip-project {
-            color: #1d4ed8;
-            background-color: rgba(37, 99, 235, .1);
-        }
-
-        @media screen and (max-width: 479px) {
-            .stages-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stage-card {
-                padding: 16px;
-            }
-        }
-    </style>
 </head>
 
 <body class="body">
@@ -155,10 +46,12 @@
         </div>
     </div>
     <section class="section-middle">
-        <h1 class="heading-section events">Learning Portal</h1>
-        <div id="overall-progress" class="overall-progress-section"></div>
-        <div id="stages-grid" class="stages-grid">
-            <p class="paragraph">Loading stages...</p>
+        <div class="rd-container">
+            <h1 class="heading-section events">Learning Portal</h1>
+            <div id="overall-progress" class="overall-progress-section"></div>
+            <div id="stages-grid" class="stages-grid">
+                <p class="paragraph">Loading stages...</p>
+            </div>
         </div>
     </section>
     <section class="footer">

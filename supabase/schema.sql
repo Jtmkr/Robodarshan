@@ -37,7 +37,7 @@ create table public.users (
   profile_picture_url text not null,
   role text not null default 'member' check (role in ('member', 'rookie', 'trainee', 'veteran', 'admin')),
   total_xp integer not null default 0,
-  assigned_trainee_id uuid references public.users(id),
+  assigned_trainee_id uuid references public.users(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -118,7 +118,7 @@ create table public.completions (
   item_id uuid not null,
   status text not null default 'incomplete' check (status in ('incomplete', 'pending', 'verified', 'rejected')),
   submitted_at timestamptz,
-  verified_by uuid references public.users(id),
+  verified_by uuid references public.users(id) on delete set null,
   verified_at timestamptz,
   unique (user_id, item_type, item_id)
 );
@@ -135,7 +135,7 @@ create table public.xp_transactions (
   item_id uuid not null,
   xp_amount integer not null,
   status text not null default 'awarded' check (status in ('awarded', 'reversed')),
-  approved_by uuid references public.users(id),
+  approved_by uuid references public.users(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -148,7 +148,7 @@ create table public.content_changes (
   id uuid primary key default gen_random_uuid(),
   item_type text not null check (item_type in ('session', 'topic', 'project')),
   item_id uuid not null,
-  changed_by uuid not null references public.users(id),
+  changed_by uuid references public.users(id) on delete set null,
   change_type text not null check (change_type in ('created', 'updated', 'submitted_for_approval', 'approved', 'rejected')),
   previous_data jsonb,
   new_data jsonb,
@@ -164,7 +164,7 @@ create table public.kit_assignments (
   kit_name text not null,
   assigned_at timestamptz not null default now(),
   returned_at timestamptz,
-  assigned_by uuid references public.users(id),
+  assigned_by uuid references public.users(id) on delete set null,
   notes text
 );
 
@@ -176,7 +176,7 @@ create table public.announcements (
   title text not null,
   body text not null,
   image_url text,
-  posted_by uuid references public.users(id),
+  posted_by uuid references public.users(id) on delete set null,
   created_at timestamptz not null default now()
 );
 

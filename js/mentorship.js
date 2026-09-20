@@ -243,8 +243,13 @@ async function renderVeteranSection(container, profile) {
         (announcements || []).length
           ? `<ul class="announcement-existing-list">${announcements
               .map(
-                (a) =>
-                  `<li>${escM(a.title)} <span class="announcement-existing-date">(${new Date(a.created_at).toLocaleDateString()})</span></li>`
+                (a) => `
+                  <li>
+                    <span class="announcement-existing-title">${escM(a.title)}</span>
+                    <span class="announcement-existing-date">(${new Date(a.created_at).toLocaleDateString()})</span>
+                    <button type="button" class="announcement-delete-button" data-announcement-id="${escM(a.id)}" data-image-url="${escM(a.image_url || '')}">Delete</button>
+                  </li>
+                `
               )
               .join('')}</ul>`
           : '<p class="paragraph">No announcements yet.</p>'
@@ -321,5 +326,40 @@ async function renderVeteranSection(container, profile) {
       submitButton.disabled = false;
       submitButton.textContent = 'Post Announcement';
     }
+  });
+
+  container.querySelectorAll('.announcement-delete-button').forEach((button) => {
+    button.addEventListener('click', async () => {
+      if (!confirm('Delete this announcement? This cannot be undone.')) return;
+
+      button.disabled = true;
+      button.textContent = 'Deleting...';
+
+      try {
+        const { error: deleteError } = await supabaseClient
+          .from('announcements')
+          .delete()
+          .eq('id', button.dataset.announcementId);
+
+        if (deleteError) throw new Error(`Failed to delete announcement: ${deleteError.message}`);
+
+        const imageUrl = button.dataset.imageUrl;
+        if (imageUrl) {
+          const marker = '/announcement-images/';
+          const markerIndex = imageUrl.indexOf(marker);
+          if (markerIndex !== -1) {
+            const path = imageUrl.slice(markerIndex + marker.length);
+            const { error: removeError } = await supabaseClient.storage.from('announcement-images').remove([path]);
+            if (removeError) console.error('Failed to remove announcement image:', removeError.message);
+          }
+        }
+
+        await renderVeteranSection(container, profile);
+      } catch (err) {
+        console.error('Failed to delete announcement:', err.message);
+        button.disabled = false;
+        button.textContent = 'Delete';
+      }
+    });
   });
 }

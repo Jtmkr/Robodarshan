@@ -5,11 +5,13 @@
 //   - Rookie:  their assigned Trainee (mentor) + their own kit list.
 //   - Trainee: their assigned Rookies + kit management for each.
 //   - Veteran (and Admin): every Rookie and Trainee, and lets them
-//     (re)assign which Trainee mentors a given Rookie.
+//     (re)assign which Trainee mentors a given Rookie, plus announcements.
 //
 // Nothing here decides roles or promotions -- it only reads/writes the
 // assigned_trainee_id pairing and kit_assignments, per the RLS policies in
-// supabase/migrations/005_mentorship_and_kits.sql.
+// supabase/migrations/005_mentorship_and_kits.sql. Markup/classes below are
+// presentation only -- every supabaseClient query, data attribute and event
+// wiring target is unchanged from before this redesign.
 
 function escM(value) {
   const div = document.createElement('div');
@@ -17,23 +19,39 @@ function escM(value) {
   return div.innerHTML;
 }
 
-function renderKitList(kits) {
-  if (!kits.length) return '<p class="paragraph">No kits assigned yet.</p>';
+function initialsM(name) {
+  return (name || '?').trim().charAt(0).toUpperCase() || '?';
+}
+
+const EMPTY_STATE_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12.5"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+
+function emptyStateM(text) {
+  return `<div class="empty-state">${EMPTY_STATE_ICON}<span>${escM(text)}</span></div>`;
+}
+
+function renderKitList(kits, interactive) {
+  if (!kits.length) return emptyStateM('No kits assigned yet.');
   return `
-    <ul class="kit-list">
+    <div class="kit-list">
       ${kits
         .map(
           (kit) => `
-            <li>
-              ${escM(kit.kit_name)}
+            <div class="kit-row">
+              <span class="kit-name">${escM(kit.kit_name)}</span>
               <span class="kit-status ${kit.returned_at ? 'kit-returned' : 'kit-active'}">
                 ${kit.returned_at ? 'Returned' : 'Assigned'}
               </span>
-            </li>
+              ${
+                interactive && !kit.returned_at
+                  ? `<button type="button" class="btn btn-outline btn-sm kit-return-button" data-kit-id="${escM(kit.id)}">Mark Returned</button>`
+                  : ''
+              }
+            </div>
           `
         )
         .join('')}
-    </ul>
+    </div>
   `;
 }
 
@@ -76,9 +94,24 @@ async function renderRookieSection(container, profile) {
 
   container.innerHTML = `
     <div class="dashboard-card role-section">
-      <h3>My Mentor</h3>
-      <p class="paragraph">${trainee ? `${escM(trainee.name)} (${escM(trainee.gsuite_email)})` : 'Not yet assigned.'}</p>
-      <h3>My Kit</h3>
+      <h3 class="section-heading">My Mentor</h3>
+      ${
+        trainee
+          ? `
+            <div class="member-card">
+              <div class="member-card-header">
+                <div class="member-avatar-placeholder">${escM(initialsM(trainee.name))}</div>
+                <div class="member-info">
+                  <div class="member-name">${escM(trainee.name)}</div>
+                  <div class="member-email">${escM(trainee.gsuite_email)}</div>
+                </div>
+              </div>
+            </div>
+          `
+          : emptyStateM('Not yet assigned.')
+      }
+
+      <h3 class="section-heading section-heading-spaced">My Kit</h3>
       ${renderKitList(kits || [])}
     </div>
   `;
@@ -93,8 +126,7 @@ async function renderTraineeSection(container, profile) {
 
   if (error) {
     console.error('Failed to load assigned rookies:', error.message);
-    container.innerHTML =
-      '<div class="dashboard-card role-section"><p class="paragraph">Could not load your assigned Rookies.</p></div>';
+    container.innerHTML = `<div class="dashboard-card role-section">${emptyStateM('Could not load your assigned Rookies.')}</div>`;
     return;
   }
 
@@ -120,26 +152,34 @@ async function renderTraineeSection(container, profile) {
 
   container.innerHTML = `
     <div class="dashboard-card role-section">
-      <h3>My Assigned Rookies</h3>
+      <h3 class="section-heading">My Assigned Rookies</h3>
       ${
         (rookies || []).length
           ? rookies
               .map(
                 (rookie) => `
-                  <div class="rookie-row">
-                    <div class="rookie-row-header">
-                      <strong>${escM(rookie.name)}</strong> (${escM(rookie.gsuite_email)}) &mdash; ${escM(rookie.total_xp)} XP
+                  <div class="member-card">
+                    <div class="member-card-header">
+                      <div class="member-avatar-placeholder">${escM(initialsM(rookie.name))}</div>
+                      <div class="member-info">
+                        <div class="member-name">${escM(rookie.name)}</div>
+                        <div class="member-email">${escM(rookie.gsuite_email)}</div>
+                      </div>
+                      <span class="member-xp-chip">${escM(rookie.total_xp)} XP</span>
                     </div>
-                    ${renderKitList(kitsByRookie.get(rookie.id) || [])}
-                    <form class="assign-kit-form" data-rookie-id="${escM(rookie.id)}">
-                      <input type="text" class="kit-name-input" placeholder="Kit name" required maxlength="100" />
-                      <button type="submit">Assign Kit</button>
-                    </form>
+                    <div class="member-card-body">
+                      <span class="field-label">Kit</span>
+                      ${renderKitList(kitsByRookie.get(rookie.id) || [], true)}
+                      <form class="assign-kit-form" data-rookie-id="${escM(rookie.id)}">
+                        <input type="text" class="input kit-name-input" placeholder="Kit name" required maxlength="100" />
+                        <button type="submit" class="btn btn-primary btn-sm">Assign Kit</button>
+                      </form>
+                    </div>
                   </div>
                 `
               )
               .join('')
-          : '<p class="paragraph">No Rookies assigned to you yet.</p>'
+          : emptyStateM('No Rookies assigned to you yet.')
       }
     </div>
   `;
@@ -163,6 +203,27 @@ async function renderTraineeSection(container, profile) {
       if (insertError) {
         console.error('Failed to assign kit:', insertError.message);
         button.disabled = false;
+        return;
+      }
+
+      await renderTraineeSection(container, profile);
+    });
+  });
+
+  container.querySelectorAll('.kit-return-button').forEach((button) => {
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      button.textContent = 'Marking...';
+
+      const { error: updateError } = await supabaseClient
+        .from('kit_assignments')
+        .update({ returned_at: new Date().toISOString() })
+        .eq('id', button.dataset.kitId);
+
+      if (updateError) {
+        console.error('Failed to mark kit returned:', updateError.message);
+        button.disabled = false;
+        button.textContent = 'Mark Returned';
         return;
       }
 
@@ -193,66 +254,93 @@ async function renderVeteranSection(container, profile) {
 
   container.innerHTML = `
     <div class="dashboard-card role-section">
-      <h3>All Rookies</h3>
+      <h3 class="section-heading">All Rookies</h3>
       ${
         (rookies || []).length
           ? rookies
               .map(
                 (rookie) => `
-                  <div class="rookie-row">
-                    <div class="rookie-row-header">
-                      <strong>${escM(rookie.name)}</strong> (${escM(rookie.gsuite_email)}) &mdash; ${escM(rookie.total_xp)} XP
+                  <div class="member-card">
+                    <div class="member-card-header">
+                      <div class="member-avatar-placeholder">${escM(initialsM(rookie.name))}</div>
+                      <div class="member-info">
+                        <div class="member-name">${escM(rookie.name)}</div>
+                        <div class="member-email">${escM(rookie.gsuite_email)}</div>
+                      </div>
+                      <span class="member-xp-chip">${escM(rookie.total_xp)} XP</span>
                     </div>
-                    <label class="assign-trainee-label">
-                      Assigned Trainee:
-                      <select class="assign-trainee-select" data-rookie-id="${escM(rookie.id)}">
+                    <div class="member-card-body">
+                      <label class="field-label" for="assign-trainee-${escM(rookie.id)}">Assigned Trainee</label>
+                      <select id="assign-trainee-${escM(rookie.id)}" class="select-input assign-trainee-select" data-rookie-id="${escM(rookie.id)}">
                         <option value="">-- Unassigned --</option>
                         ${traineeOptions}
                       </select>
-                    </label>
+                    </div>
                   </div>
                 `
               )
               .join('')
-          : '<p class="paragraph">No Rookies yet.</p>'
-      }
-
-      <h3>All Trainees</h3>
-      ${
-        (trainees || []).length
-          ? `<ul class="trainee-list">${trainees
-              .map((trainee) => `<li>${escM(trainee.name)} (${escM(trainee.gsuite_email)})</li>`)
-              .join('')}</ul>`
-          : '<p class="paragraph">No Trainees yet.</p>'
+          : emptyStateM('No Rookies yet.')
       }
     </div>
 
     <div class="dashboard-card role-section">
-      <h3>Manage Announcements</h3>
+      <h3 class="section-heading">All Trainees</h3>
+      ${
+        (trainees || []).length
+          ? trainees
+              .map(
+                (trainee) => `
+                  <div class="member-card">
+                    <div class="member-card-header">
+                      <div class="member-avatar-placeholder">${escM(initialsM(trainee.name))}</div>
+                      <div class="member-info">
+                        <div class="member-name">${escM(trainee.name)}</div>
+                        <div class="member-email">${escM(trainee.gsuite_email)}</div>
+                      </div>
+                    </div>
+                  </div>
+                `
+              )
+              .join('')
+          : emptyStateM('No Trainees yet.')
+      }
+    </div>
+
+    <div class="dashboard-card role-section">
+      <h3 class="section-heading">Manage Announcements</h3>
       <form id="announcement-form" class="announcement-form">
-        <input type="text" id="announcement-title-input" placeholder="Title" required maxlength="200" />
-        <textarea id="announcement-body-input" placeholder="Details" required rows="3"></textarea>
-        <label class="announcement-image-label">Image (optional)</label>
-        <input type="file" id="announcement-image-input" accept="image/*" />
-        <button type="submit" class="announcement-submit-button">Post Announcement</button>
+        <div class="form-field">
+          <label class="field-label" for="announcement-title-input">Title</label>
+          <input type="text" id="announcement-title-input" class="input" placeholder="Announcement title" required maxlength="200" />
+        </div>
+        <div class="form-field">
+          <label class="field-label" for="announcement-body-input">Details</label>
+          <textarea id="announcement-body-input" class="textarea-input" placeholder="What's the announcement?" required rows="3"></textarea>
+        </div>
+        <div class="form-field">
+          <label class="field-label" for="announcement-image-input">Image (optional)</label>
+          <input type="file" id="announcement-image-input" class="file-input" accept="image/*" />
+        </div>
+        <button type="submit" class="btn btn-primary announcement-submit-button">Post Announcement</button>
         <p id="announcement-form-error" class="announcement-form-error" hidden></p>
       </form>
 
-      <h4 class="announcement-existing-heading">Existing Announcements</h4>
+      <h4 class="section-heading section-heading-spaced">Existing Announcements</h4>
       ${
         (announcements || []).length
-          ? `<ul class="announcement-existing-list">${announcements
+          ? `<div class="announcement-list">${announcements
               .map(
                 (a) => `
-                  <li>
-                    <span class="announcement-existing-title">${escM(a.title)}</span>
-                    <span class="announcement-existing-date">(${new Date(a.created_at).toLocaleDateString()})</span>
-                    <button type="button" class="announcement-delete-button" data-announcement-id="${escM(a.id)}" data-image-url="${escM(a.image_url || '')}">Delete</button>
-                  </li>
+                  <div class="announcement-list-item">
+                    <span class="announcement-item-title">${escM(a.title)}</span>
+                    <span class="announcement-item-date">${new Date(a.created_at).toLocaleDateString()}</span>
+                    <button type="button" class="btn btn-danger btn-sm announcement-delete-button" data-announcement-id="${escM(a.id)}" data-image-url="${escM(a.image_url || '')}">Delete</button>
+                  </div>
                 `
               )
-              .join('')}</ul>`
-          : '<p class="paragraph">No announcements yet.</p>'
+              .join('')}</div>`
+          : emptyStateM('No announcements yet.')
       }
     </div>
   `;

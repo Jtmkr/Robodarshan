@@ -142,11 +142,12 @@ create table public.xp_transactions (
 create index xp_transactions_user_id_idx on public.xp_transactions(user_id);
 
 -- ---------------------------------------------------------
--- content_changes (new) -- audit log for session/topic/project edits & approvals
+-- content_changes (new) -- audit log for session/topic/project edits &
+-- approvals, and (item_type 'user') self-service profile edits
 -- ---------------------------------------------------------
 create table public.content_changes (
   id uuid primary key default gen_random_uuid(),
-  item_type text not null check (item_type in ('session', 'topic', 'project')),
+  item_type text not null check (item_type in ('session', 'topic', 'project', 'user')),
   item_id uuid not null,
   changed_by uuid references public.users(id) on delete set null,
   change_type text not null check (change_type in ('created', 'updated', 'submitted_for_approval', 'approved', 'rejected')),
@@ -385,6 +386,83 @@ after insert or update on public.xp_transactions
 for each row execute function public.apply_xp_transaction();
 
 -- =========================================================
+-- Self-service profile edits: pins protected fields back to their
+-- current value on a self-edit (regardless of what the update request
+-- contains), then logs the before/after of what a self-edit is actually
+-- allowed to change into content_changes for admin review.
+-- =========================================================
+-- The pg_trigger_depth() = 1 check matters here: apply_xp_transaction's own
+-- `update public.users set total_xp = ...` happens while already inside
+-- another trigger (nested, depth > 1) and is for the acting user's own
+-- row -- without it, every XP award would look like a self-edit and get
+-- silently undone by the total_xp := old.total_xp line below.
+create or replace function public.enforce_profile_self_edit_limits()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() = old.id and pg_trigger_depth() = 1 then
+    new.role := old.role;
+    new.total_xp := old.total_xp;
+    new.gsuite_email := old.gsuite_email;
+    new.assigned_trainee_id := old.assigned_trainee_id;
+    new.id := old.id;
+    new.created_at := old.created_at;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_enforce_profile_self_edit_limits
+before update on public.users
+for each row
+execute function public.enforce_profile_self_edit_limits();
+
+create or replace function public.log_profile_self_edit()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() = old.id and pg_trigger_depth() = 1 and (
+    new.name is distinct from old.name
+    or new.profile_picture_url is distinct from old.profile_picture_url
+    or new.enrollment_number is distinct from old.enrollment_number
+    or new.mobile_number is distinct from old.mobile_number
+  ) then
+    insert into public.content_changes (item_type, item_id, changed_by, change_type, previous_data, new_data)
+    values (
+      'user',
+      new.id,
+      new.id,
+      'updated',
+      jsonb_build_object(
+        'name', old.name,
+        'profile_picture_url', old.profile_picture_url,
+        'enrollment_number', old.enrollment_number,
+        'mobile_number', old.mobile_number
+      ),
+      jsonb_build_object(
+        'name', new.name,
+        'profile_picture_url', new.profile_picture_url,
+        'enrollment_number', new.enrollment_number,
+        'mobile_number', new.mobile_number
+      )
+    );
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_log_profile_self_edit
+after update on public.users
+for each row
+execute function public.log_profile_self_edit();
+
+-- =========================================================
 -- Row Level Security
 -- =========================================================
 alter table public.users enable row level security;
@@ -424,6 +502,22 @@ create policy users_update_privileged on public.users
   for update to authenticated
   using (public.user_role(auth.uid()) in ('veteran', 'admin'))
   with check (public.user_role(auth.uid()) in ('veteran', 'admin'));
+
+-- users: a user may also update their own row (self-service profile edit
+-- -- name/mobile_number/enrollment_number/profile_picture_url). What
+-- fields that actually allows changing is enforced by the
+-- enforce_profile_self_edit_limits trigger below, not by this policy.
+create policy users_update_self on public.users
+  for update to authenticated
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
+
+-- users: a user may delete their own row (self-service account deletion).
+-- This only removes their profile/progress -- see migration 017 for why
+-- the underlying Supabase Auth account itself isn't deleted here.
+create policy users_delete_self on public.users
+  for delete to authenticated
+  using (auth.uid() = id);
 
 -- stages: any logged-in user can read; only admins write
 create policy stages_select on public.stages

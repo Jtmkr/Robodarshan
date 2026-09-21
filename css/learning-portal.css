@@ -774,6 +774,25 @@
   opacity: 0.6;
 }
 
+.quiz-retry-button {
+  display: inline-flex;
+  align-items: center;
+  color: var(--rd-blue-light);
+  cursor: pointer;
+  background-color: transparent;
+  border: 1px solid var(--rd-blue);
+  border-radius: var(--rd-radius-sm);
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.quiz-retry-button:hover {
+  color: var(--rd-white);
+  background-color: var(--rd-blue);
+}
+
 .quiz-result {
   color: var(--rd-blue-light);
   font-size: 13px;

@@ -12,7 +12,7 @@
 update public.topics
 set quiz = $q$[
   {"question": "What are the three basic functional stages every robot follows?", "options": ["Input, Processing, Output", "Power, Control, Motion", "Design, Build, Test", "Sense, Think, Communicate"], "answer": 0},
-  {"question": "Which component allows a robot to interact physically with its environment?", "options": ["Sensor", "Actuator", "Controller", "Power supply"], "answer": 1},
+  {"question": "Which component allows a robot to interact physically with its environment?", "options": ["Sensor", "Actuator", "Controller", "Power supply"], "answer": 0},
   {"question": "What is the role of a controller/microcontroller in a robot?", "options": ["Supplies power to the motors", "Detects light and sound", "Processes input and decides the output", "Provides mechanical structure"], "answer": 2},
   {"question": "Sensors in a robot are primarily used to:", "options": ["Move the robot", "Perceive/measure the environment", "Store energy", "Display output to a user"], "answer": 1},
   {"question": "Which of these is an example of an actuator?", "options": ["Ultrasonic sensor", "DC motor", "Potentiometer", "LDR"], "answer": 1}

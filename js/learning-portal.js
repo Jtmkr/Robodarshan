@@ -155,45 +155,64 @@ function renderQuizHistory(attempts) {
   `;
 }
 
+// Tracks the last "Check Answers" result per quiz (by completionKey), so a
+// re-render triggered by that same submission (renderStagePage() refreshes
+// attempt history + unlock state) can redraw the quiz already showing its
+// answers instead of resetting to blank -- previously the correct/incorrect
+// highlighting only stayed visible for the instant before that re-render.
+// Cleared when the learner clicks "Attempt Again".
+const quizSubmissions = new Map();
+
 // Renders a quiz as an interactive form (radio per question) with a "Check
 // Answers" button. Scoring never affects XP -- every attempt is just saved
 // as history (via wireQuizzes' submit handler) and multiple attempts are
-// allowed (no cap).
+// allowed (no cap). If this quiz was just submitted (see quizSubmissions
+// above), it's rendered already showing that result instead of blank, with
+// an "Attempt Again" button in place of "Check Answers".
 function renderQuiz(quiz, itemType, itemId, attempts) {
   if (!quiz || !Array.isArray(quiz) || !quiz.length) return '';
 
-  const nextAttemptNumber = attempts.length + 1;
+  const key = completionKey(itemType, itemId);
+  const submission = quizSubmissions.get(key);
+  const attemptNumber = submission ? attempts.length : attempts.length + 1;
 
   return `
     <div class="topic-quiz">
       <div class="quiz-top">
-        <span class="quiz-attempt-count">${quiz.length} question${quiz.length === 1 ? '' : 's'} &middot; Attempt #${nextAttemptNumber}</span>
+        <span class="quiz-attempt-count">${quiz.length} question${quiz.length === 1 ? '' : 's'} &middot; Attempt #${attemptNumber}</span>
       </div>
       ${renderQuizHistory(attempts)}
-      <form class="quiz-form" data-quiz="${escAttr(JSON.stringify(quiz))}" data-item-type="${esc(itemType)}" data-item-id="${esc(itemId)}">
+      <form class="quiz-form" data-quiz="${escAttr(JSON.stringify(quiz))}" data-item-type="${esc(itemType)}" data-item-id="${esc(itemId)}" data-attempt-count="${attempts.length}">
         ${quiz
-          .map(
-            (q, qi) => `
+          .map((q, qi) => {
+            const selectedValue = submission ? submission.selections[qi] : null;
+            return `
               <div class="quiz-question">
                 <p class="quiz-question-text">${qi + 1}. ${esc(q.question)}</p>
                 <div class="quiz-options">
                   ${(q.options || [])
-                    .map(
-                      (opt, oi) => `
-                        <label class="quiz-option">
-                          <input type="radio" name="q${qi}" value="${oi}" />
+                    .map((opt, oi) => {
+                      let resultClass = '';
+                      if (submission) {
+                        if (oi === q.answer) resultClass = 'quiz-correct';
+                        else if (oi === selectedValue) resultClass = 'quiz-incorrect';
+                      }
+                      return `
+                        <label class="quiz-option ${resultClass}">
+                          <input type="radio" name="q${qi}" value="${oi}" ${oi === selectedValue ? 'checked' : ''} ${submission ? 'disabled' : ''} />
                           <span>${esc(opt)}</span>
                         </label>
-                      `
-                    )
+                      `;
+                    })
                     .join('')}
                 </div>
               </div>
-            `
-          )
+            `;
+          })
           .join('')}
-        <button type="submit" class="quiz-submit-button">Check Answers</button>
-        <div class="quiz-result" hidden></div>
+        <button type="submit" class="quiz-submit-button" ${submission ? 'hidden' : ''}>Check Answers</button>
+        <button type="button" class="quiz-retry-button" ${submission ? '' : 'hidden'}>Attempt Again</button>
+        <div class="quiz-result" ${submission ? '' : 'hidden'}>${submission ? `You got ${submission.score}/${submission.total} correct.` : ''}</div>
       </form>
     </div>
   `;
@@ -215,18 +234,56 @@ async function recordQuizAttempt(itemType, itemId, score, total) {
 }
 
 function wireQuizzes(container) {
+  // Reverts a quiz form to a fresh, unanswered, enabled state -- shared by
+  // the "Attempt Again" button and by the submit handler's error path (so a
+  // failed save doesn't leave the form stuck disabled with no way to retry).
+  function resetQuizForm(form) {
+    const itemType = form.dataset.itemType;
+    const itemId = form.dataset.itemId;
+    quizSubmissions.delete(completionKey(itemType, itemId));
+
+    form.querySelectorAll('input[type="radio"]').forEach((input) => {
+      input.checked = false;
+      input.disabled = false;
+    });
+    form.querySelectorAll('.quiz-option').forEach((label) => label.classList.remove('quiz-correct', 'quiz-incorrect'));
+
+    const result = form.querySelector('.quiz-result');
+    result.hidden = true;
+    result.textContent = '';
+
+    const quizLength = JSON.parse(form.dataset.quiz).length;
+    const attemptCount = Number(form.dataset.attemptCount || 0);
+    const countLabel = form.closest('.topic-quiz')?.querySelector('.quiz-attempt-count');
+    if (countLabel) {
+      countLabel.textContent = `${quizLength} question${quizLength === 1 ? '' : 's'} · Attempt #${attemptCount + 1}`;
+    }
+
+    form.querySelector('.quiz-retry-button').hidden = true;
+    form.querySelector('.quiz-submit-button').hidden = false;
+  }
+
   container.querySelectorAll('.quiz-form').forEach((form) => {
     form.addEventListener('click', (event) => event.stopPropagation());
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
 
       const quiz = JSON.parse(form.dataset.quiz);
+      const itemType = form.dataset.itemType;
+      const itemId = form.dataset.itemId;
+      const key = completionKey(itemType, itemId);
+      const submitButton = form.querySelector('.quiz-submit-button');
+      const retryButton = form.querySelector('.quiz-retry-button');
+      const result = form.querySelector('.quiz-result');
+
       let score = 0;
+      const selections = {};
 
       quiz.forEach((q, qi) => {
         const options = form.querySelectorAll(`input[name="q${qi}"]`);
         const selected = form.querySelector(`input[name="q${qi}"]:checked`);
         const selectedValue = selected ? Number(selected.value) : null;
+        selections[qi] = selectedValue;
 
         options.forEach((opt) => {
           const label = opt.closest('.quiz-option');
@@ -237,28 +294,41 @@ function wireQuizzes(container) {
           } else if (optValue === selectedValue) {
             label.classList.add('quiz-incorrect');
           }
+          opt.disabled = true;
         });
 
         if (selectedValue === q.answer) score += 1;
       });
 
-      const result = form.querySelector('.quiz-result');
       result.hidden = false;
       result.textContent = `You got ${score}/${quiz.length} correct.`;
+      submitButton.hidden = true;
+      retryButton.hidden = false;
 
-      const submitButton = form.querySelector('.quiz-submit-button');
-      submitButton.disabled = true;
+      // Stored *before* the re-render below so renderQuiz() redraws this
+      // quiz already showing the result instead of resetting to blank --
+      // that's what used to make the highlighting look like it only
+      // flashed for a couple of seconds.
+      quizSubmissions.set(key, { selections, score, total: quiz.length });
 
       try {
-        await recordQuizAttempt(form.dataset.itemType, form.dataset.itemId, score, quiz.length);
+        await recordQuizAttempt(itemType, itemId, score, quiz.length);
         // Re-render the whole stage section so the attempt history and any
         // now-unlocked mark-complete checkbox reflect the fresh DB state.
         await renderStagePage();
       } catch (err) {
         console.error('Failed to record quiz attempt:', err.message);
-        submitButton.disabled = false;
+        resetQuizForm(form);
       }
     });
+
+    const retryButton = form.querySelector('.quiz-retry-button');
+    if (retryButton) {
+      retryButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        resetQuizForm(form);
+      });
+    }
   });
 }
 

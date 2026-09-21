@@ -57,6 +57,7 @@
             <div id="dashboard-card" class="dashboard-card profile-hero">
                 <p class="paragraph">Loading your profile...</p>
             </div>
+            <div id="profile-edit-section"></div>
             <div id="role-section"></div>
         </div>
     </section>
@@ -87,6 +88,7 @@
     <script src="/js/auth.js"></script>
     <script src="/js/rank.js"></script>
     <script src="/js/mentorship.js"></script>
+    <script src="/js/profile-edit.js"></script>
     <script>
         document.getElementById('logout-link').addEventListener('click', function (event) {
             event.preventDefault();
@@ -99,14 +101,8 @@
             return div.innerHTML;
         }
 
-        (async function loadDashboard() {
-            const user = await getCurrentUser();
-            if (!user) return;
-
+        function renderProfileHero(profile, display) {
             const card = document.getElementById('dashboard-card');
-            const profile = user.profile;
-            const rookieThreshold = await getRookieXpThreshold();
-            const display = getXpDisplay(profile.role, profile.total_xp, rookieThreshold);
 
             card.innerHTML = `
                 <div class="profile-hero-main">
@@ -139,6 +135,22 @@
             // transition actually animates from 0 on load.
             requestAnimationFrame(() => {
                 document.getElementById('xp-bar-fill').style.width = `${display.percent}%`;
+            });
+        }
+
+        (async function loadDashboard() {
+            const user = await getCurrentUser();
+            if (!user) return;
+
+            const profile = user.profile;
+            const rookieThreshold = await getRookieXpThreshold();
+            const display = getXpDisplay(profile.role, profile.total_xp, rookieThreshold);
+
+            renderProfileHero(profile, display);
+
+            renderProfileEditSection(document.getElementById('profile-edit-section'), profile, (updated) => {
+                Object.assign(profile, updated);
+                renderProfileHero(profile, display);
             });
 
             await renderRoleSection(document.getElementById('role-section'), profile);

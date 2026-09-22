@@ -170,6 +170,21 @@ create table public.kit_assignments (
 );
 
 -- ---------------------------------------------------------
+-- project_assignments (new) -- Trainee-assigned projects for a Rookie,
+-- separate from the curriculum `projects` table above. Removal is a
+-- hard delete (no "returned" concept, unlike kit_assignments).
+-- ---------------------------------------------------------
+create table public.project_assignments (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete cascade,
+  title text not null,
+  description text,
+  pdf_url text,
+  assigned_at timestamptz not null default now(),
+  assigned_by uuid references public.users(id) on delete set null
+);
+
+-- ---------------------------------------------------------
 -- announcements (new)
 -- ---------------------------------------------------------
 create table public.announcements (
@@ -474,6 +489,7 @@ alter table public.completions enable row level security;
 alter table public.xp_transactions enable row level security;
 alter table public.content_changes enable row level security;
 alter table public.kit_assignments enable row level security;
+alter table public.project_assignments enable row level security;
 alter table public.announcements enable row level security;
 alter table public.contact_submissions enable row level security;
 alter table public.team_members enable row level security;
@@ -630,6 +646,27 @@ create policy kit_assignments_write on public.kit_assignments
     or public.user_role(auth.uid()) in ('veteran', 'admin')
   );
 
+-- project_assignments: a Rookie sees their own; their assigned Trainee
+-- can see + manage (assign/remove) them; Veteran/Admin can see + manage all.
+create policy project_assignments_select on public.project_assignments
+  for select to authenticated
+  using (
+    user_id = auth.uid()
+    or public.assigned_trainee_of(user_id) = auth.uid()
+    or public.user_role(auth.uid()) in ('veteran', 'admin')
+  );
+
+create policy project_assignments_write on public.project_assignments
+  for all to authenticated
+  using (
+    public.assigned_trainee_of(user_id) = auth.uid()
+    or public.user_role(auth.uid()) in ('veteran', 'admin')
+  )
+  with check (
+    public.assigned_trainee_of(user_id) = auth.uid()
+    or public.user_role(auth.uid()) in ('veteran', 'admin')
+  );
+
 -- announcements: anyone (including logged-out visitors -- shown on the
 -- public Home page) can read; Veteran or Admin can manage.
 create policy announcements_select on public.announcements
@@ -725,4 +762,30 @@ create policy announcement_images_delete on storage.objects
   using (
     bucket_id = 'announcement-images'
     and public.user_role(auth.uid()) in ('veteran', 'admin')
+  );
+
+-- =========================================================
+-- Storage: project assignment PDFs -- public bucket (the Rookie just
+-- needs to open the link); Trainee/Veteran/Admin may upload/delete.
+-- =========================================================
+insert into storage.buckets (id, name, public)
+values ('project-attachments', 'project-attachments', true)
+on conflict (id) do nothing;
+
+create policy project_attachments_public_read on storage.objects
+  for select to public
+  using (bucket_id = 'project-attachments');
+
+create policy project_attachments_write on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'project-attachments'
+    and public.user_role(auth.uid()) in ('trainee', 'veteran', 'admin')
+  );
+
+create policy project_attachments_delete on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'project-attachments'
+    and public.user_role(auth.uid()) in ('trainee', 'veteran', 'admin')
   );

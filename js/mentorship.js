@@ -2,16 +2,17 @@
 // js/auth.js being loaded first.
 //
 // Renders the role-specific section of the dashboard:
-//   - Rookie:  their assigned Trainee (mentor) + their own kit list.
-//   - Trainee: their assigned Rookies + kit management for each.
+//   - Rookie:  their assigned Trainee (mentor) + their own kit/project list.
+//   - Trainee: their assigned Rookies + kit and project management for each.
 //   - Veteran (and Admin): every Rookie and Trainee, and lets them
 //     (re)assign which Trainee mentors a given Rookie, plus announcements.
 //
 // Nothing here decides roles or promotions -- it only reads/writes the
-// assigned_trainee_id pairing and kit_assignments, per the RLS policies in
-// supabase/migrations/005_mentorship_and_kits.sql. Markup/classes below are
-// presentation only -- every supabaseClient query, data attribute and event
-// wiring target is unchanged from before this redesign.
+// assigned_trainee_id pairing, kit_assignments and project_assignments, per
+// the RLS policies in supabase/migrations/005_mentorship_and_kits.sql and
+// 018_project_assignments.sql. project_assignments is a lightweight Trainee
+// -> Rookie project assignment (title/description/optional PDF), unrelated
+// to the curriculum `projects` table used by the learning portal/XP system.
 
 function escM(value) {
   const div = document.createElement('div');
@@ -55,6 +56,36 @@ function renderKitList(kits, interactive) {
   `;
 }
 
+function renderProjectList(projects, interactive) {
+  if (!projects.length) return emptyStateM('No projects assigned yet.');
+  return `
+    <div class="kit-list">
+      ${projects
+        .map(
+          (project) => `
+            <div class="kit-row project-row">
+              <div class="project-row-info">
+                <span class="kit-name">${escM(project.title)}</span>
+                ${project.description ? `<span class="project-description">${escM(project.description)}</span>` : ''}
+                ${
+                  project.pdf_url
+                    ? `<a href="${escM(project.pdf_url)}" target="_blank" rel="noopener" class="project-pdf-link">View PDF</a>`
+                    : ''
+                }
+              </div>
+              ${
+                interactive
+                  ? `<button type="button" class="btn btn-danger btn-sm project-remove-button" data-project-id="${escM(project.id)}" data-pdf-url="${escM(project.pdf_url || '')}">Remove</button>`
+                  : ''
+              }
+            </div>
+          `
+        )
+        .join('')}
+    </div>
+  `;
+}
+
 async function renderRoleSection(container, profile) {
   if (profile.role === 'rookie') {
     await renderRookieSection(container, profile);
@@ -82,14 +113,16 @@ async function renderRookieSection(container, profile) {
     }
   }
 
-  const { data: kits, error: kitsError } = await supabaseClient
-    .from('kit_assignments')
-    .select('*')
-    .eq('user_id', profile.id)
-    .order('assigned_at', { ascending: false });
+  const [{ data: kits, error: kitsError }, { data: projects, error: projectsError }] = await Promise.all([
+    supabaseClient.from('kit_assignments').select('*').eq('user_id', profile.id).order('assigned_at', { ascending: false }),
+    supabaseClient.from('project_assignments').select('*').eq('user_id', profile.id).order('assigned_at', { ascending: false }),
+  ]);
 
   if (kitsError) {
     console.error('Failed to load kits:', kitsError.message);
+  }
+  if (projectsError) {
+    console.error('Failed to load assigned projects:', projectsError.message);
   }
 
   container.innerHTML = `
@@ -113,6 +146,9 @@ async function renderRookieSection(container, profile) {
 
       <h3 class="section-heading section-heading-spaced">My Kit</h3>
       ${renderKitList(kits || [])}
+
+      <h3 class="section-heading section-heading-spaced">My Projects</h3>
+      ${renderProjectList(projects || [])}
     </div>
   `;
 }
@@ -132,13 +168,13 @@ async function renderTraineeSection(container, profile) {
 
   const rookieIds = (rookies || []).map((r) => r.id);
   const kitsByRookie = new Map();
+  const projectsByRookie = new Map();
 
   if (rookieIds.length) {
-    const { data: kits, error: kitsError } = await supabaseClient
-      .from('kit_assignments')
-      .select('*')
-      .in('user_id', rookieIds)
-      .order('assigned_at', { ascending: false });
+    const [{ data: kits, error: kitsError }, { data: projects, error: projectsError }] = await Promise.all([
+      supabaseClient.from('kit_assignments').select('*').in('user_id', rookieIds).order('assigned_at', { ascending: false }),
+      supabaseClient.from('project_assignments').select('*').in('user_id', rookieIds).order('assigned_at', { ascending: false }),
+    ]);
 
     if (kitsError) {
       console.error('Failed to load kits:', kitsError.message);
@@ -146,6 +182,15 @@ async function renderTraineeSection(container, profile) {
       (kits || []).forEach((kit) => {
         if (!kitsByRookie.has(kit.user_id)) kitsByRookie.set(kit.user_id, []);
         kitsByRookie.get(kit.user_id).push(kit);
+      });
+    }
+
+    if (projectsError) {
+      console.error('Failed to load assigned projects:', projectsError.message);
+    } else {
+      (projects || []).forEach((project) => {
+        if (!projectsByRookie.has(project.user_id)) projectsByRookie.set(project.user_id, []);
+        projectsByRookie.get(project.user_id).push(project);
       });
     }
   }
@@ -173,6 +218,16 @@ async function renderTraineeSection(container, profile) {
                       <form class="assign-kit-form" data-rookie-id="${escM(rookie.id)}">
                         <input type="text" class="input kit-name-input" placeholder="Kit name" required maxlength="100" />
                         <button type="submit" class="btn btn-primary btn-sm">Assign Kit</button>
+                      </form>
+
+                      <span class="field-label section-heading-spaced">Projects</span>
+                      ${renderProjectList(projectsByRookie.get(rookie.id) || [], true)}
+                      <form class="assign-project-form" data-rookie-id="${escM(rookie.id)}">
+                        <input type="text" class="input project-title-input" placeholder="Project title" required maxlength="200" />
+                        <textarea class="textarea-input project-description-input" placeholder="Description (optional)" rows="2" maxlength="2000"></textarea>
+                        <input type="file" class="file-input project-pdf-input" accept="application/pdf" />
+                        <button type="submit" class="btn btn-primary btn-sm">Assign Project</button>
+                        <p class="announcement-form-error project-form-error" hidden></p>
                       </form>
                     </div>
                   </div>
@@ -228,6 +283,97 @@ async function renderTraineeSection(container, profile) {
       }
 
       await renderTraineeSection(container, profile);
+    });
+  });
+
+  container.querySelectorAll('.assign-project-form').forEach((form) => {
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const title = form.querySelector('.project-title-input').value.trim();
+      const description = form.querySelector('.project-description-input').value.trim();
+      const file = form.querySelector('.project-pdf-input').files[0];
+      const errorEl = form.querySelector('.project-form-error');
+      const button = form.querySelector('button');
+
+      if (!title) return;
+
+      errorEl.hidden = true;
+      button.disabled = true;
+      button.textContent = 'Assigning...';
+
+      try {
+        let pdfUrl = null;
+
+        if (file) {
+          const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+          const path = `${Date.now()}-${safeName}`;
+
+          const { error: uploadError } = await supabaseClient.storage.from('project-attachments').upload(path, file, {
+            contentType: file.type,
+          });
+
+          if (uploadError) throw new Error(`Failed to upload PDF: ${uploadError.message}`);
+
+          const {
+            data: { publicUrl },
+          } = supabaseClient.storage.from('project-attachments').getPublicUrl(path);
+          pdfUrl = publicUrl;
+        }
+
+        const { error: insertError } = await supabaseClient.from('project_assignments').insert({
+          user_id: form.dataset.rookieId,
+          title,
+          description: description || null,
+          pdf_url: pdfUrl,
+          assigned_by: profile.id,
+        });
+
+        if (insertError) throw new Error(`Failed to assign project: ${insertError.message}`);
+
+        await renderTraineeSection(container, profile);
+      } catch (err) {
+        console.error('Failed to assign project:', err.message);
+        errorEl.textContent = err.message;
+        errorEl.hidden = false;
+        button.disabled = false;
+        button.textContent = 'Assign Project';
+      }
+    });
+  });
+
+  container.querySelectorAll('.project-remove-button').forEach((button) => {
+    button.addEventListener('click', async () => {
+      if (!confirm('Remove this project assignment? This cannot be undone.')) return;
+
+      button.disabled = true;
+      button.textContent = 'Removing...';
+
+      try {
+        const { error: deleteError } = await supabaseClient
+          .from('project_assignments')
+          .delete()
+          .eq('id', button.dataset.projectId);
+
+        if (deleteError) throw new Error(`Failed to remove project: ${deleteError.message}`);
+
+        const pdfUrl = button.dataset.pdfUrl;
+        if (pdfUrl) {
+          const marker = '/project-attachments/';
+          const markerIndex = pdfUrl.indexOf(marker);
+          if (markerIndex !== -1) {
+            const path = pdfUrl.slice(markerIndex + marker.length);
+            const { error: removeError } = await supabaseClient.storage.from('project-attachments').remove([path]);
+            if (removeError) console.error('Failed to remove project PDF:', removeError.message);
+          }
+        }
+
+        await renderTraineeSection(container, profile);
+      } catch (err) {
+        console.error('Failed to remove project:', err.message);
+        button.disabled = false;
+        button.textContent = 'Remove';
+      }
     });
   });
 }

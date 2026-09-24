@@ -2974,6 +2974,42 @@ textarea.w-input, textarea.w-select {
   display: flex;
 }
 
+.merch-offer {
+  text-align: center;
+  max-width: 560px;
+}
+
+.merch-launch-copy {
+  font-size: 1.25rem;
+  margin: 0 0 16px;
+}
+
+.merch-prices {
+  color: #a788fe;
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 0 0 24px;
+}
+
+.merch-order-button {
+  display: inline-block;
+  padding: 14px 28px;
+  border-radius: 6px;
+  background: #a788fe;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-decoration: none;
+  transition: background-color .2s ease, transform .2s ease;
+}
+
+.merch-order-button:hover {
+  background: #8967e8;
+  transform: translateY(-2px);
+}
+
 .div-block-merch-image {
   width: 40%;
 }

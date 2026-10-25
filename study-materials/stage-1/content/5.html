@@ -1,0 +1,136 @@
+<section id="big-idea">
+<h2>The big idea</h2>
+<p>Arduino connects code to the real world. It is a small computer for physical projects: it reads what is happening, makes a decision, and controls what happens next. Board + IDE + sketch work together.</p>
+<a class="video-link" href="https://youtu.be/JnJIKX5J0Cc?si=okGV43s1KrbdgXzN" target="_blank" rel="noopener">Video 1</a>
+<a class="video-link" href="https://youtu.be/SX8z3-BEuWQ?si=ogRrtr8yZl-ZFKWY" target="_blank" rel="noopener">Video 2</a>
+<a class="video-link" href="https://youtu.be/ynAvySNCi-0?si=Mmpxcu9Vex71KvhW" target="_blank" rel="noopener">Video 3</a>
+<a class="video-link" href="https://youtu.be/EVDnYnAyktw?si=GNGQ4dFUMsDcCKM6" target="_blank" rel="noopener">Video 4</a>
+<a class="video-link" href="https://youtu.be/m8ov5S78AlY?si=TPGUTO5QZdKriB-2" target="_blank" rel="noopener">Video 5</a>
+<a class="video-link" href="https://youtu.be/Q5A2vsa2B-g?si=Mi0D96XMUI2zVZ2E" target="_blank" rel="noopener">Video 6</a>
+<a class="video-link" href="https://youtu.be/oOBxocRbdbo?si=M_kBWzziXQCrFWX8" target="_blank" rel="noopener">Video 7</a>
+<div class="card-grid">
+<div class="info-card"><h4>Reads inputs</h4><p>Buttons, sensors, and switches tell the board what is happening.</p></div>
+<div class="info-card"><h4>Runs a sketch</h4><p>A short program makes decisions in code.</p></div>
+<div class="info-card"><h4>Controls outputs</h4><p>LEDs, buzzers, motors, and displays respond.</p></div>
+</div>
+</section>
+
+<section id="meet-the-uno">
+<h2>Meet the board</h2>
+<p>Know the UNO before you wire it. Find the places where code enters, signals travel, measurements happen, and power is shared.</p>
+<figure><img src="/study-materials/stage-1/content/img/5-1.jpg" alt="Labelled Arduino UNO: 1 microcontroller, 2 USB port, 3 USB to serial chip, 4 digital pins, 5 analog pins, 6 5V/3.3V, 7 GND, 8 VIN" loading="lazy"><figcaption>Arduino UNO: (1) Microcontroller, (2) USB port, (3) USB to serial chip, (4) Digital pins, (5) Analog pins, (6) 5V/3.3V, (7) GND, (8) VIN.</figcaption></figure>
+</section>
+
+<section id="arduino-ide-workflow">
+<h2>From idea to board: the Arduino IDE</h2>
+<p>The Arduino IDE is the path from idea to board. Choose the correct board and port before uploading. The IDE turns your sketch into instructions the board can run.</p>
+<ol>
+<li><strong>Write</strong> &mdash; Create a sketch in the editor.</li>
+<li><strong>Compile</strong> &mdash; Check for errors and build instructions.</li>
+<li><strong>Upload</strong> &mdash; Send the compiled sketch through USB to the Arduino.</li>
+<li><strong>Run</strong> &mdash; The board starts the new sketch.</li>
+</ol>
+</section>
+
+<section id="digital-vs-analog">
+<h2>Two ways to read: digital and analog</h2>
+<p>Digital asks a yes-or-no question; analog measures a range.</p>
+<div class="card-grid">
+<div class="info-card"><h4>Digital: LOW or HIGH</h4><p>Two clear states. Use <code>digitalRead()</code> to read and <code>digitalWrite()</code> to control. Switches and LEDs fit this yes-or-no model (open / closed).</p></div>
+<div class="info-card"><h4>Analog: a changing value</h4><p>Measure a range from a sensor or potentiometer with <code>analogRead()</code>. Brightness, position, and light level can vary (less / more).</p></div>
+</div>
+</section>
+
+<section id="setup-and-loop">
+<h2>Setup and loop</h2>
+<p>Every Arduino sketch has a setup and a loop. One opening step prepares the board. Then one repeating step keeps the project alive.</p>
+<div class="card-grid">
+<div class="info-card"><h4><code>setup()</code></h4><p>Runs once when the board starts or resets.</p></div>
+<div class="info-card"><h4><code>loop()</code></h4><p>Runs repeatedly while the board has power.</p></div>
+</div>
+<ul>
+<li><strong>Read</strong> &mdash; Check inputs and signals.</li>
+<li><strong>Update</strong> &mdash; Make decisions and change outputs.</li>
+</ul>
+</section>
+
+<section id="pin-behavior">
+<h2>Pin behavior</h2>
+<p><code>pinMode()</code> tells a pin how to behave. Choose whether the pin listens, drives, or listens with an internal pull-up resistor.</p>
+<div class="card-grid">
+<div class="info-card"><h4><code>INPUT</code></h4><p>The pin listens for an external signal, such as a switch.</p></div>
+<div class="info-card"><h4><code>OUTPUT</code></h4><p>The pin drives a component, such as an LED.</p></div>
+<div class="info-card"><h4><code>INPUT_PULLUP</code></h4><p>The pin listens with the Arduino&rsquo;s internal pull-up resistor. Open = typically HIGH; connected to GND = LOW.</p></div>
+</div>
+<pre><code class="language-cpp">pinMode(7, INPUT_PULLUP);</code></pre>
+</section>
+
+<section id="code-shape">
+<h2>Code shape</h2>
+<p>Code punctuation gives the sketch its shape. Comments explain intent; brackets show which instructions belong together.</p>
+<div class="card-grid">
+<div class="info-card"><h4><code>//</code></h4><p>Starts a single-line comment.</p><p><code>// read the switch</code></p></div>
+<div class="info-card"><h4><code>/* */</code></h4><p>Wraps a multi-line comment.</p><p><code>/* setup notes */</code></p></div>
+<div class="info-card"><h4><code>( )</code></h4><p>Holds a function&rsquo;s inputs or conditions.</p><p><code>delay(1000);</code></p></div>
+<div class="info-card"><h4><code>{ }</code></h4><p>Marks the beginning and end of a block.</p><p><code>void loop() { }</code></p></div>
+</div>
+</section>
+
+<section id="first-project-blink">
+<h2>First project: blink the built-in LED</h2>
+<p>Use pin 13, set it as an output, then alternate HIGH and LOW inside <code>loop()</code>. A working sketch is a conversation between code and light.</p>
+<pre><code class="language-cpp">const int ledPin = 13;
+
+void setup() {
+  pinMode(ledPin, OUTPUT);
+}
+
+void loop() {
+  digitalWrite(ledPin, HIGH);
+  delay(1000);
+  digitalWrite(ledPin, LOW);
+  delay(1000);
+}</code></pre>
+<ul>
+<li><code>setup()</code> prepares the pin once.</li>
+<li><code>loop()</code> repeats.</li>
+<li>HIGH / LOW turns the LED on/off.</li>
+</ul>
+</section>
+
+<section id="installing-the-ide">
+<h2>Installing the Arduino IDE</h2>
+<h3>Step 1: Download the software</h3>
+<ol>
+<li>Go to the official website: <a href="https://www.arduino.cc/en/software/" target="_blank" rel="noopener">arduino.cc/en/software</a>.</li>
+<li>Select the installer for your operating system (Windows, macOS, or Linux).</li>
+<li>Download the latest version of the Arduino IDE 2.x.</li>
+</ol>
+<h3>Step 2: Install the IDE</h3>
+<ol>
+<li>Run the downloaded installer file.</li>
+<li>Follow the setup wizard prompts and accept the license agreement.</li>
+<li>Complete the installation and open the Arduino IDE.</li>
+</ol>
+<div class="callout callout-caution"><div class="callout-title">Important</div><p>Ensure driver installation options (USB drivers) are checked during setup.</p></div>
+<h3>Step 3: Connect and select your board</h3>
+<ol>
+<li>Plug your Arduino UNO into your computer using a USB cable.</li>
+<li>In the top toolbar of the IDE, click the Board dropdown.</li>
+<li>Select Arduino Uno from the list.</li>
+<li>Select the corresponding COM port (Windows) or <code>/dev/cu.usbmodem</code> (macOS).</li>
+</ol>
+</section>
+
+<section id="try-observe-change">
+<h2>Try, observe, change</h2>
+<p>Upload, observe, and debug one change at a time.</p>
+<ol>
+<li>Select Arduino UNO and the correct USB port.</li>
+<li>Compile before uploading so errors are easier to locate.</li>
+<li>Observe the LED and compare the result with the sketch.</li>
+<li>Check pin number, <code>pinMode()</code>, polarity, USB connection, and brackets.</li>
+<li>Change one thing, upload again, and observe what changed.</li>
+</ol>
+<p>Small experiments turn code into understanding.</p>
+</section>

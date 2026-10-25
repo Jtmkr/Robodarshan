@@ -1,0 +1,62 @@
+<section id="what-is-a-breadboard">
+<h2>What is a breadboard?</h2>
+<p>A breadboard turns circuit ideas into quick experiments. It is a temporary circuit-building surface. Parts plug into holes that connect internally, so you can move, test, and rearrange them without soldering or damaging them.</p>
+<a class="video-link" href="https://youtu.be/W6mixXsn-Vc?si=19hOvWgFo8D-igur" target="_blank" rel="noopener">Video: How a breadboard works</a>
+<div class="card-grid">
+<div class="info-card"><h4>Plug in</h4><p>Components press into the holes.</p></div>
+<div class="info-card"><h4>Test</h4><p>Power the idea and observe what happens.</p></div>
+<div class="info-card"><h4>Move</h4><p>Change one connection at a time.</p></div>
+<div class="info-card"><h4>Practise</h4><p>Start with LEDs, switches, resistors, and controllers.</p></div>
+</div>
+</section>
+
+<section id="center-gap-and-strips">
+<h2>The center gap and terminal strips</h2>
+<p>Terminal strips run in connected groups on each side of the center gap. Holes in one five-hole group are electrically connected; holes across the gap are not. Power rails run along the edges and distribute VCC/+ and GND/&minus;.</p>
+<figure><img src="/study-materials/stage-1/content/img/4-1.png" alt="Breadboard layout showing power rails along the top and bottom edges, five-hole terminal strip groups on both sides of the center gap" loading="lazy"><figcaption>Breadboard layout: power rails at the edges, connected terminal strip groups either side of the center gap.</figcaption></figure>
+</section>
+
+<section id="power-rails">
+<h2>Power rails</h2>
+<p>Use the red or + rail for VCC/+ and the blue, black, or &minus; rail for GND/&minus;. Run jumpers from a rail to any terminal strip that needs power.</p>
+<figure><img src="/study-materials/stage-1/content/img/4-2.png" alt="Diagram of a breadboard edge with a VCC/+ rail and a GND/- rail, a jumper to a terminal strip, and bridges across a split rail" loading="lazy"><figcaption>Some boards break each rail in the middle. Bridge a split rail with a jumper.</figcaption></figure>
+</section>
+
+<section id="jumper-wires">
+<h2>Jumper wires</h2>
+<p>Jumper wires are the temporary connections between parts. Choose a wire long enough to route cleanly. Press each end firmly into place.</p>
+<a class="video-link" href="https://youtu.be/pJXCYjpq2TQ?si=l8E06Zx2FSMG3HA8" target="_blank" rel="noopener">Video: Jumper wires</a>
+<figure><img src="/study-materials/stage-1/content/img/4-3.jpg" alt="Bundles of male-to-male, male-to-female, and female-to-female jumper wires" loading="lazy"><figcaption>Male-to-male, male-to-female, and female-to-female jumper wires.</figcaption></figure>
+<div class="card-grid">
+<div class="info-card"><h4>Male-to-male</h4><p>Pin to pin. Common for breadboard-to-breadboard links.</p></div>
+<div class="info-card"><h4>Male-to-female</h4><p>Breadboard pin to a controller, sensor, or module header.</p></div>
+<div class="info-card"><h4>Female-to-female</h4><p>Header-to-header connections between modules.</p></div>
+</div>
+</section>
+
+<section id="basic-circuit">
+<h2>A basic circuit: source, control, load</h2>
+<p>Energy starts at the source, travels through a controlled path, and reaches the load. The breadboard gives every part a temporary place to connect.</p>
+<figure><img src="/study-materials/stage-1/content/img/4-4.png" alt="Block diagram: source (battery or supply) to breadboard to control (switch or controller) to load (LED plus resistor), with VCC/+ going out and GND/- returning" loading="lazy"><figcaption>Source (battery/supply), breadboard (temporary structure), control (switch/controller), load (LED + resistor). VCC/+ goes out and GND/&minus; returns.</figcaption></figure>
+</section>
+
+<section id="example-switch-led">
+<h2>Example: press the switch to light the LED</h2>
+<p>Build the path in order. The LED lights only when the circuit is closed through the intended route.</p>
+<figure><img src="/study-materials/stage-1/content/img/4-5.png" alt="Circuit diagram: battery positive to switch, resistor, LED anode, LED cathode, and back to GND/-" loading="lazy"><figcaption>Path: VCC/+ &rarr; switch &rarr; resistor &rarr; LED anode &rarr; LED cathode &rarr; GND/&minus;. The anode (+) is the longer leg; the cathode (&minus;) is the shorter leg / flat edge.</figcaption></figure>
+<ul>
+<li><strong>Press</strong> closes the path.</li>
+<li><strong>Release</strong> opens the path.</li>
+</ul>
+</section>
+
+<section id="common-mistakes">
+<h2>Common mistakes to catch before powering up</h2>
+<p>Power off, trace the path, then test again.</p>
+<ul>
+<li><strong>Wrong rail connection</strong> &mdash; check that VCC/+ and GND/&minus; are on the intended rails.</li>
+<li><strong>Short circuit</strong> &mdash; never connect positive directly to ground; inspect the path first.</li>
+<li><strong>Loose jumper</strong> &mdash; reseat both ends if the circuit flickers or does nothing.</li>
+<li><strong>Reversed LED polarity</strong> &mdash; anode faces the resistor; cathode returns to GND/&minus;.</li>
+</ul>
+</section>

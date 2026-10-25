@@ -1,0 +1,175 @@
+<section id="introduction">
+<h2>Introduction</h2>
+<p>Welcome to Lesson 09 — today we're diving into one of the most important topics in robotics: <strong>Sensors</strong>. Without sensors, a robot is basically just a fancy paperweight — it can't see, hear, or feel anything around it. Sensors are how robots interact with the real world.</p>
+<p>In this lesson, we'll cover:</p>
+<ul>
+<li>What sensors are and why robots need them</li>
+<li>IR sensors — obstacle detection &amp; line following</li>
+<li>PIR sensors — motion detection using heat</li>
+<li>Ultrasonic sensors — measuring distance with sound</li>
+<li>LDR — light sensing</li>
+<li>Calibration &amp; a handy comparison table</li>
+</ul>
+</section>
+
+<section id="what-is-a-sensor">
+<h2>What is a Sensor?</h2>
+<p>A <strong>sensor</strong> is a device that <strong>detects changes</strong> in the physical environment — like light, heat, distance, or motion — and converts that into an <strong>electrical signal</strong> the robot's microcontroller (like an ESP32 or Arduino) can understand and act on.</p>
+<h3>Why Robots Need Sensors</h3>
+<ul>
+<li>To <strong>perceive</strong> their surroundings</li>
+<li>To <strong>avoid obstacles</strong> and not crash</li>
+<li>To <strong>follow lines</strong> or paths</li>
+<li>To <strong>detect motion</strong> (people, objects)</li>
+<li>To <strong>measure distance</strong> accurately</li>
+<li>To <strong>respond to light</strong> conditions</li>
+<li>To make <strong>smart decisions</strong> in real time</li>
+</ul>
+<h3>Simple Analogy</h3>
+<p>Think of sensors as a robot's <strong>senses</strong> — just like your eyes, ears, and skin help you understand the world, sensors give a robot its "perception" of the environment.</p>
+<div class="callout callout-key"><div class="callout-title">Key Point</div><p>No sensors = robot is "blind." Sensors make robots <strong>autonomous</strong>!</p></div>
+<p>The basic sensing flow has three steps:</p>
+<ol>
+<li>Physical Environment</li>
+<li>Sensor Detects Change</li>
+<li>Microcontroller Acts</li>
+</ol>
+</section>
+
+<section id="ir-sensor">
+<h2>IR Sensor — Infrared Sensor</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=OMZacCLRt9A" target="_blank" rel="noopener">https://www.youtube.com/watch?v=OMZacCLRt9A</a>
+<p><em>Active sensor — obstacle detection.</em></p>
+<p>An <strong>IR (Infrared) sensor</strong> uses infrared light to detect objects. It has two main parts — an <strong>IR transmitter</strong> (LED that emits IR light) and an <strong>IR receiver</strong> (photodiode that detects reflected IR light).</p>
+<div class="card-grid">
+<div class="info-card"><h4>How It Works — Reflection Principle</h4><p>The IR transmitter sends out invisible infrared light. When this light hits an object, it <strong>reflects back</strong>. The receiver detects this reflection. <strong>No reflection</strong> = no object. <strong>Reflection detected</strong> = obstacle present!</p></div>
+<div class="info-card"><h4>Obstacle Detection Mode</h4><p>Place sensor facing forward on robot. If something is in front → IR reflects back → receiver gets signal → robot stops or turns. Simple and effective! Works well up to ~20–30 cm.</p></div>
+<div class="info-card"><h4>Line Following Mode</h4><p>Point sensor <strong>downwards</strong> at the ground. <strong>White surface</strong> = reflects IR = HIGH signal. <strong>Black line</strong> = absorbs IR = LOW signal. Robot follows the line by reading these changes continuously.</p></div>
+</div>
+<figure><img src="/study-materials/stage-1/content/img/9-1.jpg" alt="IR obstacle sensor module with an IR LED transmitter, black photodiode receiver, blue potentiometer and three header pins" loading="lazy"><figcaption>An IR sensor module.</figcaption></figure>
+<figure><img src="/study-materials/stage-1/content/img/9-2.jpg" alt="Small red line-following robot with IR sensors at the front driving along a black line on a white surface" loading="lazy"><figcaption>A line-following robot using IR sensors.</figcaption></figure>
+<div class="callout callout-key"><div class="callout-title">Active sensor</div><p>It emits its own IR light and doesn't depend on ambient light. Very popular in beginner robotics projects!</p></div>
+</section>
+
+<section id="pir-sensor">
+<h2>PIR Sensor</h2>
+<p><em>Passive sensor — motion detection.</em></p>
+<p>A <strong>PIR (Passive Infrared)</strong> sensor detects <strong>motion</strong> by sensing changes in infrared radiation (heat) emitted by objects — especially warm bodies like humans and animals. It's called "passive" because it <strong>doesn't emit</strong> anything itself — it only receives.</p>
+<h3>Working Principle</h3>
+<ul>
+<li>All objects above absolute zero emit <strong>thermal radiation</strong></li>
+<li>Humans emit IR around <strong>9–10 μm wavelength</strong></li>
+<li>PIR has two sensing elements — detects <strong>change</strong> between them</li>
+<li>When a warm body moves → <strong>differential change</strong> detected</li>
+<li>Output goes HIGH for a set time</li>
+</ul>
+<div class="callout callout-key"><div class="callout-title">Note</div><p>PIR only detects <strong>movement</strong>, not stationary objects!</p></div>
+<h3>Applications</h3>
+<ul>
+<li>Security alarm systems</li>
+<li>Automatic lights (on when you walk in)</li>
+<li>Intruder detection robots</li>
+<li>Smart home automation</li>
+<li>People-counting systems</li>
+</ul>
+<p>Common module: <strong>HC-SR501</strong> — easy to use with Arduino/ESP32!</p>
+<h3>Signal Chain</h3>
+<ol>
+<li>Human IR</li>
+<li>Fresnel Lens</li>
+<li>PIR Detects</li>
+<li>Output HIGH</li>
+<li>Alarm/Light</li>
+</ol>
+</section>
+
+<section id="ultrasonic-sensor">
+<h2>Ultrasonic Sensor — HC-SR04</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=KGwtit2bFyo" target="_blank" rel="noopener">How To Use Ultrasonic Sensors with Arduino! + Project Idea! (YouTube, 04:09)</a>
+<p><em>Distance measurement — ~40 kHz sound waves.</em></p>
+<p>The <strong>HC-SR04</strong> is the most popular ultrasonic sensor in student robotics. It measures distance by sending out an ultrasonic pulse (~40 kHz — beyond human hearing) and timing how long the <strong>echo</strong> takes to return.</p>
+<div class="card-grid">
+<div class="info-card"><h4>TRIG Pin</h4><p>Send a <strong>10 μs pulse</strong> from microcontroller to trigger the sensor to emit ultrasonic waves.</p></div>
+<div class="info-card"><h4>Ultrasonic Wave</h4><p>Sensor emits <strong>40 kHz sound burst</strong> that travels forward until it hits an object.</p></div>
+<div class="info-card"><h4>Echo Return</h4><p>Sound bounces off object and returns. Sensor measures <strong>time of flight</strong>.</p></div>
+<div class="info-card"><h4>Distance Formula</h4><p><strong>Distance = (Time × Speed of Sound) ÷ 2</strong></p><p>Speed of sound ≈ 343 m/s</p></div>
+</div>
+<h3>Measurement Sequence</h3>
+<ol>
+<li>Trigger Pulse</li>
+<li>Emit 40kHz Wave</li>
+<li>Echo Returns</li>
+<li>Measure Duration</li>
+</ol>
+<div class="callout callout-key"><div class="callout-title">Range and the ÷2</div><p>Range: <strong>2 cm to 400 cm</strong>. Accuracy: ~3mm. Perfect for obstacle-avoidance robots! The "÷2" in the formula is because sound travels <strong>to the object AND back</strong> — so we only want half the total distance.</p></div>
+</section>
+
+<section id="ldr">
+<h2>LDR — Light Dependent Resistor</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=2fvXW4OEWLE" target="_blank" rel="noopener">What is an LDR? (Light Dependant Resistor) - Electronics Basics 26 (YouTube, 03:31)</a>
+<p><em>Passive sensor — light sensing.</em></p>
+<p>An <strong>LDR (Light Dependent Resistor)</strong>, also called a <strong>photoresistor</strong>, is a component whose <strong>resistance changes</strong> based on the intensity of light falling on it. Simple, cheap, and super useful!</p>
+<h3>How Resistance Changes</h3>
+<ul>
+<li><strong>Bright light</strong> → Resistance <strong>decreases</strong> (~500 Ω)</li>
+<li><strong>Darkness</strong> → Resistance <strong>increases</strong> (~1 MΩ)</li>
+<li>More light = more current flows</li>
+<li>Less light = very little current</li>
+</ul>
+<p>Used in a <strong>voltage divider circuit</strong> with a fixed resistor to get a readable analog voltage (0–5V) for the microcontroller.</p>
+<h3>Applications</h3>
+<ul>
+<li>Automatic street lights (on at dusk)</li>
+<li>Light-following robots (solar trackers)</li>
+<li>Camera exposure control</li>
+<li>Night/day detection circuits</li>
+<li>Screen brightness auto-adjust</li>
+</ul>
+<div class="callout callout-caution"><div class="callout-title">Slow response</div><p>LDRs are <strong>slow to respond</strong> — fine for ambient light, not for fast changes!</p></div>
+<figure><img src="/study-materials/stage-1/content/img/9-3.png" alt="LDR photoresistor illustration: light increases conductivity, resistance decreases with light; bright light means low resistance, dark means high resistance" loading="lazy"><figcaption>An LDR: bright light gives low resistance, darkness gives high resistance.</figcaption></figure>
+<figure><img src="/study-materials/stage-1/content/img/9-4.jpg" alt="LDR sensor module with the LDR resistor, LM393 comparator chip and sensitivity adjuster labelled" loading="lazy"><figcaption>LDR sensor module (LDR, LM393, sensitivity adjuster).</figcaption></figure>
+</section>
+
+<section id="calibration">
+<h2>Sensor Reading &amp; Calibration</h2>
+<p>Raw sensor readings are never perfect — they vary based on environment, component tolerances, and noise. <strong>Calibration</strong> means testing your sensor in your specific setup and finding the right <strong>threshold values</strong> to make reliable decisions.</p>
+<ol>
+<li><strong>Read the Raw Values</strong> — Open Serial Monitor and watch sensor output in different conditions (bright/dark, near/far, with/without object). Note the range of values you see.</li>
+<li><strong>Find Your Threshold</strong> — Pick a value in the middle of your observed range. Example: IR sensor reads 800 in open space and 200 near a wall → threshold ≈ 500. Above 500 = no obstacle. Below 500 = obstacle!</li>
+<li><strong>Test &amp; Adjust</strong> — Run your robot and observe. If it's too sensitive → adjust threshold. Test in real conditions — different lighting, surfaces, distances. Calibration is not a one-time thing!</li>
+</ol>
+<div class="callout callout-caution"><div class="callout-title">Why Calibrate?</div><p>Two identical sensors can give different readings. Your room's lighting is different from the lab. Calibration makes your code work in <strong>your</strong> environment!</p></div>
+</section>
+
+<section id="comparison-table">
+<h2>Comparison Table</h2>
+<p>Here's a quick reference table comparing all four sensors we covered.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Sensor</th><th>Detects</th><th>Principle</th><th>Example Application</th></tr></thead>
+<tbody>
+<tr><td>IR Sensor</td><td>Objects, lines</td><td>IR light reflection</td><td>Obstacle avoidance, line follower robot</td></tr>
+<tr><td>PIR Sensor</td><td>Motion, heat</td><td>Thermal radiation change</td><td>Security alarm, auto lights, intruder detection</td></tr>
+<tr><td>Ultrasonic (HC-SR04)</td><td>Distance</td><td>Sound echo (40 kHz)</td><td>Obstacle mapping, parking sensors, distance measurement</td></tr>
+<tr><td>LDR</td><td>Light intensity</td><td>Resistance changes with light</td><td>Auto street lights, light-following robot, day/night detector</td></tr>
+</tbody></table></div>
+<div class="card-grid">
+<div class="info-card"><h4>Active Sensors</h4><p>IR, Ultrasonic — emit their own signal</p></div>
+<div class="info-card"><h4>Passive Sensors</h4><p>PIR, LDR — only receive, don't emit</p></div>
+<div class="info-card"><h4>Analog Output</h4><p>LDR, some IR — continuous voltage</p></div>
+<div class="info-card"><h4>Digital Output</h4><p>PIR, HC-SR04 — HIGH or LOW signal</p></div>
+</div>
+</section>
+
+<section id="recap">
+<h2>Quick Recap &amp; Key Takeaways</h2>
+<p>Let's wrap up Lesson 09! Here are the most important things to remember before you move on to Lesson 10:</p>
+<div class="card-grid">
+<div class="info-card"><h4>1. Sensors = Robot's Senses</h4><p>Without sensors, robots are blind. Sensors convert physical world data into electrical signals the microcontroller can read.</p></div>
+<div class="info-card"><h4>2. IR — Reflect &amp; Detect</h4><p>Transmitter + Receiver. Reflects IR off objects. Used for obstacle detection AND line following. Active sensor.</p></div>
+<div class="info-card"><h4>3. PIR — Detect Heat Motion</h4><p>Passive sensor. Detects changes in thermal radiation. Only works with moving warm objects. Great for security!</p></div>
+<div class="info-card"><h4>4. Ultrasonic — Echo Distance</h4><p>HC-SR04 sends 40 kHz pulse, times the echo. Distance = (time × 343) ÷ 2. Range: 2–400 cm.</p></div>
+<div class="info-card"><h4>5. LDR — Light = Low Resistance</h4><p>Bright = low resistance. Dark = high resistance. Use voltage divider. Great for light-following robots.</p></div>
+<div class="info-card"><h4>6. Always Calibrate!</h4><p>Read raw values → find threshold → test in real conditions. Every sensor and environment is different.</p></div>
+</div>
+<div class="callout callout-note"><div class="callout-title">Lesson 09 Complete!</div><p>Next up: Lesson 10 — Motors &amp; Motor Drivers. You're doing great, keep going!</p></div>
+</section>

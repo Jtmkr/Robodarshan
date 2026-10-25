@@ -269,10 +269,7 @@ insert into public.projects (stage_id, title, requirements, instructions, xp_val
 select (select id from public.stages where number = 1),
   'Bluetooth Controlled Car',
   'Arduino/ESP32 board, HC-05/HC-06 Bluetooth module, motor driver (e.g. L298N), DC geared motors, chassis, battery pack.',
-  $c$Build a small car chassis driven by DC motors through a motor driver, controlled wirelessly over Bluetooth from a phone app.
-Reference videos:
-https://youtu.be/gU-CZP2nIwQ?si=LJVxd1Rziycudn4y
-https://youtu.be/rSCy1_GbC0w?si=ft-hfm8j8sK--jjh$c$,
+  $c$Build a small car chassis driven by DC motors through a motor driver, controlled wirelessly over Bluetooth from a phone app.$c$,
   100
 where not exists (
   select 1 from public.projects where stage_id = (select id from public.stages where number = 1) and title = 'Bluetooth Controlled Car'

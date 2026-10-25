@@ -1,0 +1,126 @@
+<section id="digital-signal">
+<h2>Digital Signal — The Basics</h2>
+<p>Welcome to Lesson 08! This is where things get really interesting — we're diving into the three types of signals that every robotics beginner must understand. Digital signals (simple ON/OFF), analog signals (smooth and continuous), and PWM (the clever trick that lets digital pins fake analog output). By the end of these notes, you'll be reading sensors, controlling LEDs, and understanding exactly what's happening at the pin level.</p>
+<p>A <strong>digital signal</strong> is the simplest type of electrical signal. It has only <strong>two possible states</strong> — no in-between, no gray area:</p>
+<ul>
+<li><strong>HIGH</strong> = 1 = ON = ~3.3V or 5V (depends on your board)</li>
+<li><strong>LOW</strong> = 0 = OFF = 0V (GND)</li>
+</ul>
+<p>Think of it like a <strong>light switch</strong> — either fully ON or fully OFF. There's no "half-on" in the digital world. Your microcontroller's GPIO pins send and read these signals constantly.</p>
+<figure><img src="/study-materials/stage-1/content/img/8-1.png" alt="Digital signal graph: voltage versus time, a square wave switching between 0 V and +5 V representing bits 0 1 0 0 1 0 1 1" loading="lazy"><figcaption>A digital signal only ever sits at 0 V (LOW) or +5 V (HIGH).</figcaption></figure>
+<div class="callout callout-note"><div class="callout-title">Digital I/O</div><p>A pin configured as <strong>output</strong> sends HIGH/LOW. A pin as <strong>input</strong> reads whether a signal is HIGH or LOW. Super useful for buttons, LEDs, relays!</p></div>
+</section>
+
+<section id="analog-signal">
+<h2>Analog Signal — Continuous World</h2>
+<p>An <strong>analog signal</strong> is <strong>continuous</strong> — it can take <em>any</em> value within a range. Unlike digital's two states, analog smoothly varies over time, just like the real world does!</p>
+<figure><img src="/study-materials/stage-1/content/img/8-2.png" alt="An irregular smooth analog waveform drawn above a digital square-wave signal for comparison" loading="lazy"><figcaption>Analog signal (top) versus digital signal (bottom).</figcaption></figure>
+<h3>Real-world examples</h3>
+<ul>
+<li>Temperature sensor output (smoothly rises and falls)</li>
+<li>LDR / Light sensor (changes with light intensity)</li>
+<li>Potentiometer knob position (0 to full rotation)</li>
+<li>Microphone audio signal (constantly changing)</li>
+</ul>
+<p>Most things in the physical world are analog. Our microcontrollers are digital — so we need a way to <strong>bridge</strong> the two worlds. That's where <strong>ADC</strong> comes in (more on that soon!).</p>
+</section>
+
+<section id="digital-vs-analog">
+<h2>Digital vs Analog — Side by Side</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=BMMnOAzcqoE" target="_blank" rel="noopener">Arduino Basics: Digital And Analog For Input And Output (YouTube, 04:56)</a>
+<p>Here's a quick comparison to lock this in your memory. The key difference: digital is discrete (only two values), analog is continuous (infinite values in a range).</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Digital Signal</th><th>Analog Signal</th></tr></thead>
+<tbody>
+<tr><td>Values</td><td>Only 2 — HIGH (1) or LOW (0)</td><td>Continuous range — any value possible</td></tr>
+<tr><td>Waveform</td><td>Square wave (sharp edges)</td><td>Smooth curve (sine, ramp, etc.)</td></tr>
+<tr><td>Noise</td><td>Less affected by noise</td><td>More susceptible to noise</td></tr>
+<tr><td>Examples</td><td>LED, button, relay, buzzer</td><td>Temperature, LDR, pot, mic</td></tr>
+<tr><td>Processing</td><td>Direct — MCU understands natively</td><td>Needs ADC to be read by MCU</td></tr>
+<tr><td>Real-world fit</td><td>Computers, logic circuits</td><td>Physical sensors, audio, light</td></tr>
+</tbody></table></div>
+<div class="callout callout-key"><div class="callout-title">Remember</div><p>The physical world is analog. Microcontrollers are digital. We use <strong>ADC</strong> to convert analog → digital, and <strong>PWM</strong> to fake analog output from digital pins!</p></div>
+</section>
+
+<section id="pwm">
+<h2>PWM — Pulse Width Modulation</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=5nwNKPs2gco" target="_blank" rel="noopener">How PWM works | Controlling a DC motor with a homemade circuit (YouTube, 10:01)</a>
+<p><strong>PWM</strong> stands for <strong>Pulse Width Modulation</strong>. It's a clever technique where a <em>digital</em> pin rapidly switches between HIGH and LOW to <strong>simulate</strong> an analog output. The key idea: control <em>how long</em> the signal stays HIGH vs LOW in each cycle.</p>
+<figure><img src="/study-materials/stage-1/content/img/8-3.png" alt="Battery connected to an electronic speed controller (ESC) and motor, with PWM signal waveforms at 25%, 50% and 90% duty cycle giving low, medium and high speed" loading="lazy"><figcaption>PWM signals at different duty cycles control motor speed through an ESC.</figcaption></figure>
+<h3>Key terms to know</h3>
+<ul>
+<li><strong>T<sub>on</sub></strong> — Time the signal is HIGH (ON time)</li>
+<li><strong>T<sub>off</sub></strong> — Time the signal is LOW (OFF time)</li>
+<li><strong>Period (T)</strong> = T<sub>on</sub> + T<sub>off</sub> (one full cycle)</li>
+<li><strong>Frequency</strong> = 1 / Period</li>
+</ul>
+<p>The faster the switching, the smoother the effect. On ESP32, PWM frequency is typically <strong>1 kHz – 50 kHz</strong>.</p>
+</section>
+
+<section id="duty-cycle">
+<h2>Duty Cycle — The Heart of PWM</h2>
+<p>Duty Cycle tells us what percentage of one period the signal is HIGH. It's the number that controls brightness, speed, power — everything!</p>
+<div class="callout callout-key"><div class="callout-title">Formula</div><p>Duty Cycle = T<sub>on</sub> ÷ (T<sub>on</sub> + T<sub>off</sub>) × 100%</p></div>
+<div class="card-grid">
+<div class="info-card"><h4>25% Duty Cycle</h4><p>Signal is HIGH for ¼ of the period. LED appears dim. Motor runs slow.</p></div>
+<div class="info-card"><h4>50% Duty Cycle</h4><p>Signal is HIGH for ½ of the period. LED at half brightness. Medium speed.</p></div>
+<div class="info-card"><h4>75% Duty Cycle</h4><p>Signal is HIGH for ¾ of the period. LED appears bright. Motor runs fast.</p></div>
+</div>
+</section>
+
+<section id="adc">
+<h2>ADC — Analog to Digital Converter</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=EnfjYwe2A0w" target="_blank" rel="noopener">Electronic Basics #27: ADC (Analog to Digital Converter) (YouTube, 06:48)</a>
+<p>An <strong>ADC (Analog-to-Digital Converter)</strong> is a circuit inside your microcontroller that <strong>converts a continuous analog voltage</strong> into a <strong>digital number</strong> the CPU can process. Without it, your MCU literally cannot read sensors like LDRs, temperature sensors, or potentiometers!</p>
+<p><strong>Why do we need it?</strong> The real world is analog (smooth voltages). Your ESP32 is digital (only understands 1s and 0s). ADC bridges the gap!</p>
+<figure><img src="/study-materials/stage-1/content/img/8-4.png" alt="Diagram: a smooth sine wave enters a box labelled ADC and comes out as a stepped digital square wave" loading="lazy"><figcaption>An ADC turns a smooth analog signal into digital values.</figcaption></figure>
+<h3>Resolution Formula</h3>
+<div class="callout callout-key"><div class="callout-title">Resolution</div><p>Resolution = V<sub>ref</sub> ÷ 2<sup>n</sup></p><p>where n = number of bits</p></div>
+</section>
+
+<section id="adc-resolution">
+<h2>ADC Resolution — 10-bit vs 12-bit</h2>
+<p>Higher bit resolution = more precise readings. Let's break it down with the formula Resolution = V<sub>ref</sub> / 2<sup>n</sup> (assuming V<sub>ref</sub> = 3.3V):</p>
+<div class="table-wrap"><table>
+<thead><tr><th>ADC Type</th><th>Bits (n)</th><th>Levels (2<sup>n</sup>)</th><th>Resolution (at 3.3V)</th></tr></thead>
+<tbody>
+<tr><td>10-bit ADC</td><td>10</td><td>1024 levels</td><td>3.3V ÷ 1024 ≈ 3.22 mV</td></tr>
+<tr><td>12-bit ADC</td><td>12</td><td>4096 levels</td><td>3.3V ÷ 4096 ≈ 0.81 mV</td></tr>
+</tbody></table></div>
+<div class="card-grid">
+<div class="info-card"><h4>10-bit Example (Arduino)</h4><p>Input: 1.65V → Output: 512. Half of 1024 = half voltage. Simple!</p></div>
+<div class="info-card"><h4>12-bit Example (ESP32)</h4><p>Input: 1.65V → Output: 2048. Half of 4096 = half voltage. More precise!</p></div>
+</div>
+<div class="callout callout-key"><div class="callout-title">Remember</div><p>ESP32 has a 12-bit ADC by default (0–4095). Arduino Uno has 10-bit ADC (0–1023). More bits = finer detail in your sensor readings!</p></div>
+</section>
+
+<section id="arduino-functions">
+<h2>The 4 Essential Functions</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=8bufqdXwCpY" target="_blank" rel="noopener">Arduino Lesson 2 - digitalRead &amp; digitalWrite (YouTube, 08:56)</a>
+<p>These are the core functions you'll use in almost every robotics project. Know them well!</p>
+<ol>
+<li><h3><code>digitalRead(pin)</code></h3><p>Reads a digital pin. Returns HIGH (1) or LOW (0). Used for buttons, switches, digital sensors.</p></li>
+<li><h3><code>digitalWrite(pin, value)</code></h3><p>Sets a digital pin to HIGH or LOW. Used for LEDs, relays, buzzers. Example: <code>digitalWrite(2, HIGH);</code></p></li>
+<li><h3><code>analogRead(pin)</code></h3><p>Reads an analog pin via ADC. Returns a number: 0–1023 (Arduino) or 0–4095 (ESP32). Used for sensors.</p></li>
+<li><h3><code>analogWrite(pin, value)</code></h3><p>Outputs PWM on a pin. Value: 0–255 (0 = off, 255 = full). Used for LED brightness, motor speed control.</p></li>
+</ol>
+</section>
+
+<section id="ldr-project">
+<h2>Project: LDR Controls LED Brightness</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=E6nsK6oLbIo" target="_blank" rel="noopener">Arduino Basics - #6 - analogRead() &amp; analogWrite() (YouTube, 16:50)</a>
+<p>Here's a real practical example that ties everything together — an LDR (Light Dependent Resistor) reading ambient light and using that value to control an LED's brightness via PWM. This is exactly how automatic night lights work!</p>
+<h3>How it works</h3>
+<ol>
+<li>LDR output → <code>analogRead(A0)</code> → value 0–4095</li>
+<li>Map the value: <code>map(val, 0, 4095, 0, 255)</code></li>
+<li>Send to LED: <code>analogWrite(D5, brightness)</code></li>
+<li>More light = brighter LED. Less light = dimmer LED.</li>
+</ol>
+<div class="callout callout-note"><div class="callout-title">Components</div><p>ESP32, LDR + 10kΩ resistor (voltage divider), LED + 220Ω resistor, breadboard, jumper wires.</p></div>
+<div class="card-grid">
+<div class="info-card"><h4>Bright Room</h4><p>LDR reads HIGH → PWM ~200 → LED bright</p></div>
+<div class="info-card"><h4>Dark Room</h4><p>LDR reads LOW → PWM ~30 → LED dim</p></div>
+<div class="info-card"><h4>Key Concept</h4><p>Analog sensor → ADC → PWM output. Full circle!</p></div>
+</div>
+</section>

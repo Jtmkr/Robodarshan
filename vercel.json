@@ -1,0 +1,7 @@
+{
+  "redirects": [
+    { "source": "/pages/stage-:n(\d).html", "destination": "/pages/learning-portal.html#/stage/:n" },
+    { "source": "/stage-:n(\d).html", "destination": "/pages/learning-portal.html#/stage/:n" },
+    { "source": "/:page(about|contact|dashboard|events|gallery|learning-portal|login|merch|register|team).html", "destination": "/pages/:page.html" }
+  ]
+}

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Robodarshan - Learning Portal</title>
+    <meta name="description" content="Robodarshan study portal: stage-wise lessons, quizzes and projects." />
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet" />
+    <link href="/css/docs-portal.css" rel="stylesheet" type="text/css" />
+    <link
+        href="https://assets-global.website-files.com/657cba550bc392281580fd5e/6580d26f3518ced5e0bc4114_RoboDarsha%20Logo%20Black%20Trans.png"
+        rel="shortcut icon" type="image/x-icon" />
+    <script>
+        // Set the saved theme before first paint to avoid a flash.
+        try {
+            var t = localStorage.getItem('rd-docs-theme');
+            if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+        } catch (e) { }
+    </script>
+</head>
+
+<body class="docs-body">
+    <header class="docs-topbar">
+        <button type="button" id="sidebar-toggle" class="icon-btn docs-menu-btn" aria-label="Open navigation"
+            aria-controls="docs-sidebar" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+        </button>
+        <a href="/" class="docs-brand" aria-label="Robodarshan home">
+            <img class="docs-logo"
+                src="https://assets-global.website-files.com/657cba550bc392281580fd5e/657cc0ca198cae9affbdd1fd_Robodarshan%20Text%20Logo%20White.png"
+                alt="Robodarshan" />
+            <span class="docs-brand-tag">Learning Portal</span>
+        </a>
+
+        <div class="docs-search" role="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" class="docs-search-icon">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input id="docs-search-input" type="search" placeholder="Search lessons, projects..." autocomplete="off"
+                aria-label="Search lessons" aria-controls="docs-search-results" />
+            <kbd class="docs-search-hint">Ctrl K</kbd>
+            <div id="docs-search-results" class="docs-search-results" hidden></div>
+        </div>
+
+        <nav class="docs-topnav" aria-label="Site">
+            <a href="/pages/dashboard.html">Dashboard</a>
+            <a href="/pages/events.html">Events</a>
+            <a href="/pages/team.html">Team</a>
+        </nav>
+        <button type="button" id="theme-toggle" class="theme-toggle" role="switch" aria-checked="false"
+            aria-label="Toggle light and dark theme">
+            <span class="theme-toggle-knob"></span>
+        </button>
+    </header>
+
+    <div class="docs-shell">
+        <aside id="docs-sidebar" class="docs-sidebar" aria-label="Course navigation">
+            <nav id="docs-nav" class="docs-nav">
+                <p class="docs-nav-loading">Loading...</p>
+            </nav>
+        </aside>
+        <div id="sidebar-backdrop" class="docs-backdrop" hidden></div>
+
+        <main id="docs-main" class="docs-main" tabindex="-1">
+            <article id="docs-article" class="docs-article">
+                <p class="docs-loading">Loading your portal...</p>
+            </article>
+            <footer class="docs-footer">&copy; Robodarshan Robotics Society, IIEST Shibpur</footer>
+        </main>
+
+        <aside class="docs-toc" aria-label="On this page">
+            <div id="docs-toc" class="docs-toc-inner"></div>
+        </aside>
+    </div>
+
+    <button type="button" id="back-to-top" class="back-to-top" aria-label="Back to top" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15" />
+        </svg>
+    </button>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/supabase-client.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/completions.js"></script>
+    <script src="/js/docs-portal.js"></script>
+</body>
+
+</html>

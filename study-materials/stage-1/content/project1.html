@@ -1,0 +1,293 @@
+<section id="objective-and-overview">
+<h2>Objective &amp; What You'll Build</h2>
+<p>This project workbook walks you through building two versions of a remote-controlled car &mdash; one using Bluetooth (HC-05 + Arduino) and another using WiFi (ESP32 Web Server). You'll learn wiring, motor control, wireless communication, and code logic &mdash; all in a hands-on, beginner-friendly format.</p>
+<div class="card-grid">
+<div class="info-card"><h4>Project Goal</h4>
+<p>Build a small RC car that you can control from your smartphone &mdash; no physical remote needed! The car receives wireless commands and moves accordingly.</p>
+<ul>
+<li>Forward, Backward, Left, Right movement</li>
+<li>Smartphone as the controller (Bluetooth or Web)</li>
+<li>Two versions: Arduino + HC-05 AND ESP32 + WiFi</li>
+</ul></div>
+<div class="info-card"><h4>Skills You'll Learn</h4>
+<ul>
+<li>Serial communication (UART)</li>
+<li>Motor driver circuits (L298N)</li>
+<li>Bluetooth module pairing</li>
+<li>ESP32 WiFi server setup</li>
+<li>Reading and writing motor control code</li>
+</ul></div>
+</div>
+<div class="callout callout-key"><div class="callout-title">Key idea</div><p>Both versions use the same chassis and motor driver &mdash; only the communication module changes!</p></div>
+</section>
+
+<section id="reference-videos">
+<h2>Reference Videos</h2>
+<p>Watch these walkthroughs for extra guidance while you build: the first uses an Arduino, the second an ESP32.</p>
+<a class="video-link" href="https://youtu.be/gU-CZP2nIwQ" target="_blank" rel="noopener">How to make a Bluetooth controlled car using Arduino</a>
+<a class="video-link" href="https://youtu.be/rSCy1_GbC0w" target="_blank" rel="noopener">ESP32 Bluetooth Car | Android + iPhone | DIY</a>
+</section>
+
+<section id="components-required">
+<h2>Components Required</h2>
+<p>Gather all components before you start. Check each item off as you collect it. Most of these are available at local electronics shops or online (Amazon, Robu.in, ElectronicsComp).</p>
+<div class="card-grid">
+<div class="info-card"><h4>Microcontroller</h4>
+<ul>
+<li>Arduino Uno (Bluetooth version)</li>
+<li>ESP32 DevKit (WiFi version)</li>
+</ul></div>
+<div class="info-card"><h4>Communication Module</h4>
+<ul>
+<li>HC-05 Bluetooth Module</li>
+<li>ESP32 has WiFi built-in</li>
+</ul></div>
+<div class="info-card"><h4>Motor Driver</h4>
+<ul>
+<li>L298N Motor Driver Module</li>
+<li>Handles 2 DC motors easily</li>
+</ul></div>
+<div class="info-card"><h4>Power &amp; Chassis</h4>
+<ul>
+<li>2× 18650 Li-ion batteries (7.4V)</li>
+<li>Car chassis kit with 2 DC motors</li>
+<li>Jumper wires, breadboard</li>
+</ul></div>
+</div>
+<div class="callout callout-tip"><div class="callout-title">Tip</div><p>Get a pre-assembled car chassis kit &mdash; it saves a LOT of time on mechanical assembly!</p></div>
+</section>
+
+<section id="bluetooth-car-circuit">
+<h2>Version 1 &mdash; Bluetooth Car Circuit</h2>
+<p>Here's how everything connects for the <strong>Arduino + HC-05</strong> version. Study this wiring table carefully before touching a single wire!</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Component A</th><th>Pin A</th><th>Component B</th><th>Pin B</th></tr></thead>
+<tbody>
+<tr><td>Arduino Uno</td><td>TX (Pin 1)</td><td>HC-05 Bluetooth</td><td>RX</td></tr>
+<tr><td>Arduino Uno</td><td>RX (Pin 0)</td><td>HC-05 Bluetooth</td><td>TX</td></tr>
+<tr><td>Arduino Uno</td><td>5V</td><td>HC-05 / L298N</td><td>VCC</td></tr>
+<tr><td>Arduino Uno</td><td>GND</td><td>HC-05 / L298N</td><td>GND</td></tr>
+<tr><td>Arduino Pin 5</td><td>Digital OUT</td><td>L298N</td><td>IN1</td></tr>
+<tr><td>Arduino Pin 6</td><td>Digital OUT</td><td>L298N</td><td>IN2</td></tr>
+<tr><td>Arduino Pin 9</td><td>Digital OUT</td><td>L298N</td><td>IN3</td></tr>
+<tr><td>Arduino Pin 10</td><td>Digital OUT</td><td>L298N</td><td>IN4</td></tr>
+<tr><td>Battery Pack (+)</td><td>7.4V</td><td>L298N</td><td>12V Power Input</td></tr>
+<tr><td>Left Motor</td><td>Wire 1 &amp; 2</td><td>L298N</td><td>OUT1 &amp; OUT2</td></tr>
+<tr><td>Right Motor</td><td>Wire 1 &amp; 2</td><td>L298N</td><td>OUT3 &amp; OUT4</td></tr>
+</tbody>
+</table></div>
+<p>Signal flows from your phone → Bluetooth module (HC-05) → Arduino Uno → L298N Motor Driver → Motors. Simple chain!</p>
+<ol>
+<li>Smartphone</li>
+<li>HC-05 Module</li>
+<li>Arduino Uno</li>
+<li>L298N Motor Driver</li>
+</ol>
+</section>
+
+<section id="hc-05-bluetooth-module">
+<h2>Bluetooth Module &mdash; HC-05</h2>
+<div class="card-grid">
+<div class="info-card"><h4>What is the HC-05?</h4>
+<p>The HC-05 is a serial Bluetooth module that acts as a wireless bridge. It receives data from your phone and sends it to Arduino via UART (serial).</p>
+<ul>
+<li>Works at 9600 baud by default</li>
+<li>Range: up to 10 meters</li>
+<li>Power: 3.3V – 5V</li>
+<li>Pairs easily with Android apps</li>
+</ul></div>
+<div class="info-card"><h4>HC-05 Pinout</h4>
+<ul>
+<li>VCC → Arduino 5V</li>
+<li>GND → Arduino GND</li>
+<li>TX → Arduino RX (Pin 0)</li>
+<li>RX → Arduino TX (Pin 1)</li>
+<li>STATE → Optional (LED indicator)</li>
+<li>EN → Optional (enable pin)</li>
+</ul></div>
+</div>
+<div class="callout callout-note"><div class="callout-title">Default password</div><p>1234 or 0000</p></div>
+<div class="callout callout-caution"><div class="callout-title">Important</div><p>Disconnect HC-05 TX/RX from Arduino before uploading code, then reconnect after upload!</p></div>
+</section>
+
+<section id="l298n-motor-driver">
+<h2>Motor Driver &mdash; L298N</h2>
+<p>The L298N is the muscle of your car. Arduino can't power motors directly (too much current!), so the L298N acts as a power amplifier.</p>
+<div class="card-grid">
+<div class="info-card"><h4>IN1 &amp; IN2</h4><p>Controls Left Motor direction. Arduino Pins 5 &amp; 6.</p></div>
+<div class="info-card"><h4>IN3 &amp; IN4</h4><p>Controls Right Motor direction. Arduino Pins 9 &amp; 10.</p></div>
+<div class="info-card"><h4>OUT1–OUT4</h4><p>Connect your DC motors here (2 wires per motor).</p></div>
+<div class="info-card"><h4>12V Power</h4><p>Connect battery pack here. Jumper ON for 5V logic.</p></div>
+</div>
+<h3>Motor Truth Table &mdash; How Direction Works</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>IN1</th><th>IN2</th><th>IN3</th><th>IN4</th><th>Car Moves</th></tr></thead>
+<tbody>
+<tr><td>HIGH</td><td>LOW</td><td>HIGH</td><td>LOW</td><td>Forward</td></tr>
+<tr><td>LOW</td><td>HIGH</td><td>LOW</td><td>HIGH</td><td>Backward</td></tr>
+<tr><td>LOW</td><td>HIGH</td><td>HIGH</td><td>LOW</td><td>Left</td></tr>
+<tr><td>HIGH</td><td>LOW</td><td>LOW</td><td>HIGH</td><td>Right</td></tr>
+<tr><td>LOW</td><td>LOW</td><td>LOW</td><td>LOW</td><td>Stop</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section id="control-commands">
+<h2>Control Commands &mdash; How Your Phone Talks to the Car</h2>
+<p>Your phone app (like Arduino Bluetooth Controller) sends single-character commands. Arduino reads them and moves the car accordingly.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Key</th><th>Command</th><th>Movement</th><th>Motor State</th></tr></thead>
+<tbody>
+<tr><td>F</td><td><code>'F'</code></td><td>Forward</td><td>Both motors forward</td></tr>
+<tr><td>B</td><td><code>'B'</code></td><td>Backward</td><td>Both motors reverse</td></tr>
+<tr><td>L</td><td><code>'L'</code></td><td>Turn Left</td><td>Left stop, Right forward</td></tr>
+<tr><td>R</td><td><code>'R'</code></td><td>Turn Right</td><td>Left forward, Right stop</td></tr>
+<tr><td>S</td><td><code>'S'</code></td><td>Stop</td><td>All motors off</td></tr>
+</tbody>
+</table></div>
+<div class="card-grid">
+<div class="info-card"><h4>Recommended App</h4>
+<p>Arduino Bluetooth Controller by Gaurav (Android)</p>
+<ul>
+<li>Free on Play Store</li>
+<li>Custom button layout</li>
+<li>Sends F, B, L, R, S characters</li>
+</ul></div>
+<div class="info-card"><h4>Pairing Steps</h4>
+<ol>
+<li>Power on HC-05 (LED blinks)</li>
+<li>Open phone Bluetooth settings</li>
+<li>Pair with "HC-05", password 1234</li>
+<li>Open app → select HC-05</li>
+<li>Press buttons → car moves!</li>
+</ol></div>
+</div>
+</section>
+
+<section id="arduino-code-bluetooth">
+<h2>Arduino Code Logic &mdash; Bluetooth Version</h2>
+<p>Here's the simplified Arduino sketch. Upload this to your Arduino Uno (disconnect HC-05 TX/RX first!).</p>
+<pre><code class="language-cpp">#include &lt;SoftwareSerial.h&gt;
+
+// HC-05 on pins 2 (RX) and 3 (TX)
+SoftwareSerial bt(2, 3);
+
+// Motor pins
+int in1 = 5, in2 = 6;   // Left motor
+int in3 = 9, in4 = 10;  // Right motor
+
+void setup() {
+ bt.begin(9600);       // Bluetooth baud rate
+ pinMode(in1, OUTPUT);
+ pinMode(in2, OUTPUT);
+ pinMode(in3, OUTPUT);
+ pinMode(in4, OUTPUT);
+}
+
+void forward()  { digitalWrite(in1,HIGH); digitalWrite(in2,LOW);
+                 digitalWrite(in3,HIGH); digitalWrite(in4,LOW); }
+void backward() { digitalWrite(in1,LOW);  digitalWrite(in2,HIGH);
+                 digitalWrite(in3,LOW);  digitalWrite(in4,HIGH); }
+void left()     { digitalWrite(in1,LOW);  digitalWrite(in2,LOW);
+                 digitalWrite(in3,HIGH); digitalWrite(in4,LOW); }
+void right()    { digitalWrite(in1,HIGH); digitalWrite(in2,LOW);
+                 digitalWrite(in3,LOW);  digitalWrite(in4,LOW); }
+void stopCar()  { digitalWrite(in1,LOW); digitalWrite(in2,LOW);
+                 digitalWrite(in3,LOW); digitalWrite(in4,LOW); }
+
+void loop() {
+ if (bt.available()) {
+   char cmd = bt.read();
+   if (cmd == 'F') forward();
+   else if (cmd == 'B') backward();
+   else if (cmd == 'L') left();
+   else if (cmd == 'R') right();
+   else if (cmd == 'S') stopCar();
+ }
+}</code></pre>
+<div class="callout callout-caution"><div class="callout-title">Remember</div><p>Remove HC-05 wires from Pin 0 &amp; 1 before uploading, reconnect after!</p></div>
+</section>
+
+<section id="esp32-wifi-car">
+<h2>Version 2 &mdash; ESP32 WiFi Controlled Car</h2>
+<p>Now let's upgrade! The ESP32 has built-in WiFi, so we create a <strong>web server</strong> on the car itself. Open a browser on your phone → control the car! No app needed.</p>
+<p>Signal flows from the smartphone browser → ESP32 web server → L298N motor driver → two DC motors.</p>
+<ol>
+<li>Smartphone Browser</li>
+<li>ESP32 Web Server</li>
+<li>L298N Motor Driver</li>
+<li>Two DC Motors</li>
+</ol>
+<div class="card-grid">
+<div class="info-card"><h4>ESP32 vs Arduino &mdash; Key Differences</h4>
+<ul>
+<li>ESP32 has <strong>WiFi + Bluetooth</strong> built-in</li>
+<li>Faster: <strong>240 MHz</strong> vs 16 MHz</li>
+<li>More GPIO pins available</li>
+<li>Runs a <strong>web server</strong> directly</li>
+<li>Control via <strong>any browser</strong></li>
+</ul></div>
+<div class="info-card"><h4>Wiring Changes from Version 1</h4>
+<ul>
+<li>Replace Arduino Uno → <strong>ESP32 DevKit</strong></li>
+<li>Remove HC-05 module entirely</li>
+<li>Motor pins same: GPIO 5, 6, 9, 10</li>
+<li>Power: <strong>3.3V logic</strong>, 7.4V battery to L298N</li>
+</ul></div>
+</div>
+<div class="callout callout-note"><div class="callout-title">WiFi hotspot</div><p>ESP32 creates its own WiFi hotspot &mdash; connect your phone to it!</p></div>
+<h3>ESP32 WiFi Car &mdash; Simplified Code Structure</h3>
+<pre><code class="language-cpp">#include &lt;WiFi.h&gt;
+#include &lt;WebServer.h&gt;
+
+const char* ssid = "ESP32_Car";
+const char* pass = "robotcar123";
+WebServer server(80);
+
+int in1=5, in2=6, in3=9, in4=10; // Same motor pins
+
+void setup() {
+ WiFi.softAP(ssid, pass);
+ Serial.println("Server started!");
+ // Define URL routes
+ server.on("/forward", [](){ forward(); server.send(200,"text/plain","OK"); });
+ server.on("/backward", [](){ backward(); server.send(200,"text/plain","OK"); });
+ server.on("/left", [](){ left(); server.send(200,"text/plain","OK"); });
+ server.on("/right", [](){ right(); server.send(200,"text/plain","OK"); });
+ server.on("/stop", [](){ stopCar(); server.send(200,"text/plain","OK"); });
+ server.begin();
+}
+
+void loop() { server.handleClient(); }
+// forward(), backward(), left(), right(), stopCar() — same functions as before!</code></pre>
+</section>
+
+<section id="assembly-testing-troubleshooting">
+<h2>Assembly, Testing &amp; Troubleshooting</h2>
+<h3>Step-by-Step Assembly</h3>
+<ol>
+<li><strong>Mount Motors on Chassis</strong> &mdash; Fix both DC motors to the chassis using screws. Attach wheels.</li>
+<li><strong>Connect Motors to L298N</strong> &mdash; Left motor → OUT1/OUT2. Right motor → OUT3/OUT4.</li>
+<li><strong>Wire Microcontroller to L298N</strong> &mdash; Connect IN1–IN4 to the correct GPIO pins.</li>
+<li><strong>Add Communication Module</strong> &mdash; HC-05 (Bluetooth) OR use ESP32 directly (WiFi).</li>
+<li><strong>Connect Battery &amp; Power Up</strong> &mdash; Battery → L298N 12V input. Test movement!</li>
+</ol>
+<h3>Common Problems &amp; Fixes</h3>
+<ul>
+<li><strong>Car not moving?</strong> → Check battery voltage (should be 7V+)</li>
+<li><strong>Only one side moves?</strong> → Check motor wire connections on L298N</li>
+<li><strong>Bluetooth not pairing?</strong> → Reset HC-05, try password 0000</li>
+<li><strong>Motors spinning wrong way?</strong> → Swap the two motor wires on that side</li>
+<li><strong>ESP32 not connecting?</strong> → Forget network on phone, reconnect to "ESP32_Car"</li>
+</ul>
+<h3>Quick Test Checklist</h3>
+<ul>
+<li>All wires secure, no loose connections</li>
+<li>Battery charged (use a multimeter)</li>
+<li>HC-05 LED blinking (pairing mode)</li>
+<li>Serial Monitor shows commands received</li>
+<li>Car responds to F, B, L, R, S</li>
+<li>ESP32 web server accessible at <code>192.168.4.1</code></li>
+</ul>
+<div class="callout callout-tip"><div class="callout-title">All checks pass?</div><p>If all checks pass &mdash; you've built your first wireless robot car!</p></div>
+</section>

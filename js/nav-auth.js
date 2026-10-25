@@ -14,20 +14,20 @@
   function applyAuthState(session) {
     if (!session) return;
 
-    const navLoginLink = document.querySelector('.nav-menu a[href="/login.html"]');
+    const navLoginLink = document.querySelector('.nav-menu a[href="/pages/login.html"]');
     if (navLoginLink) {
-      navLoginLink.href = '/dashboard.html';
+      navLoginLink.href = '/pages/dashboard.html';
       navLoginLink.textContent = 'Dashboard';
     }
 
-    document.querySelectorAll('.footer a[href="/login.html"]').forEach((link) => {
+    document.querySelectorAll('.footer a[href="/pages/login.html"]').forEach((link) => {
       const text = link.textContent.trim();
       if (text === 'Login') {
         link.textContent = 'Dashboard';
-        link.href = '/dashboard.html';
+        link.href = '/pages/dashboard.html';
       } else if (text === 'Sign Up') {
         link.textContent = 'Learning Portal';
-        link.href = '/learning-portal.html';
+        link.href = '/pages/learning-portal.html';
       }
     });
   }

@@ -1,0 +1,180 @@
+<section id="what-is-tinkercad">
+<h2>What is Tinkercad Circuits?</h2>
+<p>Before we touch a single wire in the real world, let's play around in a virtual sandbox. Tinkercad Circuits lets us build and test electronics online — no burnt components, no wasted money. Today we'll explore the platform, wire up a simple LED circuit, and even make it fade using PWM.</p>
+<a class="video-link" href="https://www.youtube.com/watch?v=Mi1-IV0vMCw" target="_blank" rel="noopener">Tinkercad Circuits Tutorial - Making a Simple LED (YouTube, 09:57)</a>
+<div class="callout callout-key"><div class="callout-title">The Big Idea</div><p>Tinkercad Circuits is a free, browser-based electronics simulator by Autodesk. You can drag-and-drop components (Arduino, LEDs, resistors, motors, sensors), wire them up, write code, and hit Simulate to watch it run — all without buying a single physical part.</p><p>Think of it as a flight simulator for electronics.</p></div>
+<h3>Why Use It?</h3>
+<ul>
+<li><strong>Zero cost</strong> — just a browser and internet</li>
+<li><strong>Safe</strong> — can't short-circuit or fry anything</li>
+<li><strong>Beginner-friendly</strong> — drag-and-drop interface</li>
+<li><strong>Instant feedback</strong> — see results immediately</li>
+<li><strong>Shareable</strong> — send your circuit link to friends</li>
+<li><strong>Arduino built-in</strong> — code editor included</li>
+</ul>
+<div class="callout callout-tip"><div class="callout-title">Pro tip</div><p>Use Tinkercad to test your circuit before you build it physically. Saves time, money, and frustration!</p></div>
+</section>
+
+<section id="basic-workflow">
+<h2>The Basic Workflow</h2>
+<p>Here's the step-by-step process you'll follow every time you start a new circuit in Tinkercad. It's simple — promise!</p>
+<ol>
+<li><strong>Create Circuit</strong> — Log in → Circuits → "Create new Circuit"</li>
+<li><strong>Add Components</strong> — Drag Arduino, LED, resistor from the panel</li>
+<li><strong>Connect Wires</strong> — Click and drag wires between pins</li>
+<li><strong>Write Code</strong> — Open Code Editor, type Arduino sketch</li>
+<li><strong>Simulate &amp; Test</strong> — Click Start Simulation, observe output</li>
+</ol>
+<div class="callout callout-caution"><div class="callout-title">Remember</div><p>Always double-check your wiring before hitting Simulate. A wrong connection can "damage" virtual components too!</p></div>
+</section>
+
+<section id="components">
+<h2>Components You'll Need</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=3kDMYomFw5o" target="_blank" rel="noopener">Arduino UNO Tutorial #1 - Intro to Arduino w/TinkerCAD Circuits (YouTube, 12:02)</a>
+<p>For our first circuit, we need just 4 components. Here's a quick rundown of each one and what it does:</p>
+<div class="card-grid">
+<div class="info-card"><h4>Arduino Uno</h4><p>The <strong>brain</strong> of the circuit. Runs your code and controls output pins. We use digital pin 9 for PWM output.</p></div>
+<div class="info-card"><h4>LED</h4><p><strong>Light Emitting Diode.</strong> Has a longer leg (anode +) and shorter leg (cathode −). Only lets current flow one way!</p></div>
+<div class="info-card"><h4>Resistor (220Ω)</h4><p><strong>Limits current</strong> flowing through the LED. Without it, the LED burns out! 220Ω is a safe value for 5V circuits.</p></div>
+<div class="info-card"><h4>Breadboard &amp; Wires</h4><p>The <strong>prototyping board</strong> holds components without soldering. Red rail = +, Blue rail = GND (−).</p></div>
+</div>
+</section>
+
+<section id="wiring-diagram">
+<h2>Simple LED Circuit — Wiring Diagram</h2>
+<p>Here's how everything connects. Follow this exact wiring in Tinkercad:</p>
+<div class="card-grid">
+<div class="info-card"><h4>Arduino D9 to resistor</h4><p>Digital Pin 9 to 220Ω</p></div>
+<div class="info-card"><h4>Resistor to LED anode</h4><p>220Ω to LED + (anode)</p></div>
+<div class="info-card"><h4>LED cathode to GND</h4><p>LED − (cathode) to Arduino GND</p></div>
+<div class="info-card"><h4>Current flow</h4><p>Arrow: D9 → resistor → LED → GND</p></div>
+</div>
+<p>This is the complete signal path — from the Arduino's PWM output pin, through the current-limiting resistor, into the LED, and back to ground.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Side</th><th>Connection</th></tr></thead>
+<tbody>
+<tr><td>Positive side</td><td>Arduino <strong>Pin 9</strong> → Resistor (220Ω)</td></tr>
+<tr><td>Positive side</td><td>Resistor → LED <strong>Anode (+)</strong> (longer leg)</td></tr>
+<tr><td>Negative side</td><td>LED <strong>Cathode (−)</strong> (shorter leg) → GND</td></tr>
+<tr><td>Negative side</td><td>GND → Arduino <strong>GND pin</strong></td></tr>
+</tbody></table></div>
+<div class="callout callout-key"><div class="callout-title">Key rule</div><p>Always use a resistor with an LED! Direct connection to 5V will destroy it. The resistor <strong>limits current</strong> to a safe level (~20mA).</p></div>
+</section>
+
+<section id="blink-code">
+<h2>Arduino Code — Blink the LED</h2>
+<p>Once your circuit is wired, click "Code" in the top-right of Tinkercad. Switch to Text mode and type this:</p>
+<pre><code class="language-cpp">// Lesson 07 — Simple LED Blink
+// Pin 9 controls the LED
+
+int ledPin = 9;  // LED connected to digital pin 9
+
+void setup() {
+  pinMode(ledPin, OUTPUT);  // Set pin as output
+}
+
+void loop() {
+  digitalWrite(ledPin, HIGH);  // LED ON
+  delay(1000);                  // Wait 1 second
+  digitalWrite(ledPin, LOW);   // LED OFF
+  delay(1000);                  // Wait 1 second
+}</code></pre>
+<h3>Code Breakdown</h3>
+<ul>
+<li><code>int ledPin = 9</code> — names our output pin</li>
+<li><code>setup()</code> — runs once, sets pin mode</li>
+<li><code>loop()</code> — runs repeatedly</li>
+<li><code>HIGH</code> = 5V (ON), <code>LOW</code> = 0V (OFF)</li>
+<li><code>delay(1000)</code> = 1000 milliseconds = 1 second</li>
+</ul>
+<h3>How to Run</h3>
+<ol>
+<li>Click "Start Simulation" button</li>
+<li>Watch the LED blink ON/OFF every second</li>
+<li>Change <code>delay()</code> values to adjust speed</li>
+<li>Try <code>delay(500)</code> — faster blink!</li>
+</ol>
+</section>
+
+<section id="what-is-pwm">
+<h2>What is PWM?</h2>
+<h3>Pulse Width Modulation</h3>
+<p>PWM is a clever trick to simulate analog output using only digital pins. The Arduino rapidly switches the pin ON and OFF. By changing how long it stays ON vs OFF (the duty cycle), we control average power — and thus LED brightness!</p>
+<ul>
+<li>0% duty cycle = always OFF = LED dark</li>
+<li>50% duty cycle = half ON = medium brightness</li>
+<li>100% duty cycle = always ON = full brightness</li>
+</ul>
+<div class="callout callout-note"><div class="callout-title">Note</div><p>On Arduino, PWM values range from 0 to 255. Only certain pins support PWM — marked with <code>~</code> (tilde), like pins 3, 5, 6, 9, 10, 11.</p></div>
+</section>
+
+<section id="led-fading">
+<h2>LED Fading with PWM</h2>
+<p>Now let's make the LED smoothly fade in and out instead of just blinking. We use <code>analogWrite()</code> with a <code>for</code> loop:</p>
+<pre><code class="language-cpp">// Lesson 07 — LED Fade (PWM)
+int ledPin = 9;  // PWM pin (has ~ symbol)
+
+void setup() {
+  pinMode(ledPin, OUTPUT);
+}
+
+void loop() {
+  // Fade IN — brightness 0 to 255
+  for (int brightness = 0; brightness &lt;= 255; brightness++) {
+    analogWrite(ledPin, brightness);
+    delay(10);  // small delay for smooth fade
+  }
+
+  // Fade OUT — brightness 255 to 0
+  for (int brightness = 255; brightness &gt;= 0; brightness--) {
+    analogWrite(ledPin, brightness);
+    delay(10);
+  }
+}</code></pre>
+<div class="card-grid">
+<div class="info-card"><h4>analogWrite(pin, value)</h4><p>Sends PWM signal. Value = 0–255. Pin must be a PWM pin (~)</p></div>
+<div class="info-card"><h4>for loop</h4><p>Counts up (0→255) then down (255→0), changing brightness step by step</p></div>
+<div class="info-card"><h4>delay(10)</h4><p>Small pause between steps. Smaller = smoother but faster. Try 5 or 20!</p></div>
+</div>
+</section>
+
+<section id="running-simulation">
+<h2>Running the Simulation in Tinkercad</h2>
+<p>Here's a walkthrough of the Tinkercad interface when you're ready to test your circuit:</p>
+<ol>
+<li><strong>Build Your Circuit</strong> — Drag components from the left panel onto the workspace. Connect wires by clicking a pin and dragging to another pin. Red = positive, Black = GND.</li>
+<li><strong>Open Code Editor</strong> — Click the "Code" button (top-right). Choose Text mode (not Blocks). Paste or type your Arduino sketch.</li>
+<li><strong>Start Simulation</strong> — Click the big "Start Simulation" button. The LED should light up or fade based on your code. Watch the Serial Monitor if needed.</li>
+<li><strong>Debug &amp; Iterate</strong> — If something's wrong — check wire colors, pin numbers, and code syntax. Stop simulation, fix, and re-run. This is the engineering process!</li>
+</ol>
+</section>
+
+<section id="practice-task">
+<h2>Practice Task — Your Turn!</h2>
+<p>Build an LED circuit in Tinkercad and make the LED fade gradually from dark to bright and back. Experiment with different delay values and observe the effect!</p>
+<h3>Checklist</h3>
+<ul>
+<li>Create new Circuit in Tinkercad</li>
+<li>Add Arduino Uno + LED + 220Ω resistor</li>
+<li>Wire Pin 9 → Resistor → LED → GND</li>
+<li>Write the fade code with <code>analogWrite()</code></li>
+<li>Run simulation — LED should fade smoothly</li>
+<li>Try changing <code>delay()</code> to 5, 20, 50</li>
+<li>Bonus: Add a second LED on Pin 10!</li>
+</ul>
+<h3>Experiment Ideas</h3>
+<ul>
+<li>What happens if you remove the resistor?</li>
+<li>Try two LEDs fading in opposite directions</li>
+<li>Change the for loop step: <code>brightness += 5</code></li>
+<li>Use <code>millis()</code> instead of <code>delay()</code></li>
+<li>Share your circuit link with a classmate!</li>
+</ul>
+<div class="callout callout-note"><div class="callout-title">Next Lesson</div><p>We'll add a potentiometer (knob) to control LED brightness in real-time using <code>analogRead()</code>!</p></div>
+<h3>Lesson at a Glance</h3>
+<div class="card-grid">
+<div class="info-card"><h4>5 Components Used</h4><p>Arduino, LED, Resistor, Breadboard, Wires</p></div>
+<div class="info-card"><h4>255 PWM Levels</h4><p>Brightness values from 0 (off) to 255 (full)</p></div>
+<div class="info-card"><h4>6 PWM Pins</h4><p>Pins 3, 5, 6, 9, 10, 11 support <code>analogWrite()</code></p></div>
+</div>
+</section>

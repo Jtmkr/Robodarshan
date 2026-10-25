@@ -1,0 +1,190 @@
+<section id="what-is-a-motor">
+<h2>What is a Motor?</h2>
+<p>This lesson covers the basics of motors: how they work, how to control them, and how to pick the right one for your robot. We'll look at DC motors, gear motors, motor drivers (especially the L298N), and servo motors. By the end, you'll know how to wire up a motor to your microcontroller and make it spin!</p>
+<p>A <strong>motor</strong> is a device that converts electrical energy → mechanical motion (rotation). Almost every robot needs motors &mdash; they're what make wheels spin, arms move, and grippers open and close.</p>
+<div class="card-grid">
+<div class="info-card"><h4>Why Robots Need Motors</h4>
+<ul>
+<li>Locomotion &mdash; wheels, tracks, legs</li>
+<li>Manipulation &mdash; arms, grippers</li>
+<li>Actuation &mdash; valves, pumps, fans</li>
+<li>Precision &mdash; positioning, steering</li>
+</ul></div>
+<div class="info-card"><h4>Energy Conversion</h4>
+<p>Input: Electrical energy (voltage + current)</p>
+<p>Output: Mechanical energy (torque + RPM)</p></div>
+</div>
+<div class="callout callout-key"><div class="callout-title">Key idea</div><p>More current → more torque. More voltage → more speed (roughly).</p></div>
+</section>
+
+<section id="dc-motor-working-principle">
+<h2>DC Motor &mdash; Working Principle</h2>
+<p>A <strong>DC motor</strong> works on the principle that a <strong>current-carrying conductor in a magnetic field experiences a force</strong> (Lorentz Force). This force creates torque and makes the shaft rotate.</p>
+<figure><img src="/study-materials/stage-1/content/img/10-1.png" alt="Three linked circles showing the sequence: current flow, then magnetic force, then shaft rotation" loading="lazy"><figcaption>Current flow → magnetic force → shaft rotation.</figcaption></figure>
+<p>The diagram above shows the basic sequence &mdash; current through the coil creates a magnetic interaction that produces rotational force on the shaft.</p>
+<div class="card-grid">
+<div class="info-card"><h4>Direction of Rotation</h4>
+<ul>
+<li>Determined by <strong>polarity</strong> of voltage applied</li>
+<li>Swap +ve and −ve → motor reverses</li>
+<li>Use an <strong>H-Bridge</strong> circuit to reverse electronically</li>
+</ul></div>
+<div class="info-card"><h4>Speed Control</h4>
+<ul>
+<li>Speed ∝ Applied Voltage</li>
+<li>Use <strong>PWM (Pulse Width Modulation)</strong> from microcontroller</li>
+<li>Higher duty cycle = faster rotation</li>
+</ul></div>
+</div>
+<div class="callout callout-note"><div class="callout-title">Simple sketch idea</div><p>Draw a circle (motor body), two terminals (+ and −), and an arrow showing shaft rotation. Label: Armature, Commutator, Brushes, Shaft.</p></div>
+</section>
+
+<section id="dc-gear-motor">
+<h2>DC Gear Motor</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=GPVC84D5ULw" target="_blank" rel="noopener">How DC GEAR MOTOR Works with ARDUINO and L298N (YouTube, 10:04)</a>
+<p>A <strong>DC gear motor</strong> is a regular DC motor with a gearbox attached to its output shaft. The gearbox trades speed for torque &mdash; super useful in robotics!</p>
+<div class="card-grid">
+<div class="info-card"><h4>What Are Gears?</h4><p>Interlocking toothed wheels that transfer rotational motion. Different sizes = different speed/torque.</p></div>
+<div class="info-card"><h4>Speed vs Torque</h4><p>Gear reduction lowers RPM but increases torque. Perfect for moving heavy loads slowly.</p></div>
+<div class="info-card"><h4>Robotics Uses</h4><p>Robot wheels, robotic arms, conveyor belts, elevators &mdash; anywhere you need force, not just speed.</p></div>
+</div>
+<h3>Gear Ratio Formula</h3>
+<p><strong>Gear Ratio = N<sub>2</sub> / N<sub>1</sub></strong></p>
+<p>Where N<sub>1</sub> = input gear teeth, N<sub>2</sub> = output gear teeth.</p>
+<p>Example: 40-tooth output ÷ 10-tooth input = 4:1 ratio</p>
+<ul>
+<li>Output speed = 1/4 of input speed</li>
+<li>Output torque = 4× input torque</li>
+</ul>
+<h3>Quick Example</h3>
+<ul>
+<li>Motor: 1000 RPM, 0.5 N·m torque</li>
+<li>Gear ratio: 5:1</li>
+<li>Output speed = 1000 ÷ 5 = 200 RPM</li>
+<li>Output torque = 0.5 × 5 = 2.5 N·m</li>
+</ul>
+<a class="video-link" href="https://www.youtube.com/watch?v=8AXEKKXDXNM" target="_blank" rel="noopener">How To Calculate Gear Ratios: Torque, RPM, &amp; Mechanical Advantage (YouTube, 14:04)</a>
+</section>
+
+<section id="why-we-need-a-motor-driver">
+<h2>Motor Driver &mdash; Why Do We Need It?</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=PVyAcgYkzDs" target="_blank" rel="noopener">Motor Driver in depth | H-Bridge | L293D, L298N, TB6612FNG, VNH2S… (YouTube, 12:50)</a>
+<p>You cannot connect a motor directly to an Arduino or ESP32. Here's why &mdash; and what to do about it.</p>
+<div class="card-grid">
+<div class="info-card"><h4>Current Problem</h4><p>Arduino GPIO pins can supply only ~40 mA max. A small DC motor needs 200 mA to several Amps. Direct connection = fried microcontroller!</p></div>
+<div class="info-card"><h4>Direction Problem</h4><p>GPIO pins can only output HIGH or LOW &mdash; they can't reverse polarity to change motor direction. You need an H-Bridge circuit.</p></div>
+<div class="info-card"><h4>Protection</h4><p>Motors generate back-EMF (voltage spikes) when they stop or change direction. Motor drivers have built-in protection diodes.</p></div>
+</div>
+<div class="callout callout-caution"><div class="callout-title">Warning</div><p>Never connect a motor directly to a microcontroller GPIO pin. Always use a motor driver module!</p></div>
+</section>
+
+<section id="l298n-pinout">
+<h2>L298N Motor Driver &mdash; Pinout &amp; Connections</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=r-upF9Nkt7Y" target="_blank" rel="noopener">Speed Control Tutorial of Single DC Geared Motor With L298N Motor Driver (YouTube, 10:40)</a>
+<p>The <strong>L298N</strong> is a dual H-bridge motor driver module. It can control two DC motors (or one stepper motor) with direction and speed control. Very popular in beginner robotics!</p>
+<div class="card-grid">
+<div class="info-card"><h4>Motor Supply (Vs)</h4><p>5V – 35V DC. Connect your motor battery here. Not the same as logic power!</p></div>
+<div class="info-card"><h4>Logic Inputs (IN1–IN4)</h4><p>Connect to Arduino GPIO. IN1/IN2 control Motor A. IN3/IN4 control Motor B. HIGH/LOW combinations set direction.</p></div>
+<div class="info-card"><h4>Motor Outputs (OUT1–OUT4)</h4><p>OUT1 &amp; OUT2 → Motor A. OUT3 &amp; OUT4 → Motor B. Polarity here determines rotation direction.</p></div>
+<div class="info-card"><h4>Enable Pins &amp; GND</h4><p>ENA &amp; ENB: Connect to PWM pins for speed control. Common GND between Arduino, driver, and motor supply is critical!</p></div>
+</div>
+</section>
+
+<section id="wiring-diagram">
+<h2>Wiring Diagram &mdash; Arduino + L298N + DC Motor</h2>
+<p>Here's the complete wiring setup. Follow this carefully &mdash; <strong>common ground is a must!</strong></p>
+<figure><img src="/study-materials/stage-1/content/img/10-2.png" alt="Wiring diagram: two 12V DC motors connected to an L298N driver, a battery pack of 18650 Li-ion cells, an Arduino Uno and a joystick module" loading="lazy"><figcaption>Wiring diagram for Arduino + L298N + DC motor (two 12V 120 RPM motors, 3 × 3.7V = 11.1V battery pack).</figcaption></figure>
+<h3>Connection Table</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Arduino Pin</th><th>L298N Pin</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>D9 (PWM)</td><td>ENA</td><td>Speed control</td></tr>
+<tr><td>D8</td><td>IN1</td><td>Direction A</td></tr>
+<tr><td>D7</td><td>IN2</td><td>Direction A</td></tr>
+<tr><td>GND</td><td>GND</td><td>Common ground</td></tr>
+<tr><td>5V</td><td>+5V (if jumper on)</td><td>Logic power</td></tr>
+</tbody>
+</table></div>
+<h3>Power Wiring</h3>
+<ul>
+<li><strong>Motor Battery +</strong> → L298N Vs</li>
+<li><strong>Motor Battery −</strong> → L298N GND</li>
+<li><strong>Motor Wire 1</strong> → OUT1</li>
+<li><strong>Motor Wire 2</strong> → OUT2</li>
+</ul>
+<div class="callout callout-key"><div class="callout-title">Common GND rule</div><p>Arduino GND, L298N GND, and motor battery GND must ALL be connected together!</p></div>
+</section>
+
+<section id="direction-control-h-bridge">
+<h2>Direction Control &amp; H-Bridge Concept</h2>
+<p>The L298N contains an <strong>H-Bridge</strong> &mdash; a circuit of 4 switches (transistors) that can reverse current direction through the motor electronically.</p>
+<h3>IN1 / IN2 Truth Table (Motor A)</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>IN1</th><th>IN2</th><th>Motor State</th></tr></thead>
+<tbody>
+<tr><td>LOW</td><td>LOW</td><td>Stop (brake)</td></tr>
+<tr><td>HIGH</td><td>LOW</td><td>Forward</td></tr>
+<tr><td>LOW</td><td>HIGH</td><td>Reverse</td></tr>
+<tr><td>HIGH</td><td>HIGH</td><td>Stop (brake)</td></tr>
+</tbody>
+</table></div>
+<h3>H-Bridge Visual</h3>
+<p>Think of 4 switches arranged like the letter H:</p>
+<ul>
+<li>Top-left + Bottom-right ON → Forward</li>
+<li>Top-right + Bottom-left ON → Reverse</li>
+<li>All OFF → Motor coasts to stop</li>
+</ul>
+<p>The L298N handles all this internally &mdash; you just set IN1/IN2!</p>
+<div class="callout callout-tip"><div class="callout-title">Speed Control with PWM</div><p>Keep IN1/IN2 fixed for direction. Vary <code>ENA</code> using <code>analogWrite()</code> (0–255). Higher value = faster motor.</p></div>
+</section>
+
+<section id="servo-motor">
+<h2>Servo Motor &mdash; Position Control</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=1WnGv-DPexc" target="_blank" rel="noopener">Servo Motors, how do they work? (YouTube, 15:12)</a>
+<p>A <strong>servo motor</strong> is different from a DC motor &mdash; it doesn't spin continuously. Instead, it moves to a <strong>specific angle</strong> and holds that position. Great for robotic arms, steering, and precise movements!</p>
+<div class="card-grid">
+<div class="info-card"><h4>Basic Components</h4>
+<ul>
+<li>DC motor (inside)</li>
+<li>Gearbox (for torque)</li>
+<li>Potentiometer (position feedback)</li>
+<li>Control circuit (compares target vs actual)</li>
+</ul></div>
+<div class="info-card"><h4>Robotics Applications</h4>
+<ul>
+<li>Robotic arm joints</li>
+<li>RC car steering</li>
+<li>Camera pan/tilt</li>
+<li>Flap and valve control</li>
+</ul></div>
+</div>
+<h3>How Position Control Works</h3>
+<p>Servo receives a <strong>PWM signal</strong> on its signal wire:</p>
+<ul>
+<li>1 ms pulse → 0° position</li>
+<li>1.5 ms pulse → 90° (center)</li>
+<li>2 ms pulse → 180° position</li>
+</ul>
+<p>Arduino <code>Servo</code> library handles this automatically with <code>servo.write(angle)</code>.</p>
+<h3>Servo Wire Colors</h3>
+<ul>
+<li>Red → VCC (5V)</li>
+<li>Brown/Black → GND</li>
+<li>Orange/Yellow → Signal (PWM pin)</li>
+</ul>
+</section>
+
+<section id="motor-selection-checklist">
+<h2>Motor Selection Checklist</h2>
+<p>Before buying a motor for your robot, run through this checklist. Picking the wrong motor is one of the most common beginner mistakes!</p>
+<ol>
+<li><strong>Required Speed (RPM)</strong> &mdash; How fast does the wheel/arm need to move? Calculate from desired robot speed and wheel diameter.</li>
+<li><strong>Required Torque (N·m)</strong> &mdash; How much force is needed? Consider robot weight, friction, and incline. Add a 2× safety margin!</li>
+<li><strong>Supply Voltage</strong> &mdash; Match motor voltage to your battery. Common: 3V, 6V, 12V. Don't exceed motor rating.</li>
+<li><strong>Current Draw</strong> &mdash; Check stall current. Your driver and battery must handle it. Add a fuse for safety.</li>
+<li><strong>Load &amp; Weight</strong> &mdash; Heavier load = more torque needed. Gear motors help, but don't overload the motor.</li>
+<li><strong>Gear Ratio</strong> &mdash; Need more torque? Use a higher gear ratio. Need speed? Lower ratio. Balance both!</li>
+</ol>
+<div class="callout callout-key"><div class="callout-title">Lesson 10 Summary</div><p>Motors convert electricity to motion. Use gear motors for torque. Always use a motor driver (L298N). Control direction with IN pins, speed with PWM. Use servos for precise angles. Check the checklist before buying!</p></div>
+</section>

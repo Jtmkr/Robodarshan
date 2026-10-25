@@ -1,0 +1,141 @@
+<section id="introduction">
+<h2>Introduction</h2>
+<p>Before your robot can move, blink, or sense anything — it needs electricity. This lesson covers the core ideas you need to understand how electricity behaves in a circuit. Think of this as your "electricity vocabulary" before you start building.</p>
+</section>
+
+<section id="voltage-current-power">
+<h2>Voltage, Current &amp; Power</h2>
+<p>Three big ideas form the foundation of all electronics. Here's the water-flow analogy that makes them click — imagine electricity flowing through a wire like water flowing through a pipe.</p>
+<a class="video-link" href="https://www.youtube.com/watch?v=zH-5ls0YAI0" target="_blank" rel="noopener">Voltage, Current, and Power Explained - Laying the Foundation for Basic Circuit Analysis (YouTube, 07:25)</a>
+<div class="card-grid">
+<div class="info-card"><h4>Voltage (V)</h4><p>Unit: Volts (<code>V</code>)</p><p>Electrical "pressure" that pushes current through a circuit. Like water pressure in a pipe — higher voltage means more push.</p><p>Common values: AA battery = 1.5V, USB = 5V, Car battery = 12V</p></div>
+<div class="info-card"><h4>Current (I)</h4><p>Unit: Amperes (<code>A</code>)</p><p>The flow rate of electric charge. Like the amount of water flowing past a point each second.</p><p>Small currents are measured in milliamps (<code>mA</code>): 1 A = 1000 mA</p></div>
+<div class="info-card"><h4>Power (P)</h4><p>Unit: Watts (<code>W</code>)</p><p>How fast energy is used or delivered. A higher-wattage component consumes more energy per second.</p><p>Formula: P = V × I</p></div>
+</div>
+<p>Energy is power used over time. A 10W LED running for 2 hours uses 20 Watt-hours of energy. Your robot's battery stores a finite amount of energy — once it's gone, the robot stops!</p>
+</section>
+
+<section id="water-flow-analogy">
+<h2>The Water-Flow Analogy</h2>
+<p>This analogy is your best friend when learning electronics. Every time you're confused about voltage or current, picture water in pipes.</p>
+<div class="card-grid">
+<div class="info-card"><h4>Water Pressure = Voltage</h4><p>A tall water tank creates high pressure at the bottom — just like a high-voltage battery creates strong electrical push.</p></div>
+<div class="info-card"><h4>Water Flow = Current</h4><p>A wide pipe lets more water flow. A thick wire lets more current flow. Narrow pipe = less flow = higher resistance.</p></div>
+<div class="info-card"><h4>Pump = Battery</h4><p>The battery is the pump that keeps the "water" (current) moving around the loop.</p></div>
+</div>
+<div class="callout callout-key"><div class="callout-title">Key Relationship</div>
+<p>Power tells you how much work a component does per second.</p>
+<p><strong>P = V × I</strong></p>
+<p>If a motor runs at 12V and draws 2A:</p>
+<p><strong>P = 12 × 2 = 24 W</strong></p>
+<p>That motor uses 24 Joules of energy every second it runs.</p></div>
+</section>
+
+<section id="resistors">
+<h2>Resistors</h2>
+<p>A resistor is a component that opposes the flow of electric current. It "resists" current — the higher the resistance, the less current flows for a given voltage. Resistors are everywhere in electronics.</p>
+<a class="video-link" href="https://www.youtube.com/watch?v=x6jajfprWZo" target="_blank" rel="noopener">Resistors Explained &amp; Ohm's Law Made Simple! | What Are Resistors? &amp; How Do Resistors Work? (YouTube)</a>
+<h3>Why Do We Use Resistors?</h3>
+<ul>
+<li><strong>Limit Current</strong> — Protect sensitive components (like LEDs) from too much current.</li>
+<li><strong>Create Voltage Drops</strong> — Divide voltage between parts of a circuit.</li>
+<li><strong>Dissipate Heat</strong> — Convert excess electrical energy into heat safely.</li>
+</ul>
+<h3>How Resistance Affects Current</h3>
+<p>More resistance → less current. Less resistance → more current. This is the heart of Ohm's Law (next section!).</p>
+<div class="callout callout-caution"><div class="callout-title">Heat</div><p>Resistors get warm when current flows through them — that's energy being lost as heat. This is normal, but high-power resistors need space to cool!</p></div>
+<h3>Types of Resistors</h3>
+<div class="card-grid">
+<div class="info-card"><h4>Fixed Resistor</h4><p>Has one set resistance value (e.g., 220Ω, 1kΩ). Identified by colored bands. Most common type in beginner circuits.</p></div>
+<div class="info-card"><h4>Potentiometer</h4><p>A <strong>variable resistor</strong> — you can adjust resistance by turning a knob or sliding a control. Used for volume controls, speed controls, etc.</p></div>
+<div class="info-card"><h4>Thermistor</h4><p>A resistor whose value <strong>changes with temperature</strong>. Used in temperature-sensing circuits. Resistance drops as it gets hotter (usually).</p></div>
+</div>
+<figure><img src="/study-materials/stage-1/content/img/2-1.png" alt="Fixed resistor with colored bands labelled: Band A 1st digit, Band B 2nd digit, Band C multiplier, Band D tolerance" loading="lazy"><figcaption>Fixed resistor with colored bands.</figcaption></figure>
+<figure><img src="/study-materials/stage-1/content/img/2-2.jpg" alt="Photo of a potentiometer with a yellow knob" loading="lazy"><figcaption>Potentiometer (variable resistor).</figcaption></figure>
+<figure><img src="/study-materials/stage-1/content/img/2-3.jpg" alt="Photo of an NTC thermistor" loading="lazy"><figcaption>Thermistor (NTC).</figcaption></figure>
+<p><strong>Circuit Symbol:</strong> A zigzag line (US) or rectangle (international). The symbol appears in every circuit diagram you'll draw.</p>
+</section>
+
+<section id="ohms-law">
+<h2>Ohm's Law</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=HsLLq6Rm5tU" target="_blank" rel="noopener">Ohms Law Explained - The basics circuit theory (YouTube)</a>
+<p>Ohm's Law is the most important equation in basic electronics. It connects voltage, current, and resistance in one simple relationship.</p>
+<div class="callout callout-key"><div class="callout-title">Ohm's Law</div><p><strong>V = I × R</strong></p></div>
+<h3>Three Forms — Same Equation</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>To find</th><th>Formula</th></tr></thead>
+<tbody>
+<tr><td>Voltage</td><td>V = I × R</td></tr>
+<tr><td>Current</td><td>I = V / R</td></tr>
+<tr><td>Resistance</td><td>R = V / I</td></tr>
+</tbody></table></div>
+<h3>Quick Example</h3>
+<p>A 9V battery is connected to a 100Ω resistor. How much current flows?</p>
+<p>I = V / R = 9 / 100 = 0.09 A = 90 mA</p>
+<p>90 milliamps of current flows through the resistor.</p>
+<div class="card-grid">
+<div class="info-card"><h4>Directly Proportional</h4><p>Voltage ↑ → Current ↑ (if R stays the same). Double the voltage, double the current.</p></div>
+<div class="info-card"><h4>Inversely Proportional</h4><p>Resistance ↑ → Current ↓ (if V stays the same). Double the resistance, halve the current.</p></div>
+</div>
+</section>
+
+<section id="leds">
+<h2>LEDs — Light Emitting Diodes</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=O8M2z2hIbag" target="_blank" rel="noopener">How LED Works - Unravel the Mysteries of How LEDs Work! (YouTube)</a>
+<figure><img src="/study-materials/stage-1/content/img/2-4.jpg" alt="Row of glowing LEDs in different colors on a breadboard with resistors" loading="lazy"><figcaption>LEDs in different colors, each wired with a resistor.</figcaption></figure>
+<p>An <strong>LED (Light Emitting Diode)</strong> is a special component that emits light when current flows through it. LEDs are efficient, long-lasting, and come in many colors.</p>
+<h3>How It Works</h3>
+<p>LEDs are <strong>diodes</strong> — they only allow current to flow in <strong>one direction</strong>. Connect it backwards and it won't light up!</p>
+<div class="card-grid">
+<div class="info-card"><h4>Anode (+)</h4><p>The <strong>longer leg</strong>. Connects to positive voltage. Current enters here.</p></div>
+<div class="info-card"><h4>Cathode (−)</h4><p>The <strong>shorter leg</strong>. Connects to negative/ground. Current exits here. Often has a flat edge on the LED body.</p></div>
+</div>
+<div class="callout callout-caution"><div class="callout-title">Always use a resistor</div><p>LEDs need a <strong>current-limiting resistor</strong> in series — without it, too much current flows and the LED burns out instantly!</p></div>
+</section>
+
+<section id="led-switch-battery-circuit">
+<h2>LED + Switch + Battery Circuit</h2>
+<a class="video-link" href="https://www.youtube.com/watch?v=8CGEoHSHduc" target="_blank" rel="noopener">How to Connect Multiple LED's with 9V Battery, Switch in Series Connection | Simple Electric Circuit (YouTube)</a>
+<p>Let's put it all together. This is the simplest complete circuit — a battery, a switch, a resistor, and an LED. When the switch is closed, current flows and the LED lights up.</p>
+<ul>
+<li><strong>Battery:</strong> 9V supply</li>
+<li><strong>Switch:</strong> ON/OFF control</li>
+<li><strong>Resistor:</strong> limits current</li>
+<li><strong>LED:</strong> emits light</li>
+</ul>
+<p>Current flows from the battery's positive terminal, through the switch, through the resistor, through the LED (anode to cathode), and back to the battery's negative terminal — but <em>only</em> when the switch is <strong>ON</strong>.</p>
+<div class="card-grid">
+<div class="info-card"><h4>Switch ON</h4><p>Circuit is <strong>complete</strong>. Current flows. LED lights up. Resistor protects the LED from excess current.</p></div>
+<div class="info-card"><h4>Switch OFF</h4><p>Circuit is <strong>broken</strong>. No current flows. LED is dark. Battery is not drained.</p></div>
+</div>
+</section>
+
+<section id="circuit-symbols">
+<h2>Circuit Symbols — Reading Circuit Diagrams</h2>
+<p>Engineers use standard symbols to draw circuits. Learn these four symbols and you can read almost any beginner schematic.</p>
+<div class="card-grid">
+<div class="info-card"><h4>Battery</h4><p>Two parallel lines — long line is + (positive), short line is − (negative). Provides voltage to the circuit.</p></div>
+<div class="info-card"><h4>Resistor</h4><p>A zigzag line. Opposes current flow. Value is written next to it (e.g., 220Ω).</p></div>
+<div class="info-card"><h4>LED</h4><p>A diode triangle with two arrows pointing away (light emission). Flat side = cathode (−).</p></div>
+<div class="info-card"><h4>Switch</h4><p>A line with a gap and a lever. Open = OFF (no current). Closed = ON (current flows).</p></div>
+</div>
+</section>
+
+<section id="key-takeaways">
+<h2>Key Takeaways — The Important Formulas</h2>
+<p>Keep these three equations in your head (or on a sticky note on your desk). They are the foundation of everything you'll do in electronics and robotics.</p>
+<div class="card-grid">
+<div class="info-card"><h4>Ohm's Law</h4><p>V = I × R</p><p>Voltage = Current × Resistance</p></div>
+<div class="info-card"><h4>Power Formula</h4><p>P = V × I</p><p>Power = Voltage × Current</p></div>
+<div class="info-card"><h4>Rearranged Forms</h4><p>I = V / R &nbsp;&nbsp; R = V / I</p><p>Use whichever form matches what you need to find.</p></div>
+</div>
+<h3>Quick Rules to Remember</h3>
+<ul>
+<li>Voltage pushes, current flows, resistance opposes</li>
+<li>LEDs need a resistor — always!</li>
+<li>Current flows from + to − (conventional flow)</li>
+<li>Switch OFF = broken circuit = no current</li>
+<li>More resistance = less current</li>
+</ul>
+<div class="callout callout-tip"><div class="callout-title">What's Next?</div><p>Now that you understand voltage, current, resistance, and LEDs — you're ready to start building real circuits on a breadboard. Next up: series and parallel circuits, and how to choose the right resistor for your LED!</p></div>
+</section>

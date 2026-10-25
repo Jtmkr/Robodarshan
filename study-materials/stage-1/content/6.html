@@ -1,0 +1,84 @@
+<section id="big-idea">
+<h2>The big idea</h2>
+<p>ESP32 brings more computing and connectivity to small projects. A beginner-friendly board can sense, decide, and communicate from one small package. Think: local control + wireless connection.</p>
+<a class="video-link" href="http://www.youtube.com/watch?v=mydCDdnSo5o" target="_blank" rel="noopener">Video: ESP32 fundamentals</a>
+<div class="card-grid">
+<div class="info-card"><h4>More processing</h4><p>High processing capability for its size supports robotics, automation, and IoT.</p></div>
+<div class="info-card"><h4>Built-in Wi-Fi</h4><p>2.4 GHz Wi-Fi connects projects to networks and cloud services.</p></div>
+<div class="info-card"><h4>Built-in Bluetooth</h4><p>Bluetooth links nearby phones, sensors, and controllers.</p></div>
+</div>
+</section>
+
+<section id="esp32-vs-arduino-uno">
+<h2>ESP32 vs Arduino UNO</h2>
+<p>ESP32 and Arduino UNO solve different beginner problems. Typical reference values; exact GPIO and ADC availability depends on the specific board.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>ESP32</th><th>Arduino UNO R3</th></tr></thead>
+<tbody>
+<tr><td>Processor</td><td>32-bit dual-core Xtensa LX6</td><td>8-bit ATmega328P</td></tr>
+<tr><td>Clock speed</td><td>Up to 240 MHz</td><td>16 MHz</td></tr>
+<tr><td>Wi-Fi</td><td>Built in, 2.4 GHz</td><td>None</td></tr>
+<tr><td>Bluetooth</td><td>Built in on classic ESP32</td><td>None</td></tr>
+<tr><td>GPIO</td><td>Many digital GPIO; board-dependent</td><td>14 digital I/O, 6 PWM</td></tr>
+<tr><td>ADC</td><td>Up to 12-bit, board-dependent</td><td>6 channels, 10-bit</td></tr>
+<tr><td>Operating voltage</td><td>3.3 V logic</td><td>5 V logic</td></tr>
+<tr><td>Typical applications</td><td>Robotics, IoT, connected sensors</td><td>Simple control, learning, basic prototypes</td></tr>
+</tbody></table></div>
+<div class="callout callout-key"><div class="callout-title">Takeaway</div><p>Choose ESP32 when connectivity, speed, and peripherals matter; choose UNO when simple 5 V projects and first-step learning matter.</p></div>
+</section>
+
+<section id="esp32-vs-esp8266">
+<h2>ESP32 vs ESP8266</h2>
+<p>ESP32 has more capability than ESP8266. Both boards provide built-in 2.4 GHz Wi-Fi. ESP32 adds more room for control, peripherals, and connected behavior.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Capability</th><th>ESP32</th><th>ESP8266</th></tr></thead>
+<tbody>
+<tr><td>Processing</td><td>More processing headroom; dual-core on classic ESP32</td><td>Single-core, simpler workload</td></tr>
+<tr><td>Wi-Fi</td><td>Built in</td><td>Built in</td></tr>
+<tr><td>Bluetooth</td><td>Built in on classic ESP32</td><td>Not built in</td></tr>
+<tr><td>Hardware peripherals</td><td>Broader GPIO, ADC, interfaces, and control options</td><td>Smaller peripheral set; module-dependent pins</td></tr>
+</tbody></table></div>
+<div class="callout callout-tip"><div class="callout-title">Tip</div><p>Use ESP8266 when a project mainly needs Wi-Fi. Use ESP32 when it also needs Bluetooth, richer control, or room to grow.</p></div>
+</section>
+
+<section id="esp32-family">
+<h2>The ESP32 family</h2>
+<p>One family name, several board types. The ESP32 family shares a name but not one exact feature set.</p>
+<div class="card-grid">
+<div class="info-card"><h4>ESP32</h4><p>Classic all-rounder with dual-core processing, Wi-Fi, and Bluetooth.</p></div>
+<div class="info-card"><h4>ESP32-S2</h4><p>Wi-Fi-focused, single-core, with USB features and no Bluetooth.</p></div>
+<div class="info-card"><h4>ESP32-S3</h4><p>Dual-core Wi-Fi and Bluetooth LE with extra acceleration for smart edge devices.</p></div>
+<div class="info-card"><h4>ESP32-C3</h4><p>Low-cost single-core RISC-V option with Wi-Fi and Bluetooth LE.</p></div>
+<div class="info-card"><h4>ESP32-C6</h4><p>Newer low-power option with Wi-Fi 6, Bluetooth LE, and 802.15.4 support.</p></div>
+</div>
+<div class="callout callout-caution"><div class="callout-title">Before a first robotics project</div><p>Check the exact board&rsquo;s pinout and voltage.</p></div>
+</section>
+
+<section id="meet-the-board">
+<h2>Meet the board</h2>
+<p>Read the development board before you connect it.</p>
+<figure><img src="/study-materials/stage-1/content/img/6-1.jpg" alt="ESP32 development board with labels: antenna, ESP-WROOM-32, CP2102, voltage regulator, reset/EN, boot, USB input" loading="lazy"><figcaption>ESP32 dev board: antenna, ESP-WROOM-32 module, CP2102 USB chip, voltage regulator, RESET/EN, BOOT, and USB input. Pin placement varies by board; confirm the exact pinout before wiring.</figcaption></figure>
+</section>
+
+<section id="why-esp32-for-robotics">
+<h2>Why ESP32 for robotics?</h2>
+<div class="card-grid">
+<div class="info-card"><h4>Wi-Fi</h4><p>Monitor a robot, send sensor data, or control it from a network.</p></div>
+<div class="info-card"><h4>Bluetooth</h4><p>Pair with a phone, gamepad, or nearby accessory.</p></div>
+<div class="info-card"><h4>Higher processing power</h4><p>Coordinate sensing, decisions, and movement with more headroom.</p></div>
+<div class="info-card"><h4>More peripherals</h4><p>Connect motors, sensors, displays, encoders, and communication modules.</p></div>
+</div>
+<p>One small board can combine local control with wireless communication.</p>
+</section>
+
+<section id="decision-rule">
+<h2>A practical decision rule</h2>
+<p>Choose the board by the job, not by the name.</p>
+<ol>
+<li><strong>Simple 5 V control</strong> &mdash; Need the gentlest first step? Arduino UNO may be enough.</li>
+<li><strong>Connected and capable</strong> &mdash; Need Wi-Fi, Bluetooth, more processing, or more peripherals? ESP32 is a strong next choice.</li>
+<li><strong>Wi-Fi with low complexity</strong> &mdash; Need Wi-Fi at the lowest complexity and cost? ESP8266 may fit.</li>
+<li><strong>Check before wiring</strong> &mdash; Confirm the exact pinout, 3.3 V logic, power input, and boot controls.</li>
+</ol>
+<div class="callout callout-key"><div class="callout-title">Key idea</div><p>ESP32 is powerful because it combines control, connectivity, and room to grow.</p></div>
+</section>

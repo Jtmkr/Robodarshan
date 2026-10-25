@@ -1,9 +1,9 @@
 // Depends on js/supabase-client.js being loaded first (exposes global `supabaseClient`).
 
 const ALLOWED_EMAIL_DOMAIN = 'students.iiests.ac.in';
-const LOGIN_PAGE = 'login.html';
-const REGISTER_PAGE = 'register.html';
-const POST_LOGIN_REDIRECT = 'dashboard.html'; // update if your post-login page is named/located differently
+const LOGIN_PAGE = '/pages/login.html';
+const REGISTER_PAGE = '/pages/register.html';
+const POST_LOGIN_REDIRECT = '/pages/dashboard.html'; // update if your post-login page is named/located differently
 
 function isAllowedEmail(email) {
   return typeof email === 'string' && email.toLowerCase().endsWith(`@${ALLOWED_EMAIL_DOMAIN}`);
@@ -13,7 +13,7 @@ async function login() {
   const { error } = await supabaseClient.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/${POST_LOGIN_REDIRECT}`,
+      redirectTo: `${window.location.origin}${POST_LOGIN_REDIRECT}`,
       // `hd` only hints Google's account chooser toward this domain, it is not
       // a security boundary by itself — isAllowedEmail() below is what actually enforces it.
       queryParams: {

@@ -498,6 +498,36 @@
 
   /* -------- quiz -------- */
 
+  // Options are shown in a shuffled order so the stored answer position
+  // (which is skewed in the seed data) can't be guessed. Radio values stay
+  // the ORIGINAL option index, so scoring and q.answer are unaffected.
+  // The order is remembered per quiz, so re-renders (after saving an
+  // attempt, switching theme, etc.) keep the options where the learner saw
+  // them, and "Attempt Again" reshuffles.
+  const quizOrders = new Map(); // "type:id" -> number[][] (displayed -> original index, per question)
+  const PINNED_LAST = /^\s*(all|none|both|neither)\b.*\b(above|these|them)\b/i;
+
+  function shuffledOrder(options) {
+    const free = [];
+    const pinned = [];
+    options.forEach((opt, i) => (PINNED_LAST.test(String(opt)) ? pinned : free).push(i));
+    for (let i = free.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [free[i], free[j]] = [free[j], free[i]];
+    }
+    return [...free, ...pinned];
+  }
+
+  function quizOrderFor(kind, id, quiz) {
+    const key = keyOf(kind, id);
+    let order = quizOrders.get(key);
+    if (!order || order.length !== quiz.length || order.some((o, qi) => o.length !== (quiz[qi].options || []).length)) {
+      order = quiz.map((q) => shuffledOrder(q.options || []));
+      quizOrders.set(key, order);
+    }
+    return order;
+  }
+
   function renderQuizHistory(attempts) {
     if (!attempts.length) return '<p class="quiz-history-empty">Not attempted yet.</p>';
     return `<div class="quiz-history">${attempts
@@ -512,6 +542,7 @@
     const attempts = attemptsOf(kind, id);
     const submission = quizSubmissions.get(keyOf(kind, id));
     const attemptNumber = submission ? attempts.length : attempts.length + 1;
+    const order = quizOrderFor(kind, id, quiz);
 
     return `
       <div class="quiz-card">
@@ -527,8 +558,9 @@
                 <fieldset class="quiz-question">
                   <legend class="quiz-question-text">${qi + 1}. ${esc(q.question)}</legend>
                   <div class="quiz-options">
-                    ${(q.options || [])
-                      .map((opt, oi) => {
+                    ${order[qi]
+                      .map((oi) => {
+                        const opt = q.options[oi];
                         let cls = '';
                         if (submission) {
                           if (oi === q.answer) cls = 'quiz-correct';
@@ -600,6 +632,7 @@
 
       form.querySelector('.quiz-retry-button').addEventListener('click', async () => {
         quizSubmissions.delete(keyOf(form.dataset.kind, form.dataset.id));
+        quizOrders.delete(keyOf(form.dataset.kind, form.dataset.id));
         await render({ keepScroll: true });
       });
     });

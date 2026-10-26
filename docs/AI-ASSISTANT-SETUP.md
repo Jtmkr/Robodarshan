@@ -27,7 +27,7 @@ The 30 and 5 are fixed inside the SQL functions (`supabase/migrations/020_ai_ass
 3. **Add environment variables** in Netlify -> your site -> Site configuration -> Environment variables -> Add a variable. Tick the **Functions** scope, and mark each as secret:
    - `GEMINI_API_KEY`: the key from step 2.
    - `SUPABASE_SERVICE_ROLE_KEY`: Supabase -> Project Settings -> API -> the `service_role` key. **Keep it secret.** It bypasses all row security.
-   - Optional: `GEMINI_MODEL` (default `gemini-2.5-flash`). Google retires models over time, so if the assistant answers "busy" for everyone, check the current model name in AI Studio and set this.
+   - Optional: `GEMINI_MODEL` (default `gemini-3.5-flash-lite`). Google retires models over time, so if the assistant answers "busy" for everyone, check the current model name in AI Studio and set this.
    - Optional: `AI_TIMEOUT_MS` (default 8000). Netlify stops functions after 10 seconds by default, so Gemini is given 8.
 4. **Deploy from Git.** Netlify Functions only deploy when the site is built from a connected Git repository (or the Netlify CLI). Dragging a folder into Netlify Drop publishes the static files but **not** the function. After adding the variables, trigger a new deploy (Deploys -> Trigger deploy), because variables are read at deploy time.
 5. **Check it:** Netlify -> Functions should list `chat`. Then ask a question in the chat window while logged in.

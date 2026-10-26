@@ -26,7 +26,10 @@
 const CLUB_KNOWLEDGE = require('../lib/club-knowledge');
 
 const DEFAULT_SUPABASE_URL = 'https://wcpsrxkgvlgvxlowusty.supabase.co';
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+// Google recommends this one for new projects; the 2.5 models are only open to
+// projects that already used them (a new key gets a 404 for those). Override
+// with the GEMINI_MODEL environment variable without touching code.
+const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
 
 const MAX_QUESTION_WORDS = 1000;
 const MAX_HISTORY_MESSAGES = 6;
@@ -145,10 +148,11 @@ async function askGemini(cfg, mode, page, history, message) {
         role: m.role,
         parts: [{ text: m.text }],
       })),
-      generationConfig: { temperature: mode === 'club' ? 0.2 : 0.5, maxOutputTokens: 2048 },
+      generationConfig: { temperature: mode === 'club' ? 0.2 : 0.5, maxOutputTokens: 4096 },
     };
     // 2.5 Flash "thinks" by default and thinking tokens eat the output budget;
-    // plain Q&A doesn't need it.
+    // plain Q&A doesn't need it. (Newer models are left on their defaults; the
+    // generous maxOutputTokens leaves room for any thinking they do.)
     if (/2\.5-flash/.test(cfg.model)) body.generationConfig.thinkingConfig = { thinkingBudget: 0 };
 
     const response = await fetch(
@@ -162,7 +166,14 @@ async function askGemini(cfg, mode, page, history, message) {
     );
 
     if (!response.ok) {
-      const error = new Error(`Gemini responded with status ${response.status}`);
+      let detail = '';
+      try {
+        const payload = await response.json();
+        detail = [payload.error && payload.error.status, payload.error && payload.error.message].filter(Boolean).join(': ');
+      } catch (err) {
+        /* body was not JSON */
+      }
+      const error = new Error(`Gemini responded with status ${response.status}${detail ? ` (${detail.slice(0, 300)})` : ''}`);
       error.status = response.status;
       throw error;
     }
@@ -174,9 +185,26 @@ async function askGemini(cfg, mode, page, history, message) {
         ? candidate.content.parts.map((p) => p.text || '').join('').trim()
         : '';
     return { text, blocked: !text && Boolean((data.promptFeedback && data.promptFeedback.blockReason) || (candidate && candidate.finishReason === 'SAFETY')) };
+  } catch (err) {
+    if (err && err.name === 'AbortError') {
+      const timeout = new Error(`Gemini did not answer within ${cfg.timeoutMs} ms`);
+      timeout.timedOut = true;
+      throw timeout;
+    }
+    throw err;
   } finally {
     clearTimeout(timer);
   }
+}
+
+// Turn a Gemini failure into (a) a short code for the member / the logs and
+// (b) whether it is our setup that is wrong (key, model name) or just load.
+function describeGeminiFailure(err) {
+  if (err.timedOut) return { code: 'gemini_timeout', setup: false };
+  if (err.status === 401 || err.status === 403) return { code: `gemini_${err.status}`, setup: true };
+  if (err.status === 404 || err.status === 400) return { code: `gemini_${err.status}`, setup: true };
+  if (err.status) return { code: `gemini_${err.status}`, setup: false };
+  return { code: 'gemini_network', setup: false };
 }
 
 exports.handler = async function handler(event) {
@@ -243,11 +271,15 @@ exports.handler = async function handler(event) {
     try {
       answer = await askGemini(cfg, mode, page, history, message);
     } catch (err) {
-      console.error('Gemini request failed:', err.message);
+      const failure = describeGeminiFailure(err);
+      console.error(`Gemini request failed [${failure.code}] (model ${cfg.model}):`, err.message);
       const refunded = await rpc(cfg, 'refund_ai_question', { p_user: userId }).catch(() => null);
       return send(503, {
-        error: 'The assistant is busy right now. Please try again in a little while.',
-        reason: 'busy',
+        error: failure.setup
+          ? "The assistant isn't set up correctly right now. Please tell the club admins."
+          : 'The assistant is busy right now. Please try again in a little while.',
+        reason: failure.setup ? 'config' : 'busy',
+        code: failure.code,
         usage: refunded ? usageFrom(refunded) : undefined,
       });
     }
@@ -260,9 +292,11 @@ exports.handler = async function handler(event) {
         });
       }
       const refunded = await rpc(cfg, 'refund_ai_question', { p_user: userId }).catch(() => null);
+      console.error('Gemini returned no text and no block reason.');
       return send(503, {
         error: 'I could not come up with an answer. Please try again.',
         reason: 'busy',
+        code: 'gemini_empty',
         usage: refunded ? usageFrom(refunded) : undefined,
       });
     }

@@ -1,0 +1,335 @@
+<section id="why-not-just-delay">
+<h2>From simple sketches to robot programs</h2>
+<p>In Stage 1 your programs did one thing at a time: read, decide, act, <code>delay()</code>, repeat. That is fine for blinking an LED. A real robot has to do <strong>several things at once</strong>: read eight sensors, run a controller, count wheel turns, listen to a phone and stop immediately when something goes wrong. The tools in this lesson let one ESP32 do all that without getting confused.</p>
+<div class="card-grid">
+<div class="info-card"><h4>Arrays</h4><p>Handle many sensors or values with one name and a loop.</p></div>
+<div class="info-card"><h4>Structures</h4><p>Group related data, such as everything about one motor.</p></div>
+<div class="info-card"><h4>Modular programming</h4><p>Split the program into small, reusable pieces.</p></div>
+<div class="info-card"><h4><code>millis()</code></h4><p>Do things on a schedule without freezing the program.</p></div>
+<div class="info-card"><h4>Interrupts</h4><p>React instantly to fast events such as encoder pulses.</p></div>
+<div class="info-card"><h4>State machines</h4><p>Organise robot behaviour into clear modes.</p></div>
+</div>
+</section>
+
+<section id="arrays">
+<h2>Arrays: many values, one name</h2>
+<p>A line-following robot reads several sensors. Instead of <code>sensor1</code>, <code>sensor2</code>, <code>sensor3</code>&hellip; you store them in an <strong>array</strong> and use a loop.</p>
+<pre><code class="language-cpp">const int NUM_SENSORS = 5;
+const int sensorPins[NUM_SENSORS] = {36, 39, 34, 35, 32};   // example ADC1 pins
+int sensorValues[NUM_SENSORS];
+
+void readSensors() {
+  for (int i = 0; i &lt; NUM_SENSORS; i++) {
+    sensorValues[i] = analogRead(sensorPins[i]);
+  }
+}
+
+void printSensors() {
+  for (int i = 0; i &lt; NUM_SENSORS; i++) {
+    Serial.print(sensorValues[i]);
+    Serial.print(' ');
+  }
+  Serial.println();
+}</code></pre>
+<ul>
+<li>Indexes start at <strong>0</strong>. An array of 5 has indexes 0 to 4.</li>
+<li>C++ does <strong>not</strong> check the index. Writing to <code>sensorValues[5]</code> overwrites some other variable and causes strange bugs or crashes.</li>
+<li>The size of an array is fixed when you write it. Keep it in one constant (<code>NUM_SENSORS</code>) and use that constant everywhere.</li>
+<li><code>const</code> arrays cannot be changed, which protects things like pin lists.</li>
+</ul>
+<h3>An array in action: where is the line?</h3>
+<p>Give each sensor a <strong>weight</strong> by position (for example &minus;2, &minus;1, 0, 1, 2 from left to right) and compute a weighted average of the readings. The result tells you where the line is under the robot: negative means left, zero means centred, positive means right. This number is exactly what the PID line follower uses later.</p>
+<pre><code class="language-cpp">const int weights[NUM_SENSORS] = {-2, -1, 0, 1, 2};
+
+// Returns -2.0 (line far left) ... +2.0 (line far right).
+// Assumes a bigger reading means "darker line" (check your own sensor!).
+float linePosition() {
+  long weightedSum = 0;
+  long total = 0;
+  for (int i = 0; i &lt; NUM_SENSORS; i++) {
+    weightedSum += (long)sensorValues[i] * weights[i];
+    total += sensorValues[i];
+  }
+  if (total == 0) return 0;               // no line seen at all
+  return (float)weightedSum / total;
+}</code></pre>
+<div class="callout callout-tip"><div class="callout-title">Count the elements automatically</div><p><code>sizeof(arr) / sizeof(arr[0])</code> gives the number of elements in an array, so you do not have to count by hand if you ever change the list.</p></div>
+</section>
+
+<section id="structures">
+<h2>Structures: bundle related data</h2>
+<p>A robot has two motors, and each needs the same set of pins. Writing <code>leftIn1</code>, <code>leftIn2</code>, <code>leftPwm</code>, <code>rightIn1</code>&hellip; quickly becomes a mess. A <strong>structure</strong> (<code>struct</code>) groups related values into one new type.</p>
+<pre><code class="language-cpp">struct Motor {
+  int in1;
+  int in2;
+  int pwmPin;
+  int channel;        // PWM channel (used by ESP32 core 2.x)
+};
+
+Motor leftMotor  = {26, 27, 25, 0};
+Motor rightMotor = {32, 33, 13, 1};
+
+void setMotor(const Motor&amp; m, int speed) {   // &amp; = use the original, do not copy
+  speed = constrain(speed, -255, 255);
+  digitalWrite(m.in1, speed &gt; 0);
+  digitalWrite(m.in2, speed &lt; 0);
+  // ... write abs(speed) to m.pwmPin here, as in the previous lesson
+}
+
+void drive(int left, int right) {
+  setMotor(leftMotor, left);
+  setMotor(rightMotor, right);
+}</code></pre>
+<p>Now <code>setMotor()</code> works for either motor, and adding a third motor means adding one line. Access a member with a dot: <code>leftMotor.pwmPin</code>.</p>
+<p>Structures are useful for settings too. A PID controller needs three numbers, and keeping them together makes it easy to keep several sets of tuned values:</p>
+<pre><code class="language-cpp">struct PidGains {
+  float kp;
+  float ki;
+  float kd;
+};
+
+PidGains lineFollow = {1.2, 0.0, 0.8};     // example values only
+PidGains speedControl = {0.5, 0.1, 0.0};</code></pre>
+</section>
+
+<section id="modular-programming">
+<h2>Modular programming: small pieces, clear jobs</h2>
+<p>When everything lives in one long <code>loop()</code>, changing one thing breaks another. <strong>Modular programming</strong> means splitting your code into pieces where each one has a single job and a clear name:</p>
+<ul>
+<li><code>readSensors()</code> only reads sensors.</li>
+<li><code>linePosition()</code> only turns readings into a position.</li>
+<li><code>drive(left, right)</code> only moves the motors.</li>
+</ul>
+<p>Then <code>loop()</code> reads like a story:</p>
+<pre><code class="language-cpp">void loop() {
+  readSensors();
+  float position = linePosition();
+  int correction = computeSteering(position);
+  drive(baseSpeed + correction, baseSpeed - correction);
+}</code></pre>
+<h3>Splitting into files</h3>
+<p>In the Arduino IDE you can move related functions into their own files. Use the small arrow next to the sketch tab and choose <strong>New Tab</strong>. A common pattern is a <code>.h</code> file that declares what a module offers and a <code>.cpp</code> file that implements it:</p>
+<pre><code class="language-text">my_robot/
+  my_robot.ino      the main sketch: setup() and loop()
+  motors.h          what the motor module offers
+  motors.cpp        how it does it</code></pre>
+<pre><code class="language-cpp">// motors.h
+#pragma once                       // include this file only once
+
+void motorsBegin();
+void drive(int left, int right);   // -255 to 255 for each side</code></pre>
+<pre><code class="language-cpp">// motors.cpp
+#include &lt;Arduino.h&gt;
+#include "motors.h"
+
+static const int AIN1 = 26;        // "static" keeps these private to this file
+// ... other pins ...
+
+void motorsBegin() {
+  pinMode(AIN1, OUTPUT);
+  // ... set up the other pins and PWM ...
+}
+
+void drive(int left, int right) {
+  // ... set both motors ...
+}</code></pre>
+<pre><code class="language-cpp">// my_robot.ino
+#include "motors.h"
+
+void setup() {
+  motorsBegin();
+}
+
+void loop() {
+  drive(150, 150);
+}</code></pre>
+<div class="callout callout-key"><div class="callout-title">Why bother?</div><p>You can test a module on its own, reuse it in your next robot, and share work with teammates: one person writes <code>motors</code>, another writes <code>sensors</code>. Aim for functions that do one job, are short enough to read at a glance, and have names that say what they do.</p></div>
+</section>
+
+<section id="millis">
+<h2>millis(): timing without freezing</h2>
+<p><code>delay(1000)</code> stops your whole program for a second. During that second the robot cannot read sensors, cannot react to an obstacle and cannot answer the phone. For anything that needs to stay responsive, use <code>millis()</code> instead.</p>
+<figure><img src="/study-materials/stage-2/content/img/2-2.svg" alt="Timeline comparing delay(), which blocks for a second, with millis(), where loop keeps running and checks timers" loading="lazy"><figcaption><code>delay()</code> blocks everything. With <code>millis()</code>, <code>loop()</code> keeps running and does work only when it is due.</figcaption></figure>
+<p><code>millis()</code> returns the number of milliseconds since the ESP32 started. The pattern is: remember <strong>when</strong> you last did something, and do it again only when enough time has passed.</p>
+<pre><code class="language-cpp">const int LED_PIN = 2;
+unsigned long lastBlink = 0;
+const unsigned long BLINK_INTERVAL = 500;   // ms
+bool ledOn = false;
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+}
+
+void loop() {
+  unsigned long now = millis();
+
+  if (now - lastBlink &gt;= BLINK_INTERVAL) {
+    lastBlink = now;                        // restart the timer
+    ledOn = !ledOn;
+    digitalWrite(LED_PIN, ledOn);
+  }
+
+  // Everything else keeps running on every pass of loop()
+}</code></pre>
+<p>You can run as many of these timers as you like, each with its own <code>last...</code> variable. A very common use is a <strong>fixed-rate control loop</strong> for your robot's controller:</p>
+<pre><code class="language-cpp">const unsigned long CONTROL_PERIOD = 5;     // run the controller every 5 ms
+unsigned long lastControl = 0;
+
+void loop() {
+  unsigned long now = millis();
+  if (now - lastControl &gt;= CONTROL_PERIOD) {
+    lastControl = now;
+    readSensors();
+    // ... compute and apply the correction ...
+  }
+}</code></pre>
+<ul>
+<li>Always declare time variables as <code>unsigned long</code>.</li>
+<li>Write the check as <code>now - last &gt;= interval</code>. Subtracting like this keeps working even when <code>millis()</code> wraps back to zero after about 49 days. Do not write <code>now &gt;= last + interval</code>.</li>
+<li>For timing in microseconds (for example measuring an ultrasonic echo), use <code>micros()</code>.</li>
+</ul>
+</section>
+
+<section id="interrupts">
+<h2>Interrupts: react the instant it happens</h2>
+<p>If you check a button or an encoder only once per <code>loop()</code>, you can miss fast events. A wheel encoder can produce thousands of pulses per second, far faster than a busy loop can poll. An <strong>interrupt</strong> tells the processor: &ldquo;the moment this pin changes, pause what you are doing, run this small function, then go back.&rdquo;</p>
+<pre><code class="language-cpp">const int ENC_PIN = 34;                      // encoder signal
+volatile long encoderCount = 0;              // shared with the interrupt, so volatile
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+
+void IRAM_ATTR onEncoderPulse() {            // the interrupt service routine (ISR)
+  portENTER_CRITICAL_ISR(&amp;mux);
+  encoderCount++;
+  portEXIT_CRITICAL_ISR(&amp;mux);
+}
+
+long readEncoder() {                         // safe way to read it in loop()
+  portENTER_CRITICAL(&amp;mux);
+  long count = encoderCount;
+  portEXIT_CRITICAL(&amp;mux);
+  return count;
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(ENC_PIN, INPUT);
+  attachInterrupt(digitalPinToInterrupt(ENC_PIN), onEncoderPulse, RISING);
+}
+
+void loop() {
+  Serial.println(readEncoder());
+  delay(200);
+}</code></pre>
+<p>The same idea works for a start button. The ISR only <strong>sets a flag</strong>, and <code>loop()</code> does the real work:</p>
+<pre><code class="language-cpp">const int BUTTON_PIN = 14;
+volatile bool buttonPressed = false;
+volatile unsigned long lastPress = 0;
+
+void IRAM_ATTR onButton() {
+  unsigned long now = millis();
+  if (now - lastPress &gt; 50) {                // ignore contact bounce
+    buttonPressed = true;
+    lastPress = now;
+  }
+}
+
+void setup() {
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), onButton, FALLING);
+}
+
+void loop() {
+  if (buttonPressed) {
+    buttonPressed = false;
+    // start the robot...
+  }
+}</code></pre>
+<div class="callout callout-caution"><div class="callout-title">Rules for interrupt functions</div><ul>
+<li>Keep them <strong>very short</strong>. Set a flag or add to a counter, nothing more.</li>
+<li>Never use <code>delay()</code>, <code>Serial.print()</code> or Wi-Fi calls inside an ISR.</li>
+<li>Mark the function with <code>IRAM_ATTR</code> on the ESP32, so it is stored where it can run instantly.</li>
+<li>Any variable shared between an ISR and the rest of the program must be <code>volatile</code>.</li>
+<li>Pins GPIO34 to GPIO39 are input-only and have <strong>no internal pull-up</strong>, so add an external resistor if you need one.</li>
+</ul></div>
+</section>
+
+<section id="state-machines">
+<h2>State machines: one behaviour at a time</h2>
+<p>As robots get smarter, <code>if</code> statements pile up and nobody can tell what the robot is supposed to do. A <strong>state machine</strong> fixes this. The robot is always in exactly <strong>one state</strong> (a mode of behaviour), and clear rules say when it moves to another state.</p>
+<figure><img src="/study-materials/stage-2/content/img/2-1.svg" alt="State machine of a line follower with states IDLE, FOLLOW, LOST and STOP" loading="lazy"><figcaption>A line follower with four states. Each arrow is the condition that triggers the change.</figcaption></figure>
+<p>Before writing code, draw the states and arrows on paper like this. In code, an <code>enum</code> names the states and a <code>switch</code> runs the right behaviour:</p>
+<pre><code class="language-cpp">enum State { IDLE, FOLLOW, LOST, STOP };
+State state = IDLE;
+unsigned long stateStart = 0;
+
+void changeState(State next) {
+  state = next;
+  stateStart = millis();                      // remember when we entered it
+}
+
+void loop() {
+  readSensors();
+
+  switch (state) {
+    case IDLE:
+      drive(0, 0);
+      if (buttonPressed) {
+        buttonPressed = false;
+        changeState(FOLLOW);
+      }
+      break;
+
+    case FOLLOW:
+      followLine();                           // the controller from a later lesson
+      if (lineLost()) changeState(LOST);
+      break;
+
+    case LOST:
+      searchForLine();                        // for example spin slowly
+      if (!lineLost()) changeState(FOLLOW);
+      else if (millis() - stateStart &gt; 1000) changeState(STOP);   // lost for 1 s
+      break;
+
+    case STOP:
+      drive(0, 0);
+      break;
+  }
+}</code></pre>
+<p>Functions like <code>followLine()</code>, <code>lineLost()</code> and <code>searchForLine()</code> are placeholders for you to write using what you have learned. Notice how <code>millis()</code> and the state machine work together: <code>stateStart</code> lets a state know how long it has been active, with no <code>delay()</code> anywhere.</p>
+<div class="callout callout-tip"><div class="callout-title">Good habits</div><ul>
+<li>Give each state <strong>one</strong> behaviour and a name that says it.</li>
+<li>Put all the &ldquo;when do we change state?&rdquo; rules in one place, close to the state's code.</li>
+<li>Print the state name to Serial when it changes. It makes debugging much easier.</li>
+</ul></div>
+</section>
+
+<section id="practice-tasks">
+<h2>Practice tasks</h2>
+<ol>
+<li><strong>Sensor array:</strong> store 5 sensor readings in an array and print the index of the largest value. Move your hand over the sensors and watch it change.</li>
+<li><strong>Struct:</strong> create a <code>Motor</code> struct and a <code>setMotor()</code> function. Make both motors run forward for 2 seconds, then stop, without <code>delay()</code>.</li>
+<li><strong>Two timers:</strong> blink an LED every 500 ms <em>and</em> print a message every 2 seconds, using only <code>millis()</code>.</li>
+<li><strong>Interrupt:</strong> attach a button interrupt that toggles a flag, and print &ldquo;pressed&rdquo; from <code>loop()</code>. Check that one press counts once.</li>
+<li><strong>State machine:</strong> make an LED with three states (off, slow blink, fast blink). Each button press moves to the next state.</li>
+</ol>
+<h3>Common mistakes</h3>
+<ul>
+<li>Using <code>delay()</code> inside <code>loop()</code> for anything that must stay responsive.</li>
+<li>Forgetting <code>volatile</code> on a variable that an interrupt changes.</li>
+<li>Printing to Serial or waiting inside an interrupt function.</li>
+<li>Going past the end of an array (for example <code>&lt;=</code> instead of <code>&lt;</code> in a <code>for</code> loop).</li>
+<li>Using <code>int</code> for time values. Use <code>unsigned long</code>.</li>
+</ul>
+</section>
+
+<section id="key-takeaways">
+<h2>Key takeaways</h2>
+<ul>
+<li><strong>Arrays</strong> and loops let you treat many sensors as one group. Mind the index range.</li>
+<li><strong>Structures</strong> bundle related data, so one function can serve every motor.</li>
+<li><strong>Modular code</strong> gives each function a single job and lets <code>loop()</code> read like a story.</li>
+<li><code>millis()</code> replaces <code>delay()</code>: remember when you last acted and check <code>now - last &gt;= interval</code>.</li>
+<li><strong>Interrupts</strong> catch fast events. Keep the ISR tiny, use <code>volatile</code> and <code>IRAM_ATTR</code>.</li>
+<li>A <strong>state machine</strong> keeps complex robot behaviour organised: one state, one behaviour, clear transitions.</li>
+</ul>
+</section>

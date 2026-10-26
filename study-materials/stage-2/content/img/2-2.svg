@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 330" role="img" aria-label="Timeline comparing delay(), which blocks the program for a whole second, with millis(), where loop() keeps running and checks several timers">
+  <defs>
+    <marker id="t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#334155"/></marker>
+    <marker id="r" viewBox="0 0 10 10" refX="5" refY="9" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 0L5 10z" fill="#dc2626"/></marker>
+    <marker id="g" viewBox="0 0 10 10" refX="5" refY="9" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 0L5 10z" fill="#16a34a"/></marker>
+  </defs>
+  <rect width="680" height="330" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#1e293b">
+    <!-- Row 1: delay -->
+    <text x="30" y="36" font-weight="700">With delay(1000)</text>
+    <rect x="40" y="60" width="26" height="40" fill="#16a34a"/>
+    <rect x="66" y="60" width="520" height="40" fill="#cbd5e1"/>
+    <rect x="586" y="60" width="26" height="40" fill="#16a34a"/>
+    <text x="326" y="85" text-anchor="middle" fill="#334155">delay(1000): the processor just waits</text>
+    <line x1="400" y1="24" x2="400" y2="56" stroke="#dc2626" stroke-width="3" marker-end="url(#r)"/>
+    <text x="408" y="34" fill="#dc2626" font-size="13" font-weight="700">obstacle appears: not noticed!</text>
+
+    <!-- Row 2: millis -->
+    <text x="30" y="150" font-weight="700">With millis()</text>
+    <g>
+      <rect x="40" y="172" width="572" height="40" fill="#e2e8f0"/>
+      <!-- many fast passes through loop() -->
+      <g fill="#94a3b8">
+        <rect x="46" y="180" width="6" height="24"/><rect x="62" y="180" width="6" height="24"/>
+        <rect x="94" y="180" width="6" height="24"/><rect x="110" y="180" width="6" height="24"/>
+        <rect x="142" y="180" width="6" height="24"/><rect x="158" y="180" width="6" height="24"/>
+        <rect x="190" y="180" width="6" height="24"/><rect x="206" y="180" width="6" height="24"/>
+        <rect x="238" y="180" width="6" height="24"/><rect x="254" y="180" width="6" height="24"/>
+        <rect x="286" y="180" width="6" height="24"/><rect x="302" y="180" width="6" height="24"/>
+        <rect x="334" y="180" width="6" height="24"/><rect x="350" y="180" width="6" height="24"/>
+        <rect x="382" y="180" width="6" height="24"/><rect x="398" y="180" width="6" height="24"/>
+        <rect x="430" y="180" width="6" height="24"/><rect x="446" y="180" width="6" height="24"/>
+        <rect x="478" y="180" width="6" height="24"/><rect x="494" y="180" width="6" height="24"/>
+        <rect x="526" y="180" width="6" height="24"/><rect x="542" y="180" width="6" height="24"/>
+        <rect x="574" y="180" width="6" height="24"/><rect x="590" y="180" width="6" height="24"/>
+      </g>
+      <!-- sensor check every 50 ms -->
+      <g fill="#16a34a">
+        <rect x="78" y="180" width="6" height="24"/><rect x="174" y="180" width="6" height="24"/>
+        <rect x="270" y="180" width="6" height="24"/><rect x="366" y="180" width="6" height="24"/>
+        <rect x="462" y="180" width="6" height="24"/><rect x="558" y="180" width="6" height="24"/>
+      </g>
+      <!-- LED toggle -->
+      <g fill="#2563eb">
+        <rect x="222" y="180" width="6" height="24"/><rect x="510" y="180" width="6" height="24"/>
+      </g>
+    </g>
+    <line x1="400" y1="140" x2="400" y2="168" stroke="#16a34a" stroke-width="3" marker-end="url(#g)"/>
+    <text x="408" y="150" fill="#16a34a" font-size="13" font-weight="700">noticed at the next pass</text>
+
+    <!-- legend -->
+    <rect x="40" y="236" width="14" height="14" fill="#16a34a"/><text x="60" y="248" font-size="13">sensor check</text>
+    <rect x="170" y="236" width="14" height="14" fill="#2563eb"/><text x="190" y="248" font-size="13">LED toggle</text>
+    <rect x="290" y="236" width="14" height="14" fill="#94a3b8"/><text x="310" y="248" font-size="13">loop() pass, nothing due yet</text>
+
+    <line x1="40" y1="282" x2="630" y2="282" stroke="#334155" stroke-width="2" marker-end="url(#t)"/>
+    <text x="636" y="287" font-size="13">time</text>
+    <text x="40" y="310" font-size="13" fill="#475569">millis() never waits: every pass checks the clock and runs only what is due.</text>
+  </g>
+</svg>

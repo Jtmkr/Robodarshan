@@ -21,6 +21,7 @@
   const MAX_WORDS = 1000;
   const HISTORY_SENT = 6;
   const STORE_KEY = 'rd-ai-chat-v1';
+  const RETRYABLE = ['gemini_timeout', 'gemini_empty', 'gemini_network', 'gemini_500', 'gemini_502', 'gemini_503', 'gemini_504'];
   const MAX_STORED = 40;
   const IN_PORTAL = location.pathname.indexOf('learning-portal') !== -1;
 
@@ -419,11 +420,19 @@
     }
     render();
 
-    let outcome;
-    try {
-      outcome = await callApi({ mode, message: text, history, page: currentPageTitle() });
-    } catch (err) {
-      outcome = { status: 0, data: { error: "Can't reach the assistant. Please check your connection and try again.", reason: 'network' } };
+    const send = async () => {
+      try {
+        return await callApi({ mode, message: text, history, page: currentPageTitle() });
+      } catch (err) {
+        return { status: 0, data: { error: "Can't reach the assistant. Please check your connection and try again.", reason: 'network' } };
+      }
+    };
+
+    let outcome = await send();
+    // A slow or empty answer from the AI is refunded by the server (it does not
+    // use up one of the member's questions), so retry once automatically.
+    if (outcome.status === 503 && RETRYABLE.indexOf(outcome.data.code) !== -1) {
+      outcome = await send();
     }
 
     state.busy = false;
@@ -453,7 +462,7 @@
       data.reason === 'daily'
         ? 'You have used all your questions for this session.'
         : data.error || 'Something went wrong. Please try again.';
-    note(message, data.reason !== 'minute' && data.reason !== 'daily');
+    note(data.code ? `${message} (code: ${data.code})` : message, data.reason !== 'minute' && data.reason !== 'daily');
     refreshControls();
   }
 

@@ -1,0 +1,105 @@
+# Netlify settings. The site itself is plain static files served from the
+# repository root, so no build command or publish directory is set here
+# (anything set in the Netlify UI keeps applying).
+
+[functions]
+  directory = "netlify/functions"
+
+# The AI assistant calls /api/chat; this maps it to the Netlify Function.
+[[redirects]]
+  from = "/api/chat"
+  to = "/.netlify/functions/chat"
+  status = 200
+
+# The HTML pages moved into /pages. Keep the old addresses working
+# (they only apply when no file exists at the old path).
+[[redirects]]
+  from = "/about.html"
+  to = "/pages/about.html"
+  status = 301
+
+[[redirects]]
+  from = "/contact.html"
+  to = "/pages/contact.html"
+  status = 301
+
+[[redirects]]
+  from = "/dashboard.html"
+  to = "/pages/dashboard.html"
+  status = 301
+
+[[redirects]]
+  from = "/events.html"
+  to = "/pages/events.html"
+  status = 301
+
+[[redirects]]
+  from = "/gallery.html"
+  to = "/pages/gallery.html"
+  status = 301
+
+[[redirects]]
+  from = "/learning-portal.html"
+  to = "/pages/learning-portal.html"
+  status = 301
+
+[[redirects]]
+  from = "/login.html"
+  to = "/pages/login.html"
+  status = 301
+
+[[redirects]]
+  from = "/merch.html"
+  to = "/pages/merch.html"
+  status = 301
+
+[[redirects]]
+  from = "/register.html"
+  to = "/pages/register.html"
+  status = 301
+
+[[redirects]]
+  from = "/team.html"
+  to = "/pages/team.html"
+  status = 301
+
+# The four stage pages were replaced by the single docs-style Study Portal.
+[[redirects]]
+  from = "/stage-1.html"
+  to = "/pages/learning-portal.html"
+  status = 301
+
+[[redirects]]
+  from = "/stage-2.html"
+  to = "/pages/learning-portal.html"
+  status = 301
+
+[[redirects]]
+  from = "/stage-3.html"
+  to = "/pages/learning-portal.html"
+  status = 301
+
+[[redirects]]
+  from = "/stage-4.html"
+  to = "/pages/learning-portal.html"
+  status = 301
+
+[[redirects]]
+  from = "/pages/stage-1.html"
+  to = "/pages/learning-portal.html"
+  status = 301
+
+[[redirects]]
+  from = "/pages/stage-2.html"
+  to = "/pages/learning-portal.html"
+  status = 301
+
+[[redirects]]
+  from = "/pages/stage-3.html"
+  to = "/pages/learning-portal.html"
+  status = 301
+
+[[redirects]]
+  from = "/pages/stage-4.html"
+  to = "/pages/learning-portal.html"
+  status = 301

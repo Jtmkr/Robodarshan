@@ -189,12 +189,14 @@ button {
 .docs-search {
   position: relative;
   flex: 1 1 auto;
+  min-width: 0;
   max-width: 440px;
   margin-left: 12px;
 }
 
 .docs-search input {
   width: 100%;
+  min-width: 0;
   height: 42px;
   padding: 0 64px 0 40px;
   border-radius: 10px;
@@ -1326,6 +1328,7 @@ button {
 
 .item-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   margin: 0 0 12px;
 }
@@ -1344,6 +1347,13 @@ button {
 
 .item-row:hover {
   border-color: var(--accent);
+}
+
+.item-row .chip,
+.item-row .status-ok,
+.item-row .status-wait {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .item-row-main {
@@ -1488,8 +1498,24 @@ button {
 }
 
 @media (max-width: 520px) {
+  .docs-topbar {
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .docs-brand {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
   .docs-logo {
-    height: 20px;
+    height: 18px;
+    max-width: 120px;
+    object-fit: contain;
+  }
+
+  .docs-search input {
+    padding-right: 10px;
   }
 
   .theme-toggle {

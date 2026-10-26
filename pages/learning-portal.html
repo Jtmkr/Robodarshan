@@ -59,6 +59,15 @@
             <a href="/pages/events.html">Events</a>
             <a href="/pages/team.html">Team</a>
         </nav>
+        <a href="/pages/dashboard.html" class="icon-btn docs-dash-btn" aria-label="Dashboard" title="Dashboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="9" rx="1" />
+                <rect x="14" y="3" width="7" height="5" rx="1" />
+                <rect x="14" y="12" width="7" height="9" rx="1" />
+                <rect x="3" y="16" width="7" height="5" rx="1" />
+            </svg>
+        </a>
         <button type="button" id="theme-toggle" class="theme-toggle" role="switch" aria-checked="false"
             aria-label="Toggle light and dark theme">
             <span class="theme-toggle-knob"></span>
@@ -67,6 +76,16 @@
 
     <div class="docs-shell">
         <aside id="docs-sidebar" class="docs-sidebar" aria-label="Course navigation">
+            <div class="docs-drawer-links">
+                <p class="docs-drawer-title">Robodarshan</p>
+                <a class="nav-link" href="/pages/dashboard.html"><span class="nav-link-text">Dashboard</span></a>
+                <a class="nav-link" href="/"><span class="nav-link-text">Home</span></a>
+                <a class="nav-link" href="/pages/events.html"><span class="nav-link-text">Events</span></a>
+                <a class="nav-link" href="/pages/team.html"><span class="nav-link-text">Team</span></a>
+                <button type="button" class="nav-link docs-logout" id="drawer-logout">
+                    <span class="nav-link-text">Log out</span>
+                </button>
+            </div>
             <nav id="docs-nav" class="docs-nav">
                 <p class="docs-nav-loading">Loading...</p>
             </nav>

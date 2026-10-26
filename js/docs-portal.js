@@ -302,6 +302,9 @@
   });
 
   function openSidebar() {
+    // Start at the top so the site links (Dashboard, Log out...) are visible,
+    // not scrolled away to the current lesson.
+    els.sidebar.scrollTop = 0;
     els.sidebar.classList.add('is-open');
     els.backdrop.hidden = false;
     els.sidebarToggle.setAttribute('aria-expanded', 'true');
@@ -311,6 +314,14 @@
     els.sidebar.classList.remove('is-open');
     els.backdrop.hidden = true;
     els.sidebarToggle.setAttribute('aria-expanded', 'false');
+  }
+
+  const drawerLogout = document.getElementById('drawer-logout');
+  if (drawerLogout) {
+    drawerLogout.addEventListener('click', () => {
+      drawerLogout.disabled = true;
+      logout(); // from js/auth.js: signs out, then goes to the login page
+    });
   }
 
   els.sidebarToggle.addEventListener('click', () => (els.sidebar.classList.contains('is-open') ? closeSidebar() : openSidebar()));

@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 340" role="img" aria-label="Side view of a robot with driven wheels near the centre and a caster at the front. The centre of gravity, set by a heavy battery, sits low and close to the driven wheels, so about 80 percent of the weight is on the driven wheels">
+  <defs>
+    <marker id="d" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#334155"/></marker>
+  </defs>
+  <rect width="680" height="340" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">
+    <text x="30" y="30" font-weight="700" font-size="14">Side view (front of the robot is on the right)</text>
+
+    <!-- floor -->
+    <line x1="20" y1="250" x2="480" y2="250" stroke="#334155" stroke-width="4"/>
+
+    <!-- chassis -->
+    <rect x="170" y="175" width="290" height="22" rx="6" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <!-- battery -->
+    <rect x="305" y="148" width="70" height="27" rx="4" fill="#fed7aa" stroke="#ea580c" stroke-width="2"/>
+    <text x="300" y="143" text-anchor="middle" font-size="12">battery</text>
+    <!-- driven wheel -->
+    <circle cx="280" cy="218" r="32" fill="#94a3b8" stroke="#334155" stroke-width="3"/>
+    <circle cx="280" cy="218" r="5" fill="#334155"/>
+    <!-- caster -->
+    <line x1="430" y1="197" x2="430" y2="234" stroke="#334155" stroke-width="3"/>
+    <circle cx="430" cy="242" r="8" fill="#94a3b8" stroke="#334155" stroke-width="2"/>
+
+    <!-- centre of gravity -->
+    <circle cx="340" cy="160" r="8" fill="#fff" stroke="#dc2626" stroke-width="2.5"/>
+    <path d="M340 152 V168 M332 160 H348" stroke="#dc2626" stroke-width="2"/>
+    <text x="358" y="138" fill="#dc2626" font-weight="700">CoG</text>
+    <line x1="340" y1="168" x2="340" y2="250" stroke="#dc2626" stroke-width="2" stroke-dasharray="5 4"/>
+
+    <!-- height dimension -->
+    <line x1="100" y1="252" x2="100" y2="161" stroke="#334155" stroke-width="2" marker-start="url(#d)" marker-end="url(#d)"/>
+    <line x1="100" y1="160" x2="330" y2="160" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 3"/>
+    <text x="90" y="212" text-anchor="end" font-weight="700">h</text>
+
+    <!-- labels under floor -->
+    <text x="280" y="272" text-anchor="middle">driven wheel</text>
+    <text x="430" y="272" text-anchor="middle">caster</text>
+    <!-- distances -->
+    <line x1="281" y1="300" x2="339" y2="300" stroke="#334155" stroke-width="2" marker-start="url(#d)" marker-end="url(#d)"/>
+    <line x1="341" y1="300" x2="429" y2="300" stroke="#334155" stroke-width="2" marker-start="url(#d)" marker-end="url(#d)"/>
+    <text x="310" y="320" text-anchor="middle" font-weight="700">a</text>
+    <text x="385" y="320" text-anchor="middle" font-weight="700">b</text>
+    <line x1="280" y1="283" x2="280" y2="306" stroke="#94a3b8" stroke-width="1"/>
+    <line x1="340" y1="283" x2="340" y2="306" stroke="#94a3b8" stroke-width="1"/>
+    <line x1="430" y1="283" x2="430" y2="306" stroke="#94a3b8" stroke-width="1"/>
+
+    <!-- note box -->
+    <rect x="500" y="60" width="165" height="210" rx="10" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>
+    <g font-size="13">
+      <text x="512" y="84" font-weight="700">Example numbers</text>
+      <text x="512" y="108">a = 60 mm</text>
+      <text x="512" y="128">b = 90 mm</text>
+      <text x="512" y="150">Driven wheels carry</text>
+      <text x="512" y="168">b / (a + b) = 60 %</text>
+      <text x="512" y="190">Caster carries 40 %</text>
+      <text x="512" y="216" font-weight="700" fill="#16a34a">Lower h: harder to tip.</text>
+      <text x="512" y="234" fill="#16a34a">Smaller a: more weight</text>
+      <text x="512" y="252" fill="#16a34a">on the driven wheels.</text>
+    </g>
+  </g>
+</svg>

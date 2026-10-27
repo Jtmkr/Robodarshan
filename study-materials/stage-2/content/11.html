@@ -1,0 +1,318 @@
+<section id="power-budget">
+<h2>Power budget: know what your robot draws</h2>
+<p>A robot that resets when the motors start, or dies after ten minutes, is almost always a <strong>power problem</strong>, not a code problem. The cure is a <strong>power budget</strong>: a table of every load, how much current it needs, and a total you compare with what the battery and regulators can deliver. The method has three steps:</p>
+<ol>
+<li><strong>List every load</strong> and the rail it sits on (battery 12 V rail for motors, 5 V rail for the controller, 3.3 V rail for sensors).</li>
+<li><strong>Add up the worst case</strong> (not the average) for each rail. Peaks decide whether something resets or overheats.</li>
+<li><strong>Add a margin</strong> of 25 to 30 % and compare the result with the ratings of the battery, wires, fuse, driver and regulator.</li>
+</ol>
+<div class="callout callout-note"><div class="callout-title">Assumptions in this lesson</div>
+<p>The robot is the Stage 2 build: a <strong>3S LiPo, 2200 mAh</strong> battery, an ESP32 DevKit, a TB6612FNG driver, <strong>2 N20 12 V micro motors with encoders</strong>, a QTR-8A, two ADS1115, an MPU6050 and an SSD1306 OLED. The figures below are <em>typical datasheet-level values</em> and are marked as such. They differ between board makers, so <strong>check the datasheet or the seller's page of the exact parts you bought</strong>, and replace the numbers. The motor currents are <strong>ASSUMPTIONS</strong> and the next section shows how to measure the real ones.</p></div>
+<h3>The logic rail (everything except the motors)</h3>
+<p>In this design a buck converter makes 5 V from the battery and feeds the ESP32 DevKit. The DevKit's on-board regulator then makes 3.3 V for the sensors. Because that regulator is linear, the current taken from the 5 V rail is the sum of <em>all</em> the logic loads, so we can add them directly.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Load</th><th>Typical (mA)</th><th>Worst case (mA)</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td>ESP32 DevKit (CPU, board, on-board LED)</td><td>80</td><td>240</td><td>Typical, check datasheet. Wi-Fi transmit bursts can reach about 240 mA.</td></tr>
+<tr><td>QTR-8A (8 IR emitters and sensors)</td><td>100</td><td>100</td><td>Pololu lists 100 mA supply current. It has an LEDON pin to switch the emitters off.</td></tr>
+<tr><td>2 &times; ADS1115</td><td>0.3</td><td>0.5</td><td>About 0.15 mA each, typical, check datasheet.</td></tr>
+<tr><td>MPU6050</td><td>3.9</td><td>5</td><td>Typical with gyro and accelerometer on, check datasheet. Worst case is a rough margin.</td></tr>
+<tr><td>SSD1306 OLED 128&times;64</td><td>10</td><td>20</td><td>Typical, depends on how many pixels are lit.</td></tr>
+<tr><td>2 &times; encoders on the N20 motors</td><td>20</td><td>20</td><td>ASSUMPTION: about 10 mA each. Check your motor.</td></tr>
+<tr><td>TB6612FNG logic supply (VCC)</td><td>2</td><td>5</td><td>Estimate; the logic side draws only a few mA. Check datasheet.</td></tr>
+<tr><td><strong>Total on the 5 V rail</strong></td><td><strong>216</strong></td><td><strong>391</strong></td><td>Typical, check datasheet.</td></tr>
+</tbody></table></div>
+<div class="callout callout-caution"><div class="callout-title">Power the QTR-8A from 3.3 V, not 5 V</div><p>The QTR-8A is rated for 3.3 to 5 V and its analog outputs swing up to the voltage it is powered from. The ADS1115 is powered at 3.3 V and its inputs must not go more than about 0.3 V above its own supply. If you power the QTR-8A from 5 V, its outputs can damage the ADS1115. Power both from the <strong>same 3.3 V</strong>.</p></div>
+<h3>From the logic rail to the battery</h3>
+<p>The buck converter takes <em>power</em> from the battery. If its efficiency is about 90 % (an assumption, see the buck section), then at the 11.1 V nominal battery voltage:</p>
+<ul>
+<li>Typical: <code>0.216 A &times; 5 V = 1.08 W</code>, so <code>1.08 / 0.9 / 11.1 = 0.108 A</code> from the battery.</li>
+<li>Worst case: <code>0.391 A &times; 5 V = 1.95 W</code>, so <code>1.95 / 0.9 / 11.1 = 0.195 A</code> from the battery.</li>
+</ul>
+<p>The motor currents come from the next section. The full battery-side budget, with the assumed motor currents, is:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Load (battery side)</th><th>Typical average (A)</th><th>Worst case (A)</th></tr></thead>
+<tbody>
+<tr><td>2 motors (assumed 0.30 A running each, 0.80 A stall each)</td><td>0.60</td><td>1.60</td></tr>
+<tr><td>Logic via buck converter</td><td>0.11</td><td>0.20</td></tr>
+<tr><td><strong>Total</strong></td><td><strong>0.71</strong></td><td><strong>1.80</strong></td></tr>
+<tr><td>Add 30 % margin</td><td>&nbsp;</td><td><strong>2.3</strong></td></tr>
+</tbody></table></div>
+<p>So the design must handle at least <strong>2.3 A</strong>: battery, wires, switch, connectors and the fuse. The TB6612FNG's chip is specified for 1.2 A continuous and 3.2 A peak per channel (Pololu's breakout lists 1 A continuous and 3 A peak), so a stalled 0.8 A motor is within the limits, but a stronger motor would not be.</p>
+</section>
+
+<section id="motor-current">
+<h2>Motor current</h2>
+<p>A brushed DC motor draws different currents depending on how hard it works:</p>
+<ul>
+<li><strong>No-load current</strong>: the wheel spins freely in the air. Low, it just overcomes internal friction.</li>
+<li><strong>Running current</strong>: driving on the track. This is what you average over a lap.</li>
+<li><strong>Stall current</strong>: the shaft is held still (wheel blocked, robot pushed against a wall, or at the instant of start). The motor is basically a resistor, so the current is the highest: <code>I<sub>stall</sub> = V / R<sub>winding</sub></code>.</li>
+</ul>
+<div class="table-wrap"><table>
+<thead><tr><th>N20 12 V micro motor (ASSUMED example)</th><th>Per motor</th></tr></thead>
+<tbody>
+<tr><td>No-load current</td><td>0.10 A</td></tr>
+<tr><td>Running current on the track</td><td>0.30 A</td></tr>
+<tr><td>Stall current</td><td>0.80 A</td></tr>
+</tbody></table></div>
+<p>These are <strong>assumed example values</strong>, not datasheet figures. Real N20 motors differ by ratio and manufacturer. Measure yours.</p>
+<h3>How to measure motor current with a multimeter</h3>
+<p>A multimeter measures current by being part of the circuit, in <strong>series</strong>. Never connect an ammeter across the battery or across the motor: that is a short circuit.</p>
+<ol>
+<li>Disconnect the motor's supply wire and connect the multimeter in <em>series</em> between the supply and the motor (supply &rarr; meter &rarr; motor). Use a bench supply or the battery with a fuse in line.</li>
+<li>Set the meter to DC <strong>amps</strong>, move the red lead to the amp socket (often marked 10 A or 10 A MAX) and keep the black lead on COM. Starting on the 10 A range is the safe choice for a small motor too.</li>
+<li>Run the wheel in the air: that is the <strong>no-load</strong> reading.</li>
+<li>Put the wheel on the floor and run it under normal load: the <strong>running</strong> reading.</li>
+<li>For <strong>stall</strong>, grip the wheel firmly for one or two seconds only, read the meter, and release. Longer than that and the motor and the driver heat up.</li>
+<li>Return the red lead to the voltage socket afterwards, or the next voltage measurement will blow the meter's fuse.</li>
+</ol>
+<div class="callout callout-tip"><div class="callout-title">Option: a current sensor</div><p>Meters are slow and show only a number. An <strong>INA219</strong> current-sense module sits in the supply wire and reports voltage and current over I&sup2;C (the same bus as the OLED and IMU), so the ESP32 can log or display the real current while the robot runs. Check the module's maximum current and its I&sup2;C address first. For quick bench work, a plain multimeter is enough.</p></div>
+<p>Your measured numbers go into the tables of the previous section. If the stall current is above what the driver or fuse can take, choose a different motor, add current limiting in code, or lower the voltage (PWM limit).</p>
+</section>
+
+<section id="battery-selection">
+<h2>Battery selection and LiPo handling</h2>
+<p>The club's battery is a <strong>3S LiPo, 2200 mAh</strong>. 3S means three cells in series; 2200 mAh (2.2 Ah) is its capacity. Voltage per cell for a LiPo:</p>
+<ul>
+<li><strong>4.20 V</strong> fully charged, <strong>3.70 V</strong> nominal (the average during discharge).</li>
+<li>So a 3S pack is <strong>12.6 V full</strong> and <strong>11.1 V nominal</strong>.</li>
+<li>A commonly recommended <strong>minimum is about 3.5 V per cell</strong>, that is 10.5 V for the pack. Going below 3.0 V per cell (9.0 V) risks permanent damage. Always follow the numbers printed on your own pack.</li>
+<li><strong>Storage voltage</strong> is about 3.8 V per cell, 11.4 V for the pack, if the pack will not be used for several days. Many chargers have a storage mode.</li>
+</ul>
+<figure><img src="/study-materials/stage-2/content/img/11-2.svg" alt="Voltage zones of a 3S LiPo pack: 12.6 volts full, 11.4 volts storage, 11.1 volts nominal, 10.5 volts low alarm and 9.0 volts absolute floor, with green, orange and red zones" loading="lazy"><figcaption>Resting voltage zones of a 3S LiPo pack. Under load the voltage reads lower.</figcaption></figure>
+<h3>Connectors</h3>
+<ul>
+<li>The <strong>balance connector</strong> is the small multi-pin plug (4 pins for 3S: one for each cell junction plus the negative). A balance charger uses it to monitor and equalise each cell. Always charge through it.</li>
+<li>The <strong>discharge connector</strong> carries the robot's current. Hobby packs often use <strong>XT60</strong>, which is polarised so it only fits one way. Use proper connectors and wires rated for your current. Do not use bare wires twisted together.</li>
+</ul>
+<h3>Runtime estimate</h3>
+<p>Only part of the printed capacity is safely usable, because you should not run the pack flat. A simple estimate is:</p>
+<pre><code class="language-text">runtime (hours) = capacity (Ah) &times; usable fraction / average current (A)</code></pre>
+<p>With 2.2 Ah, a usable fraction of 80 % (a common rule of thumb, an assumption) and the budget from the first section:</p>
+<ul>
+<li>Usable capacity: <code>2.2 &times; 0.8 = 1.76 Ah</code></li>
+<li>Typical average current 0.71 A: <code>1.76 / 0.71 = 2.5 h</code> (about 149 minutes)</li>
+<li>If everything pulled the worst case 1.80 A all the time: <code>1.76 / 1.80 = 0.98 h</code>, about 59 minutes. A real robot is never stalled that long; this is a floor, not a forecast.</li>
+</ul>
+<p>It is an <em>estimate</em>. Measure the real runtime with a timer and compare. Cold or old packs deliver less.</p>
+<h3>C-rating and maximum current</h3>
+<p>The <strong>C-rating</strong> says how much current the pack can supply, as a multiple of its capacity. <strong>Read it from the label of your pack, do not guess it.</strong> The maximum continuous current is:</p>
+<pre><code class="language-text">I_max = C-rating &times; capacity (Ah)</code></pre>
+<p>As a generic illustration (not your pack): a pack labelled 10C with 2.2 Ah gives <code>10 &times; 2.2 = 22 A</code>; one labelled 20C gives <code>20 &times; 2.2 = 44 A</code>. Our robot needs about 2.3 A, far below either, so any normal hobby LiPo C-rating is more than enough. Choose a pack whose maximum current is at least about twice your worst case, and do not pay for a high C-rating you will never use. Many labels show a separate, higher "burst" rating; for planning use the continuous one.</p>
+<h3>Why the voltage sags under load</h3>
+<p>A battery has a small internal resistance. When current flows, a voltage <code>I &times; R<sub>internal</sub></code> is lost inside the pack, so the voltage at the terminals drops. For example, with an assumed 20 m&Omega; for the whole pack and a 5 A burst, the sag is <code>5 &times; 0.02 = 0.1 V</code>. Sag grows with current, with age, and in the cold. Your robot's measured voltage therefore dips every time the motors start. Use this when you set a low-battery threshold: a pack at rest on 10.8 V may read 10.4 V under load.</p>
+<h3>Does 12.6 V suit the TB6612FNG?</h3>
+<p>The TB6612FNG motor supply <strong>VM</strong> is specified for 4.5 V to 13.5 V (Pololu's page and the Toshiba datasheet). A fully charged 3S pack is 12.6 V, which is <strong>0.9 V below the upper limit</strong>: it fits, but with little margin. It means:</p>
+<ul>
+<li>Never use a 4S pack (16.8 V full) with this driver. It is over the limit, and the absolute maximum rating (15 V in the datasheet as far as I recall; please check yours) is exceeded too.</li>
+<li>Do not use a "fully charged" pack above 4.2 V per cell, and never charge on a charger set to a wrong cell count.</li>
+<li>Also confirm the voltage rating of your N20 motors (12 V rated). At 12.6 V they run slightly above rating, which is normally acceptable but means slightly more heat.</li>
+</ul>
+<div class="callout callout-caution"><div class="callout-title">LiPo safety: read this before you touch the battery</div>
+<ul>
+<li>Charge only with a proper <strong>LiPo balance charger</strong>, set to <strong>3S</strong> and a charge current of no more than 1C (2.2 A for this pack), using the balance lead.</li>
+<li><strong>Never leave a charging pack unattended.</strong> Charge on a non-flammable surface, ideally in a <strong>LiPo fire-safe bag</strong>, away from anything that can burn.</li>
+<li><strong>Never over-discharge</strong>: stop when the pack reaches about 3.5 V per cell (10.5 V) under normal use. A pack that was left flat can be permanently damaged.</li>
+<li><strong>Puffed (swollen), dented, hot, or smelly packs are dangerous</strong>. Stop using them. Do not charge them. Ask a club lead how to discharge and dispose of them safely.</li>
+<li><strong>Avoid short circuits</strong>: never let the two bare battery leads touch. Insulate the ends when not in use, and cover XT60 contacts on loose packs.</li>
+<li><strong>Check polarity</strong> every time you connect: red is positive, black is negative. Reversed polarity destroys electronics.</li>
+<li>Put a <strong>fuse</strong> and a <strong>switch</strong> in the positive lead. A fuse of about 3 A for our robot is a starting point; it must be above the worst-case budget (2.3 A with margin) and well below the current rating of the wires.</li>
+<li>Do not crush, drop, puncture or leave the pack in a hot car. If it gets hot, smokes or starts to swell, disconnect it if you safely can and move away.</li>
+</ul></div>
+</section>
+
+<section id="voltage-regulators">
+<h2>Voltage regulators: linear vs switching</h2>
+<p>The motors can use the battery voltage directly, but the ESP32 needs 5 V (into VIN or the 5V pin) or 3.3 V, and the sensors 3.3 V. A <strong>voltage regulator</strong> turns the battery voltage into a fixed lower one.</p>
+<h3>Linear regulators (LDO)</h3>
+<p>A <strong>linear regulator</strong> (such as the AMS1117 on your DevKit, or a 7805) behaves like a variable resistor in series with the load. It turns the excess voltage into <strong>heat</strong>:</p>
+<pre><code class="language-text">P_heat = (V_in &minus; V_out) &times; I_load</code></pre>
+<p>Its efficiency is <code>V<sub>out</sub> / V<sub>in</sub></code>. They are simple, cheap and very quiet (no switching noise), but only good when the voltage drop is small.</p>
+<h3>Worked example: 12 V to 3.3 V</h3>
+<p>Suppose a linear regulator makes 3.3 V at 0.2 A from 12 V:</p>
+<ul>
+<li>Output power: <code>3.3 &times; 0.2 = 0.66 W</code></li>
+<li>Heat: <code>(12 &minus; 3.3) &times; 0.2 = 8.7 &times; 0.2 = 1.74 W</code></li>
+<li>Input power: <code>12 &times; 0.2 = 2.4 W</code>; efficiency <code>3.3 / 12 = 27.5 %</code></li>
+</ul>
+<p>Nearly three quarters of the energy is wasted, and 1.74 W is more than a small regulator can safely dissipate without a heat sink. The regulator gets very hot, shuts down or fails. A robot would also drain its battery faster.</p>
+<figure><img src="/study-materials/stage-2/content/img/11-3.svg" alt="Comparison of a linear regulator and a buck converter making 3.3 volts at 0.2 amps from 12 volts: the linear regulator wastes 1.74 watts as heat at 27.5 percent efficiency, the buck converter at about 90 percent wastes about 0.07 watts" loading="lazy"><figcaption>The same 3.3 V, 0.2 A load from a 12 V source. The buck figure assumes 90 % efficiency.</figcaption></figure>
+<div class="callout callout-key"><div class="callout-title">Rule of thumb</div><p>Use a linear regulator when the drop is small or the current is tiny. Use a <strong>buck converter</strong> to step down a large difference such as 12 V to 5 V. Even the ESP32 DevKit's own regulator is happier with 5 V than with 12 V: do not feed 12 V into its VIN pin.</p></div>
+<h3>What the DevKit regulator does</h3>
+<p>From 5 V to 3.3 V the DevKit's linear regulator drops 1.7 V. At the typical 216 mA logic load this is <code>1.7 &times; 0.216 = 0.37 W</code>: warm, but acceptable. That is why we use a buck converter for the big drop and leave the small drop to the linear regulator.</p>
+</section>
+
+<section id="buck-converters">
+<h2>Buck converters</h2>
+<p>A <strong>buck converter</strong> is a switching regulator. It switches the input on and off very fast (hundreds of kHz), passes the pulses through an inductor and a capacitor and gets a smooth, lower output voltage. Because it stores and releases energy instead of burning it, it is much more efficient. A typical module reaches around 85 to 95 % (check the datasheet; it varies with load and voltage). For our 3.3 V, 0.2 A example at 90 %:</p>
+<ul>
+<li>Input power: <code>0.66 / 0.9 = 0.73 W</code>, input current at 12 V <code>0.73 / 12 = 0.06 A</code></li>
+<li>Heat: <code>0.73 &minus; 0.66 = 0.07 W</code> instead of 1.74 W</li>
+</ul>
+<h3>Choosing a buck module for 12 V to 5 V</h3>
+<ul>
+<li><strong>Input range</strong> must cover the full 12.6 V with margin (and a bit more, for spikes). Low-cost modules based on parts such as the LM2596 or MP1584 are common; check the rating of the module you buy.</li>
+<li><strong>Output current rating</strong>: at least twice your worst-case load. Our logic rail needs 0.39 A worst case, so a 1 A module is comfortable, a 3 A one is generous (but bigger and heavier).</li>
+<li><strong>Output voltage</strong>: fixed 5 V, or adjustable with a small trimmer.</li>
+<li><strong>Ripple and noise</strong>: switching regulators leave a small ripple on the output (often tens of millivolts). Fine for an ESP32 if you add a capacitor, but a noisy analog sensor may notice it. Place a 100 &micro;F electrolytic and a 100 nF ceramic close to the ESP32's 5 V input.</li>
+<li><strong>Dropout</strong>: the module needs the input some volts above the output; at 10.5 V into 5 V this is easy.</li>
+<li><strong>Size and heat</strong>: a module that runs warm at your load is too small.</li>
+</ul>
+<h3>Test the module BEFORE connecting the ESP32</h3>
+<p>Adjustable modules often come set to an unknown voltage, sometimes much higher than 5 V. Connecting your ESP32 to that output can destroy it. Always test first:</p>
+<ol>
+<li>Connect the buck module to the battery (through the fuse and switch) with <strong>nothing connected on its output</strong>. Check polarity first.</li>
+<li>With the multimeter on DC volts, measure the output. Turn the trimmer slowly until it reads <strong>5.0 V</strong>.</li>
+<li>Check the output at a lower input (a bench supply at 11 V and 10.5 V, or a partly drained battery). It should stay at 5.0 V.</li>
+<li>Optional load test: connect a power resistor (for example about 10 &Omega; rated 5 W gives about 0.5 A) and check that the voltage stays steady and the module does not get too hot.</li>
+<li>Switch off. Only now connect the ESP32, and measure 5 V again with the robot connected.</li>
+</ol>
+<div class="callout callout-caution"><div class="callout-title">USB and the buck module at the same time</div><p>Many DevKit boards do not isolate the USB 5 V from the VIN pin. Plugging in USB while a buck converter is powering VIN can push current back and damage the USB port or the converter. Check your board's schematic, or follow a simple routine: when programming over USB, power off the battery side.</p></div>
+</section>
+
+<section id="clean-power">
+<h2>Keeping motor noise away from the logic</h2>
+<p>A motor is an electrical noise source: its brushes spark, PWM makes sharp current pulses and a starting motor can pull the battery voltage down for a moment. The symptoms are random ESP32 resets, jittery sensor readings and I&sup2;C errors. Fix it with a few cheap habits:</p>
+<ul>
+<li><strong>Bulk capacitor</strong>: put a 470 to 1000 &micro;F electrolytic (rated at least 16 V, 25 V is better) across the driver's VM and GND, close to the TB6612FNG. It supplies the short current pulses so the supply wires do not have to.</li>
+<li><strong>Decoupling capacitors</strong>: a 100 nF ceramic across the supply pins of each IC (driver, ADS1115, IMU). It removes high-frequency noise.</li>
+<li><strong>Motor capacitor</strong>: a 100 nF ceramic soldered across the terminals of each brushed motor reduces brush noise.</li>
+<li><strong>Separate wiring</strong>: motor power and logic power should leave the battery on different wires. Keep motor wires short, twisted together, and away from the sensor and I&sup2;C wires.</li>
+<li><strong>Star ground</strong>: connect all grounds at one point (the battery negative or the driver GND), with separate wires going to the motor driver and the logic. High motor currents then do not flow through the wire that your sensors use as ground reference.</li>
+<li><strong>Thick short wires</strong> for the high-current path. A thin wire adds resistance and drops voltage under load.</li>
+</ul>
+<figure><img src="/study-materials/stage-2/content/img/11-1.svg" alt="Power distribution block diagram: battery through a fuse and switch, then branches to the TB6612FNG and motors, to a buck converter feeding the ESP32 and its 3.3 volt sensors, and to a resistor divider feeding an ESP32 analog pin" loading="lazy"><figcaption>Where the power goes. The motor branch and the logic branch separate right after the fuse and switch.</figcaption></figure>
+<div class="callout callout-tip"><div class="callout-title">Debug trick</div><p>If the ESP32 resets when the motors start, first check the supply voltage with a multimeter, then add the bulk capacitor and check the buck module rating. Printing a reset reason to the Serial Monitor (brown-out resets show up clearly) tells you it is power, not your code.</p></div>
+</section>
+
+<section id="measuring-battery-voltage">
+<h2>Measuring the battery voltage with the ESP32</h2>
+<p>The ESP32's ADC can only measure about 0 to 3.1 V reliably, while the pack reaches 12.6 V. Never connect the battery to a GPIO pin. A <strong>resistor divider</strong> scales it down: with R1 on top (to the battery) and R2 at the bottom (to ground),</p>
+<pre><code class="language-text">V_pin = V_bat &times; R2 / (R1 + R2)</code></pre>
+<figure><img src="/study-materials/stage-2/content/img/11-4.svg" alt="Voltage divider with a 47 kilohm and a 12 kilohm resistor feeding an ESP32 ADC pin with a 100 nanofarad capacitor, giving 2.56 volts at the pin from a full 12.6 volt battery" loading="lazy"><figcaption>A 47 k&Omega; and 12 k&Omega; divider maps 12.6 V to 2.56 V.</figcaption></figure>
+<h3>Choosing the values</h3>
+<p>With R1 = 47 k&Omega; and R2 = 12 k&Omega;, the ratio is <code>12 / 59 = 0.203</code>:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Battery</th><th>At the pin</th></tr></thead>
+<tbody>
+<tr><td>12.6 V (full)</td><td>2.56 V</td></tr>
+<tr><td>11.1 V (nominal)</td><td>2.26 V</td></tr>
+<tr><td>10.5 V (low alarm)</td><td>2.14 V</td></tr>
+<tr><td>9.0 V (floor)</td><td>1.83 V</td></tr>
+</tbody></table></div>
+<p>The top is 2.56 V, safely below 3.3 V and below the point where the ESP32 ADC starts to flatten out, even if a charger gives a little more than 12.6 V. The current through the divider is <code>12.6 V / 59 k&Omega; = 0.21 mA</code>, negligible against a 2.2 Ah pack. Use 1 % resistors if you can. Add a <strong>100 nF capacitor</strong> from the pin to ground to steady the reading; the ADC likes a source resistance of under about 10 k&Omega;, and the parallel value here is <code>47 k || 12 k = 9.6 k&Omega;</code>, which is right at that edge, so the capacitor helps.</p>
+<h3>Pin choice: ADC1 only</h3>
+<p>Use an <strong>ADC1</strong> pin (GPIO32 to 39). ADC2 pins cannot be read while Wi-Fi is on. In the suggested Stage 2 pin map all six ADC1 pins are already used (GPIO32 and 33 by the motor driver, 34, 35, 36 and 39 by the encoders). The easiest fix is to <strong>move one encoder input</strong>, for example the right encoder B from GPIO39 to GPIO18, since encoder interrupts work on almost any GPIO, and give GPIO39 to the battery divider. If you never use Wi-Fi, an ADC2 pin also works, but ADC1 is the safe habit.</p>
+<h3>The code</h3>
+<p>This reads the pin in millivolts (the ESP32 library applies the factory calibration stored in the chip when it exists), averages 16 samples, filters the result, and raises a low-battery flag with <strong>hysteresis</strong>: it turns on below 10.5 V and turns off only again above 10.8 V, so that the flag does not flicker when the voltage hovers around the limit.</p>
+<pre><code class="language-cpp">const int   BATT_PIN  = 39;                 // an ADC1 pin (see the text about pin choice)
+const float R_TOP     = 47000.0;            // ohms, battery side
+const float R_BOTTOM  = 12000.0;            // ohms, ground side
+const float DIVIDER   = (R_TOP + R_BOTTOM) / R_BOTTOM;   // 4.92
+
+float battCalibration = 1.00;               // adjust after comparing with a multimeter
+
+const float LOW_ON_V  = 10.5;               // raise the warning below this (3.5 V per cell)
+const float LOW_OFF_V = 10.8;               // clear it again only above this
+bool  lowBattery = false;
+float batteryVolts = 0;
+
+float readBatteryVoltsOnce() {
+  uint32_t sum = 0;
+  for (int i = 0; i &lt; 16; i++) sum += analogReadMilliVolts(BATT_PIN);
+  float pinVolts = (sum / 16.0) / 1000.0;
+  return pinVolts * DIVIDER * battCalibration;
+}
+
+void batteryUpdate() {                      // call every 100 ms or so
+  float v = readBatteryVoltsOnce();
+  if (batteryVolts == 0) batteryVolts = v;                // first reading
+  batteryVolts = 0.9 * batteryVolts + 0.1 * v;            // smooth the sag spikes
+
+  if (!lowBattery &amp;&amp; batteryVolts &lt; LOW_ON_V)  lowBattery = true;
+  if (lowBattery &amp;&amp; batteryVolts &gt; LOW_OFF_V) lowBattery = false;
+}
+
+void setup() {
+  Serial.begin(115200);
+}
+
+void loop() {
+  static unsigned long lastMs = 0;
+  if (millis() - lastMs &gt;= 100) {
+    lastMs = millis();
+    batteryUpdate();
+    if (lowBattery) {
+      // stop the motors, light an LED, show it on the OLED...
+      Serial.print("LOW BATTERY: ");
+    }
+    Serial.println(batteryVolts, 2);
+  }
+}</code></pre>
+<h3>Calibration</h3>
+<p>The ESP32 ADC is not perfectly linear (it is least accurate near the bottom and the top of its range) and resistors have tolerance, so expect an error of a few percent. Measure the pack with a multimeter, compare it with what <code>batteryVolts</code> prints, and set <code>battCalibration = multimeter / reading</code>. Note that the pack voltage under motor load sags, so a threshold chosen when the robot is stationary may trigger earlier when the motors run. Choose the alarm voltage from real tests, and treat 10.5 V as a starting point.</p>
+<div class="callout callout-note"><div class="callout-title">This is starter code</div><p>It was written without access to the hardware. Check the pin, the resistor values and the calibration on your own robot. The only library function used is <code>analogReadMilliVolts()</code>, which exists in the ESP32 Arduino core 2.x and 3.x.</p></div>
+</section>
+
+<section id="bms">
+<h2>BMS: battery management system</h2>
+<p>A <strong>BMS (battery management system)</strong> is a small circuit board that watches a battery pack and protects it. A BMS for a multi-cell pack typically provides:</p>
+<ul>
+<li><strong>Over-charge protection</strong>: cuts the charge when a cell reaches its upper limit (4.2 V).</li>
+<li><strong>Over-discharge protection</strong>: disconnects the load when a cell gets too low.</li>
+<li><strong>Over-current and short-circuit protection</strong>: disconnects the output when the current is too high or the output is shorted.</li>
+<li><strong>Cell balancing</strong>: keeps all cells at the same voltage, so one cell does not run out of capacity or overcharge before the others.</li>
+</ul>
+<h3>A Li-ion BMS versus a LiPo pack with a balance charger</h3>
+<p>Hobby LiPo packs for robots and drones usually come <strong>without any protection board</strong>. The protection is partly in your <em>procedure</em> and equipment:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>&nbsp;</th><th>Li-ion pack (for example 3S 18650 cells) with BMS</th><th>Hobby LiPo with balance charger</th></tr></thead>
+<tbody>
+<tr><td>Over-charge</td><td>BMS stops it (use a matching 12.6 V charger)</td><td>The balance charger stops at 4.2 V per cell</td></tr>
+<tr><td>Cell balancing</td><td>Done by the BMS (usually small currents)</td><td>Done by the balance charger via the balance lead</td></tr>
+<tr><td>Over-discharge</td><td>BMS cuts the output</td><td>Nothing cuts it. You need a <strong>low-voltage alarm</strong> or a software cut-off</td></tr>
+<tr><td>Over-current, short circuit</td><td>BMS cuts the output (to its rating)</td><td>Nothing, except your <strong>fuse</strong></td></tr>
+</tbody></table></div>
+<p>For our <strong>3S LiPo 2200 mAh</strong> robot the protection is made up of: a balance charger, a fuse and a switch, a low-voltage warning (the battery monitor above, perhaps with a buzzer or cell checker), and good habits.</p>
+<h3>When you need a BMS</h3>
+<ul>
+<li>When you build your own pack from loose cells, for example 18650 Li-ion cells. A BMS is not optional there.</li>
+<li>When the robot will be left switched on unattended, or run by someone who may not watch the voltage.</li>
+<li>When you use packs that already include a protection circuit, it works as a BMS, but check its current limit against your worst case (2.3 A in our budget).</li>
+</ul>
+<div class="callout callout-caution"><div class="callout-title">Choose the BMS to fit the pack</div><p>A BMS must match the number of cells (3S here), the chemistry and a continuous current at least as large as your worst case. A BMS cut-off while driving also turns the robot off instantly. Do not rely on it as your normal "stop" button.</p></div>
+</section>
+
+<section id="power-checklist">
+<h2>Power checklist before switching on</h2>
+<p>Go through this list every time you power a new build or after changing any wiring.</p>
+<ol>
+<li>Battery pack is <strong>not puffed or damaged</strong>, the connectors are not loose, and the voltage on the label matches (3S).</li>
+<li>Battery voltage measured: between about 10.5 V and 12.6 V.</li>
+<li><strong>Polarity</strong> checked on the battery plug, switch, fuse, buck input and driver VM.</li>
+<li>No bare wires touching, no solder bridges. Check with the multimeter in continuity mode that <strong>battery + and battery &minus; are not shorted</strong>, with the switch on.</li>
+<li>Fuse fitted, with a rating above the worst-case current and below the wire rating. Switch in the positive lead.</li>
+<li>Buck module output already tested on the bench at <strong>5.0 V</strong> with nothing connected, <em>before</em> the ESP32.</li>
+<li>All grounds joined at one point (star ground). QTR-8A and ADS1115 powered from the same 3.3 V.</li>
+<li>Bulk capacitor across the driver supply, with the correct polarity.</li>
+<li>Robot <strong>wheels lifted off the table</strong> for the first power-on, motors in a safe test.</li>
+<li>First power-up: watch for smoke, smell, heat, or the multimeter's current reading going above the budget. Switch off immediately if anything is wrong.</li>
+<li>After the run: disconnect and store the pack at storage voltage if it is not used for several days.</li>
+</ol>
+</section>
+
+<section id="key-takeaways">
+<h2>Key takeaways</h2>
+<ul>
+<li>Make a <strong>power budget</strong>: list loads, add the worst case, add 25 to 30 % margin, compare with the battery, wires, fuse, driver and regulator. Mark typical datasheet numbers as such and check them.</li>
+<li><strong>Motor current</strong> has three values: no-load, running and stall. Measure them with a multimeter <em>in series</em> (or an INA219 sensor).</li>
+<li>3S LiPo: <strong>12.6 V full, 11.1 V nominal</strong>, about 10.5 V low alarm, 11.4 V storage. 12.6 V is within the TB6612FNG's 13.5 V limit, but with just 0.9 V margin.</li>
+<li>Runtime is <code>capacity &times; usable fraction / average current</code>. Maximum current is <code>C-rating &times; capacity</code>: read the C-rating from your pack.</li>
+<li>LiPo safety: balance charger, never unattended, fire-safe bag, no over-discharge, no puffed packs, avoid shorts, check polarity, fuse and switch.</li>
+<li>A <strong>linear regulator</strong> wastes <code>(V<sub>in</sub> &minus; V<sub>out</sub>) &times; I</code> as heat; 12 V to 3.3 V is only 27.5 % efficient. A <strong>buck converter</strong> does the same at about 90 %. Test the buck module on the bench before connecting the ESP32.</li>
+<li>Tame motor noise with bulk and decoupling capacitors, separate wiring and a star ground.</li>
+<li>Measure the battery through a <strong>resistor divider</strong> on an ADC1 pin, calibrate it with a multimeter, and use hysteresis on the low-battery warning.</li>
+<li>A <strong>BMS</strong> protects against over-charge, over-discharge, over-current, short circuit and cell imbalance. A LiPo with a balance charger needs your own alarm and fuse.</li>
+</ul>
+</section>

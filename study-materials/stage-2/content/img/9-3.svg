@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" role="img" aria-label="A maze graph with seven nodes S, A, B, C, D, E and F and edge lengths in centimetres. The shortest path from S to F, through B and D, has length 95 and is highlighted in green.">
+  <rect width="680" height="400" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#1e293b">
+    <!-- normal edges -->
+    <g stroke="#94a3b8" stroke-width="4" fill="none">
+      <path d="M90 290 H260"/>
+      <path d="M260 290 L90 160"/>
+      <path d="M260 290 H430"/>
+      <path d="M430 290 L300 160"/>
+      <path d="M430 290 L560 160"/>
+      <path d="M300 160 V60"/>
+    </g>
+    <!-- shortest path edges -->
+    <g stroke="#16a34a" stroke-width="7" fill="none" stroke-linecap="round">
+      <path d="M90 290 V160"/>
+      <path d="M90 160 H300"/>
+      <path d="M300 160 H560"/>
+    </g>
+    <!-- weight chips -->
+    <g font-size="14" font-weight="700" text-anchor="middle">
+      <g fill="#f8fafc"><rect x="158" y="278" width="34" height="22" rx="5"/><rect x="73" y="213" width="34" height="22" rx="5"/><rect x="158" y="214" width="34" height="22" rx="5"/><rect x="328" y="278" width="34" height="22" rx="5"/><rect x="178" y="149" width="34" height="22" rx="5"/><rect x="348" y="214" width="34" height="22" rx="5"/><rect x="478" y="214" width="34" height="22" rx="5"/><rect x="413" y="149" width="34" height="22" rx="5"/><rect x="283" y="99" width="34" height="22" rx="5"/></g>
+      <text x="175" y="294">40</text>
+      <text x="90" y="229" fill="#15803d">25</text>
+      <text x="175" y="230">15</text>
+      <text x="345" y="294">30</text>
+      <text x="195" y="165" fill="#15803d">45</text>
+      <text x="365" y="230">20</text>
+      <text x="495" y="230">50</text>
+      <text x="430" y="165" fill="#15803d">25</text>
+      <text x="300" y="115">10</text>
+    </g>
+    <!-- nodes -->
+    <g fill="#e0ecff" stroke="#2563eb" stroke-width="2.5">
+      <circle cx="90" cy="290" r="21"/>
+      <circle cx="260" cy="290" r="21"/>
+      <circle cx="430" cy="290" r="21"/>
+      <circle cx="90" cy="160" r="21"/>
+      <circle cx="300" cy="160" r="21"/>
+      <circle cx="560" cy="160" r="21" fill="#dcfce7" stroke="#16a34a"/>
+      <circle cx="300" cy="60" r="21" fill="#fee2e2" stroke="#dc2626"/>
+    </g>
+    <g font-size="17" font-weight="700" text-anchor="middle">
+      <text x="90" y="296">S</text>
+      <text x="260" y="296">A</text>
+      <text x="430" y="296">C</text>
+      <text x="90" y="166">B</text>
+      <text x="300" y="166">D</text>
+      <text x="560" y="166">F</text>
+      <text x="300" y="66">E</text>
+    </g>
+    <!-- distances from S -->
+    <g font-size="13" font-weight="700" fill="#c2410c" text-anchor="middle">
+      <text x="90" y="332">d = 0 (start)</text>
+      <text x="260" y="332">d = 40</text>
+      <text x="430" y="332">d = 70</text>
+      <text x="90" y="124">d = 25</text>
+      <text x="258" y="141" text-anchor="end">d = 70</text>
+      <text x="560" y="124">d = 95 (finish)</text>
+    </g>
+    <text x="330" y="64" font-size="13" font-weight="700" fill="#c2410c">d = 80 (dead end)</text>
+    <!-- legend -->
+    <line x1="40" y1="372" x2="80" y2="372" stroke="#16a34a" stroke-width="7" stroke-linecap="round"/>
+    <text x="90" y="377" font-size="14">Shortest path S &#8594; B &#8594; D &#8594; F = 25 + 45 + 25 = 95 cm</text>
+    <text x="640" y="377" font-size="12" fill="#475569" text-anchor="end">Lengths in cm, not to scale</text>
+  </g>
+</svg>

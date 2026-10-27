@@ -1,0 +1,125 @@
+<section id="objective">
+<h2>Objective</h2>
+<p>Stage 02 asks you to put your control skills together in one robot. You will build a <strong>PID-tuned line follower</strong> on the ESP32, then <strong>extend it into a maze solver</strong>. If you have time, you can add <strong>encoder-based speed control</strong> as an optional bonus.</p>
+<p>By the end you should have a robot that follows a curvy line smoothly, takes sharp turns and junctions correctly, finds its way through a line maze, and a short record of how well it does, backed by measurements instead of &ldquo;it looked fine&rdquo;.</p>
+<div class="callout callout-note"><div class="callout-title">Official rules are set by the club</div><p>This page is a build brief to help you plan and test. It does not define scoring, deadlines, prizes or the official track and maze. <strong>The club organisers decide the official rules and the judging.</strong> Ask them for the real track dimensions, finish rules and how the work will be reviewed.</p></div>
+</section>
+
+<section id="what-to-build">
+<h2>What to build</h2>
+<div class="card-grid">
+<div class="info-card"><h4>Part 1: PID line follower</h4><p>A robot with a reflectance sensor array that follows a black line using a PID controller. It must handle curves, and should also deal with 90&deg; turns, junctions, gaps and the end of the line. Lessons 06, 07 and 08.</p></div>
+<div class="info-card"><h4>Part 2: Maze solver</h4><p>Extend Part 1 so the robot explores a line maze, recognises junctions and dead ends, and finds a path from start to finish. Lesson 09.</p></div>
+<div class="info-card"><h4>Part 3: Encoder speed control (optional bonus)</h4><p>Use the wheel encoders to hold a chosen wheel speed even as the battery drains, so the robot behaves the same lap after lap. Not required. Lessons 05 and 06.</p></div>
+</div>
+<p>Everything runs on an <strong>ESP32</strong> programmed in the Arduino IDE. The OLED-and-buttons tuning menu from Lesson 08 is not compulsory, but it makes tuning much faster.</p>
+<h3>Optional bonus: encoder-based speed control</h3>
+<p>So far the robot sets a PWM value, and the real wheel speed depends on the battery and the floor. With the encoders you can <em>measure</em> the speed and control it with a second, separate PID loop:</p>
+<ol>
+<li>Every control period (for example 10 ms) read the change in encoder ticks for each wheel.</li>
+<li>Convert it to a speed: ticks per second divided by ticks per millimetre. With the assumed 1400 counts per wheel turn and a 34 mm wheel that is about 13.1 ticks per millimetre (check your own motor and wheel).</li>
+<li>Compare it with a target speed, and let a speed PID (<code>pidCompute()</code> with its own gains) produce the PWM for that wheel.</li>
+<li>Your line-following PID now sets the <em>left and right target speeds</em> instead of raw PWM.</li>
+</ol>
+<p>Keep the two PIDs separate and tune the inner speed loop first, with the robot on the ground. If you are short of time, skip this part and do not let it delay Parts 1 and 2.</p>
+</section>
+
+<section id="hardware">
+<h2>Required hardware</h2>
+<p>These are the club's suggested parts and pins, as used in the lessons. Treat the motor numbers as assumptions and check them against your own parts.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Item</th><th>Suggestion</th></tr></thead>
+<tbody>
+<tr><td>Chassis</td><td>Small two-wheel robot with a ball caster; wheel diameter about 34 mm, wheel base about 85 mm (assumptions)</td></tr>
+<tr><td>Controller</td><td>ESP32 DevKit (ESP32-WROOM-32), Arduino IDE. The STM32F411 Black Pill is a faster alternative.</td></tr>
+<tr><td>Line sensor</td><td>8-channel reflectance (IR) array, QTR-8A style, read through two ADS1115 I2C ADCs (0x48 and 0x49)</td></tr>
+<tr><td>Motors</td><td>N20 12 V 300 RPM gearmotors with magnetic quadrature encoders (assumed 1400 counts per wheel turn)</td></tr>
+<tr><td>Motor driver</td><td>TB6612FNG</td></tr>
+<tr><td>Battery</td><td>3S LiPo, 2200 mAh, with proper voltage regulation for the electronics (Lesson 11). Handle it carefully: no shorts, correct polarity, never over-discharge, and never leave it charging unattended.</td></tr>
+<tr><td>Display and buttons (recommended)</td><td>SSD1306 128 &times; 64 OLED at 0x3C and three push buttons on GPIO14, 16 and 17</td></tr>
+<tr><td>Test track and maze</td><td>Black electrical tape on a light, matt floor or board. Use the line width your club's track uses; if you do not know it, ask.</td></tr>
+</tbody></table></div>
+<p>The pin map suggested in the lessons: motor driver PWMA 25, AIN1 26, AIN2 27, PWMB 13, BIN1 32, BIN2 33, STBY 4; I2C SDA 21, SCL 22; encoders 34, 35, 36, 39; buttons 14, 16, 17. It is a suggestion; use your own if you keep the wiring consistent and avoid the flash pins (GPIO6 to 11) and the boot-strapping pins.</p>
+</section>
+
+<section id="build-plan">
+<h2>Step-by-step build plan</h2>
+<figure><img src="/study-materials/stage-2/content/img/project1-1.svg" alt="Roadmap with six milestones: build the robot, check the parts, PID line follower, track features, maze solver, test and present, plus an optional encoder speed control bonus" loading="lazy"><figcaption>Six milestones. Finish each one and test it before moving on.</figcaption></figure>
+<ol>
+<li><strong>Milestone 1: build the robot.</strong> Assemble the chassis, motors, sensor array and power. The sensor array should be mounted low, level and ahead of the axle. See Lessons 04 (robot mechanics) and 11 (power systems). <em>Done when:</em> the robot is built and powers up safely.</li>
+<li><strong>Milestone 2: make every part work on its own.</strong> Test the motors (Lessons 01 and 05), then the sensors and encoders (Lesson 03), and print values to Serial. <em>Done when:</em> both wheels run in both directions at the speed you command, the position output goes from about &minus;3500 to +3500 as you slide the robot across a line, and the encoders count up when the wheels move forward.</li>
+<li><strong>Milestone 3: PID line follower.</strong> Learn PID in Lesson 06, the basic follower in Lesson 07, then follow Lesson 08 to build and tune the PID follower on a curvy track. <em>Done when:</em> it completes several laps in a row without leaving the line.</li>
+<li><strong>Milestone 4: track features.</strong> Add 90&deg; turns, T and cross junctions, gaps and dead ends with the state machine in Lesson 08 (and the programming ideas in Lesson 02). <em>Done when:</em> the robot passes each feature repeatedly on a practice track.</li>
+<li><strong>Milestone 5: maze solver.</strong> Use Lesson 09 for junction detection, decision making, dead ends and path recording. Begin with a tiny maze and grow it. <em>Done when:</em> it reaches the finish of your test maze without help.</li>
+<li><strong>Milestone 6: test, debug, present.</strong> Run the testing plan below, fix problems with Lesson 12 (robot debugging), and prepare your presentation.</li>
+<li><strong>Bonus, any time after milestone 3:</strong> add encoder-based speed control (Lessons 05 and 06) and measure whether the laps become more repeatable.</li>
+</ol>
+<div class="callout callout-tip"><div class="callout-title">Keep versions</div><p>Save a working copy of your sketch after every milestone. When you try something risky (a new junction rule, a faster speed), you can always return to the last version that worked.</p></div>
+</section>
+
+<section id="testing-plan">
+<h2>Testing plan</h2>
+<p>Measure, do not guess. Run each test several times, in the same lighting, on a fully charged battery, and write the results down.</p>
+<figure><img src="/study-materials/stage-2/content/img/project1-2.svg" alt="Left: an example practice track with a 90 degree left, a curve, a gap, a 90 degree right, a cross, a T-junction with a dead end and a finish box. Right: an example line maze on a four by four grid with the shortest path highlighted" loading="lazy"><figcaption>An example practice track and an example maze. The maze has no loops, so each junction has a clear right answer.</figcaption></figure>
+<div class="table-wrap"><table>
+<thead><tr><th>What to measure</th><th>How</th><th>What to record</th></tr></thead>
+<tbody>
+<tr><td><strong>Lap time</strong></td><td>Time several laps of the practice track with a stopwatch or a phone video</td><td>Each lap, the best, the average, and the speed setting and gains used</td></tr>
+<tr><td><strong>Repeatability</strong></td><td>Run the same track ten times without changing anything</td><td>How many runs finished; where the failures happened</td></tr>
+<tr><td><strong>Feature recognition</strong></td><td>Pass each 90&deg; turn, T, cross and gap ten times</td><td>Correct decisions out of ten, and the wrong ones</td></tr>
+<tr><td><strong>Path found vs optimal path</strong></td><td>Compare the route the robot records or drives with the known shortest route of your test maze</td><td>Number of segments and turns of each; extra segments taken</td></tr>
+<tr><td><strong>Recovery from a lost line</strong></td><td>Lift and place the robot slightly off the line, and test a short gap and a dead end</td><td>Whether it recovers, and how long it takes</td></tr>
+<tr><td><strong>Effect of battery level</strong></td><td>Repeat one test on a full pack and on a half-charged pack</td><td>The difference in lap time and reliability</td></tr>
+</tbody></table></div>
+<h3>Suggested order</h3>
+<ol>
+<li>Calibrate the sensors on the actual track surface.</li>
+<li>Test the follower on a plain loop, then add the turns, junctions and gap one at a time.</li>
+<li>Move to a very small maze (two or three junctions), then a bigger one.</li>
+<li>Only then try for speed, one change at a time.</li>
+</ol>
+</section>
+
+<section id="common-problems">
+<h2>Common problems</h2>
+<p>When something goes wrong, the cause is often simple. Lesson 12 (Robot Debugging) shows how to check sensor calibration, motor matching, encoder errors, communication issues and power issues step by step. Here is a quick map:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>What you see</th><th>Look at first</th></tr></thead>
+<tbody>
+<tr><td>Robot wobbles, drifts wide or leaves the line</td><td>PID tuning and speed (Lesson 08), sensor calibration (Lesson 12)</td></tr>
+<tr><td>Pulls to one side on a straight line</td><td>Motor matching and wheel size (Lesson 12)</td></tr>
+<tr><td>Behaves differently as the battery drains, or the ESP32 resets</td><td>Power and voltage drop (Lessons 11 and 12)</td></tr>
+<tr><td>Misreads a T, a cross or a turn</td><td>Thresholds, the distance driven before the second look, and the sensor height (Lesson 08)</td></tr>
+<tr><td>Gets lost in the maze, or turns the wrong way</td><td>Junction logic and path recording (Lesson 09); print the state to Serial or the OLED</td></tr>
+<tr><td>Distance or speed readings look wrong</td><td>Encoder wiring and counting (Lessons 03, 05, 12)</td></tr>
+<tr><td>Random glitches or freezes</td><td>Loop timing, blocking code such as <code>delay()</code> or slow display drawing, communication (Lessons 02 and 12)</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="presenting-your-work">
+<h2>How to present your work</h2>
+<p>A good presentation shows that you understand your robot, not just that it runs. Ask the organisers what format they expect, then prepare something like this:</p>
+<ul>
+<li><strong>A short demo:</strong> one clean run on the practice track, and one on the maze if you have it. Have a plan for what you say if a run fails: explain what went wrong.</li>
+<li><strong>Your numbers:</strong> lap times, repeatability and path results from the testing plan, in a small table or chart.</li>
+<li><strong>Your design choices:</strong> sensors and pins, the PID gains you ended with and how you found them, the junction policy and why you chose it.</li>
+<li><strong>What did not work:</strong> a problem you hit and how you debugged it. This is often the most interesting part.</li>
+<li><strong>Your files:</strong> a tidy sketch with comments, a wiring sketch or photo, and a note on any bonus feature.</li>
+<li><strong>Credit:</strong> name the libraries you used and any help you received.</li>
+</ul>
+</section>
+
+<section id="key-takeaways">
+<h2>Before you submit</h2>
+<p>Use this as your self-check, and remember that the club organisers decide the official requirements.</p>
+<ul>
+<li>The robot runs on an ESP32 and follows a curvy line using a PID controller, with sensors calibrated on the actual track.</li>
+<li>It handles 90&deg; turns, T and cross junctions, a gap and a dead end, and stops at the finish as the rules say.</li>
+<li>It solves a line maze: it explores, recognises junctions and dead ends, and reaches the finish.</li>
+<li>You have measured lap time, repeatability, path found versus the optimal path, and recovery from a lost line, and have written the numbers down.</li>
+<li>Optional: encoder-based speed control works and you have compared laps with and without it.</li>
+<li>The battery is handled safely, the wiring is secure, and there is a physical way to stop the robot.</li>
+<li>You can explain your gains, your junction policy and one problem you solved.</li>
+<li>Your code is tidy, commented and saved, with a working version you can fall back on.</li>
+</ul>
+</section>

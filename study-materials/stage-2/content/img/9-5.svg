@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 350" role="img" aria-label="Left-wall following with a proportional controller: a robot too far from the wall steers toward it, a robot at the target distance drives straight, and a robot too close steers away.">
+  <defs>
+    <marker id="o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ea580c"/></marker>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#334155"/></marker>
+  </defs>
+  <rect width="680" height="350" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#1e293b">
+    <!-- wall -->
+    <rect x="20" y="40" width="640" height="14" fill="#334155"/>
+    <text x="30" y="32" font-size="13">left wall (robots travel to the right)</text>
+    <!-- target line -->
+    <line x1="20" y1="124" x2="660" y2="124" stroke="#16a34a" stroke-width="2" stroke-dasharray="7 5"/>
+    <text x="20" y="116" font-size="13" text-anchor="start" fill="#15803d" font-weight="700">target distance</text>
+
+    <!-- robot 1: too far -->
+    <rect x="80" y="190" width="70" height="42" rx="6" fill="#e0ecff" stroke="#2563eb" stroke-width="2.5"/>
+    <path d="M150 201 L168 211 L150 221 Z" fill="#16a34a"/>
+    <line x1="115" y1="56" x2="115" y2="188" stroke="#334155" stroke-width="2" marker-start="url(#g)" marker-end="url(#g)"/>
+    <text x="123" y="162" font-size="14" font-weight="700">d</text>
+    <line x1="176" y1="214" x2="216" y2="190" stroke="#ea580c" stroke-width="3" marker-end="url(#o)"/>
+
+    <!-- robot 2: on target -->
+    <rect x="290" y="124" width="70" height="42" rx="6" fill="#e0ecff" stroke="#2563eb" stroke-width="2.5"/>
+    <path d="M360 135 L378 145 L360 155 Z" fill="#16a34a"/>
+    <line x1="325" y1="56" x2="325" y2="122" stroke="#334155" stroke-width="2" marker-start="url(#g)" marker-end="url(#g)"/>
+    <text x="333" y="96" font-size="14" font-weight="700">d</text>
+
+    <!-- robot 3: too close -->
+    <rect x="500" y="84" width="70" height="42" rx="6" fill="#e0ecff" stroke="#2563eb" stroke-width="2.5"/>
+    <path d="M570 95 L588 105 L570 115 Z" fill="#16a34a"/>
+    <line x1="535" y1="56" x2="535" y2="82" stroke="#334155" stroke-width="2" marker-start="url(#g)" marker-end="url(#g)"/>
+    <text x="545" y="74" font-size="14" font-weight="700">d</text>
+    <line x1="596" y1="96" x2="636" y2="120" stroke="#ea580c" stroke-width="3" marker-end="url(#o)"/>
+
+    <!-- notes -->
+    <g font-size="14" text-anchor="middle">
+      <text x="115" y="268" font-weight="700">Too far: e &gt; 0</text>
+      <text x="115" y="288" font-size="13">steer toward the wall</text>
+      <text x="325" y="268" font-weight="700">On target: e = 0</text>
+      <text x="325" y="288" font-size="13">drive straight</text>
+      <text x="535" y="268" font-weight="700">Too close: e &lt; 0</text>
+      <text x="535" y="288" font-size="13">steer away from the wall</text>
+    </g>
+    <rect x="70" y="304" width="540" height="34" rx="8" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="340" y="326" font-size="14" text-anchor="middle" font-weight="700">e = d &#8722; target, left wheel = base &#8722; Kp&#183;e, right wheel = base + Kp&#183;e</text>
+  </g>
+</svg>

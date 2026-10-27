@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" role="img" aria-label="Pin mapping table from the ESP32 carrier board signals to a suggested STM32F411 Black Pill pin plan">
+  <rect width="680" height="420" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">
+    <text x="340" y="28" text-anchor="middle" font-size="16" font-weight="700">Same board, two brains: suggested pin plan</text>
+    <rect x="16" y="42" width="648" height="28" rx="6" fill="#2563eb"/>
+    <g fill="#fff" font-weight="700">
+      <text x="26" y="61">Signal</text>
+      <text x="196" y="61">ESP32 (GPIO)</text>
+      <text x="306" y="61">STM32F411 pin</text>
+      <text x="446" y="61">STM32 function</text>
+    </g>
+    <g>
+      <rect x="16" y="70" width="648" height="26" fill="#fff"/>
+      <rect x="16" y="96" width="648" height="26" fill="#e0ecff"/>
+      <rect x="16" y="122" width="648" height="26" fill="#fff"/>
+      <rect x="16" y="148" width="648" height="26" fill="#e0ecff"/>
+      <rect x="16" y="174" width="648" height="26" fill="#fff"/>
+      <rect x="16" y="200" width="648" height="26" fill="#e0ecff"/>
+      <rect x="16" y="226" width="648" height="26" fill="#fff"/>
+      <rect x="16" y="252" width="648" height="26" fill="#e0ecff"/>
+      <rect x="16" y="278" width="648" height="26" fill="#fff"/>
+      <rect x="16" y="304" width="648" height="26" fill="#e0ecff"/>
+    </g>
+    <g>
+      <text x="26" y="88">Motor A speed (PWMA)</text><text x="196" y="88">25</text><text x="306" y="88">PB0</text><text x="446" y="88">TIM3_CH3 (AF2)</text>
+      <text x="26" y="114">Motor B speed (PWMB)</text><text x="196" y="114">13</text><text x="306" y="114">PB1</text><text x="446" y="114">TIM3_CH4 (AF2)</text>
+      <text x="26" y="140">AIN1 / AIN2</text><text x="196" y="140">26 / 27</text><text x="306" y="140">PB12 / PB13</text><text x="446" y="140">plain digital output</text>
+      <text x="26" y="166">BIN1 / BIN2</text><text x="196" y="166">32 / 33</text><text x="306" y="166">PB14 / PB15</text><text x="446" y="166">plain digital output</text>
+      <text x="26" y="192">STBY</text><text x="196" y="192">4</text><text x="306" y="192">PB5</text><text x="446" y="192">plain digital output</text>
+      <text x="26" y="218">I2C SDA / SCL</text><text x="196" y="218">21 / 22</text><text x="306" y="218">PB9 / PB8</text><text x="446" y="218">I2C1 (AF4)</text>
+      <text x="26" y="244">Left encoder A / B</text><text x="196" y="244">34 / 35</text><text x="306" y="244">PB6 / PB7</text><text x="446" y="244">TIM4_CH1 / CH2 (AF2)</text>
+      <text x="26" y="270">Right encoder A / B</text><text x="196" y="270">36 / 18</text><text x="306" y="270">PA8 / PA9</text><text x="446" y="270">TIM1_CH1 / CH2 (AF1)</text>
+      <text x="26" y="296">QTR-8A, 8 channels</text><text x="196" y="296">2 x ADS1115</text><text x="306" y="296">PA0 to PA7</text><text x="446" y="296">ADC1_IN0 to IN7</text>
+      <text x="26" y="322">Buttons (pull-up)</text><text x="196" y="322">14 / 16 / 17</text><text x="306" y="322">PB10 / PA10 / PB4</text><text x="446" y="322">plain digital input</text>
+    </g>
+    <text x="26" y="352" fill="#475569">Kept free on the Black Pill: PA11/PA12 (USB), PA13/PA14 (SWD), PH0/PH1 (crystal).</text>
+    <text x="26" y="374" fill="#475569">On the STM32 the ADS1115 chips become optional, since PA0-PA7 read the sensors directly.</text>
+    <text x="26" y="396" fill="#dc2626">A suggestion, not a standard: check every pin and alternate function in the datasheet.</text>
+  </g>
+</svg>

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 350" role="img" aria-label="Quadrature encoder waveforms. When channel A leads channel B the count goes up; when B leads A the count goes down. Every edge of A and B is one count.">
+  <rect width="680" height="350" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">
+    <!-- Panel 1 -->
+    <text x="20" y="26" font-weight="700" font-size="14">Forward: A leads B.  AB = 00 → 10 → 11 → 01 → 00 …  (+1 per edge)</text>
+    <g stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 3">
+      <line x1="130" y1="44" x2="130" y2="136"/><line x1="170" y1="44" x2="170" y2="136"/>
+      <line x1="210" y1="44" x2="210" y2="136"/><line x1="250" y1="44" x2="250" y2="136"/>
+      <line x1="290" y1="44" x2="290" y2="136"/><line x1="330" y1="44" x2="330" y2="136"/>
+      <line x1="370" y1="44" x2="370" y2="136"/><line x1="410" y1="44" x2="410" y2="136"/>
+      <line x1="450" y1="44" x2="450" y2="136"/><line x1="490" y1="44" x2="490" y2="136"/>
+      <line x1="530" y1="44" x2="530" y2="136"/><line x1="570" y1="44" x2="570" y2="136"/>
+    </g>
+    <g text-anchor="middle" fill="#475569" font-size="12">
+      <text x="130" y="50">1</text><text x="170" y="50">2</text><text x="210" y="50">3</text><text x="250" y="50">4</text>
+      <text x="290" y="50">5</text><text x="330" y="50">6</text><text x="370" y="50">7</text><text x="410" y="50">8</text>
+    </g>
+    <text x="60" y="76" font-weight="700" fill="#2563eb" font-size="15">A</text>
+    <text x="60" y="125" font-weight="700" fill="#ea580c" font-size="15">B</text>
+    <polyline fill="none" stroke="#2563eb" stroke-width="3" points="90,86 130,86 130,58 210,58 210,86 290,86 290,58 370,58 370,86 450,86 450,58 530,58 530,86 610,86"/>
+    <polyline fill="none" stroke="#ea580c" stroke-width="3" points="90,130 170,130 170,102 250,102 250,130 330,130 330,102 410,102 410,130 490,130 490,102 570,102 570,130 610,130"/>
+    <g stroke="#334155" stroke-width="1.5" fill="none">
+      <path d="M130 148 V154 H290 V148"/>
+    </g>
+    <text x="210" y="171" text-anchor="middle" fill="#334155">one full cycle of A = 4 edges = 4 counts (x4 decoding)</text>
+
+    <!-- Panel 2 -->
+    <text x="20" y="206" font-weight="700" font-size="14">Reverse: B leads A.  AB = 00 → 01 → 11 → 10 → 00 …  (−1 per edge)</text>
+    <g stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 3">
+      <line x1="130" y1="222" x2="130" y2="300"/><line x1="170" y1="222" x2="170" y2="300"/>
+      <line x1="210" y1="222" x2="210" y2="300"/><line x1="250" y1="222" x2="250" y2="300"/>
+      <line x1="290" y1="222" x2="290" y2="300"/><line x1="330" y1="222" x2="330" y2="300"/>
+      <line x1="370" y1="222" x2="370" y2="300"/><line x1="410" y1="222" x2="410" y2="300"/>
+      <line x1="450" y1="222" x2="450" y2="300"/><line x1="490" y1="222" x2="490" y2="300"/>
+      <line x1="530" y1="222" x2="530" y2="300"/><line x1="570" y1="222" x2="570" y2="300"/>
+    </g>
+    <text x="60" y="254" font-weight="700" fill="#2563eb" font-size="15">A</text>
+    <text x="60" y="292" font-weight="700" fill="#ea580c" font-size="15">B</text>
+    <polyline fill="none" stroke="#2563eb" stroke-width="3" points="90,262 170,262 170,234 250,234 250,262 330,262 330,234 410,234 410,262 490,262 490,234 570,234 570,262 610,262"/>
+    <polyline fill="none" stroke="#ea580c" stroke-width="3" points="90,300 130,300 130,272 210,272 210,300 290,300 290,272 370,272 370,300 450,300 450,272 530,272 530,300 610,300"/>
+    <text x="340" y="334" text-anchor="middle" fill="#334155">Same edges, opposite order: the order tells the controller which way the wheel turns.</text>
+  </g>
+</svg>

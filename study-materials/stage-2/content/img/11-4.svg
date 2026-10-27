@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 340" role="img" aria-label="Battery voltage divider circuit: battery positive through a 47 kilohm resistor to a middle node, then a 12 kilohm resistor to ground; the middle node goes to an ESP32 ADC1 pin with a 100 nanofarad capacitor to ground. A full 12.6 volt battery gives 2.56 volts at the pin">
+  <rect width="680" height="340" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">
+    <!-- top label -->
+    <text x="150" y="30" text-anchor="middle" font-weight="700" fill="#dc2626">Battery + (12.6 V max)</text>
+    <g stroke="#334155" stroke-width="3" fill="none">
+      <line x1="150" y1="38" x2="150" y2="70"/>
+      <line x1="150" y1="130" x2="150" y2="200"/>
+      <line x1="150" y1="260" x2="150" y2="300"/>
+      <line x1="150" y1="170" x2="300" y2="170"/>
+      <line x1="250" y1="170" x2="250" y2="215"/>
+      <line x1="250" y1="225" x2="250" y2="300"/>
+      <line x1="150" y1="300" x2="250" y2="300"/>
+      <line x1="190" y1="300" x2="190" y2="310"/>
+    </g>
+    <!-- ground symbol -->
+    <g stroke="#334155" stroke-width="3">
+      <line x1="170" y1="310" x2="210" y2="310"/>
+      <line x1="178" y1="318" x2="202" y2="318"/>
+      <line x1="185" y1="326" x2="195" y2="326"/>
+    </g>
+    <!-- R1 R2 -->
+    <rect x="135" y="70" width="30" height="60" rx="3" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <rect x="135" y="200" width="30" height="60" rx="3" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <text x="120" y="105" text-anchor="end" font-weight="700">R1</text>
+    <text x="120" y="120" text-anchor="end">47 kΩ</text>
+    <text x="120" y="235" text-anchor="end" font-weight="700">R2</text>
+    <text x="120" y="250" text-anchor="end">12 kΩ</text>
+    <!-- node -->
+    <circle cx="150" cy="170" r="5" fill="#334155"/>
+    <circle cx="250" cy="170" r="5" fill="#334155"/>
+    <text x="156" y="157" font-size="12" fill="#475569">node</text>
+    <!-- capacitor -->
+    <g stroke="#334155" stroke-width="3">
+      <line x1="236" y1="215" x2="264" y2="215"/>
+      <line x1="236" y1="225" x2="264" y2="225"/>
+    </g>
+    <text x="272" y="224">100 nF</text>
+    <!-- ESP32 pin -->
+    <rect x="300" y="148" width="130" height="44" rx="8" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <text x="365" y="168" text-anchor="middle" font-weight="700">ESP32 ADC1</text>
+    <text x="365" y="184" text-anchor="middle" font-size="12">GPIO39 (example)</text>
+
+    <!-- maths -->
+    <rect x="455" y="40" width="210" height="250" rx="10" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="467" y="66" font-weight="700">Voltage at the pin</text>
+    <text x="467" y="90">Vpin = Vbat × R2 / (R1 + R2)</text>
+    <text x="467" y="108">Vpin = Vbat × 0.203</text>
+    <g>
+      <text x="467" y="142">12.6 V  gives  2.56 V</text>
+      <text x="467" y="162">11.1 V  gives  2.26 V</text>
+      <text x="467" y="182">10.5 V  gives  2.14 V</text>
+      <text x="467" y="202" fill="#16a34a">all safely below 3.3 V</text>
+    </g>
+    <text x="467" y="236" font-weight="700">Back in the code</text>
+    <text x="467" y="254">Vbat = Vpin × 59 / 12</text>
+    <text x="467" y="272" font-size="12" fill="#475569">Divider draws about 0.21 mA</text>
+  </g>
+</svg>

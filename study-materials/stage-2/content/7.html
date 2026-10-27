@@ -1,0 +1,312 @@
+<section id="assumptions">
+<h2>The plan, and what we assume</h2>
+<p>Time to put the pieces together. You can already read the QTR-8A (Lesson 03), drive the motors (Lessons 01 and 02) and, from Lesson 06, you know what a controller does. In this lesson you build the first <strong>working line follower</strong>: it reads the line position, steers toward the line, and recovers when it loses it. Full PID tuning and track features such as sharp corners and junction handling come in <strong>Lesson 08</strong>; here we stop at proportional steering, which is already enough to follow a gentle track.</p>
+<p>Nobody can give you exact numbers without knowing your track and robot, so we fix some assumptions. Replace them with your own measurements.</p>
+<div class="callout callout-note"><div class="callout-title">Assumptions in this lesson</div>
+<ul>
+<li><strong>Track:</strong> a black line about 19 to 25 mm wide (we use 22 mm in drawings) on a white or light floor, with smooth curves. Matte electrical tape or printed black works; shiny tape can reflect and read lighter.</li>
+<li><strong>Robot:</strong> two-wheel differential drive with the N20 motors from earlier lessons and a free-rolling caster or skid at the front or back.</li>
+<li><strong>Sensor height:</strong> the QTR-8A about 3 to 6 mm above the floor. The Pololu product page lists 3 mm as the optimal distance and 6 mm as the maximum recommended, so build a mount that can be adjusted inside that range.</li>
+<li><strong>Look-ahead:</strong> the array is mounted ahead of the wheel axle by roughly 40 to 60 mm. We use 50 mm as an <em>example</em>; measure yours.</li>
+<li><strong>Loop rate:</strong> about 50 Hz (a loop every 20 ms). This is an <em>estimate</em> that comes from reading eight sensors through two ADS1115 chips, which are slow (a single chip converts at most 860 samples per second, and each chip reads four sensors). Measure your real scan time with <code>micros()</code>. An STM32 Black Pill reads all eight sensors on its own fast ADC pins and can run the same loop at several hundred hertz or more.</li>
+<li><strong>Pins:</strong> the suggested map from earlier lessons: motors on the TB6612FNG, ADS1115 chips at 0x48 and 0x49 on I2C, a start button on GPIO14 (active LOW).</li>
+</ul></div>
+<div class="callout callout-note"><div class="callout-title">Starter code</div><p>All code here is starter code written without access to your hardware. Directions, thresholds and speeds are examples that you must test and tune on your robot.</p></div>
+</section>
+
+<section id="ir-array">
+<h2>The IR array: how it sees a line</h2>
+<h3>Reflectance sensing</h3>
+<p>Each of the eight sensors on the QTR-8A is an infrared LED paired with a phototransistor. The LED shines on the floor, and the phototransistor measures how much comes back. A <strong>white floor reflects a lot</strong> and a <strong>black line absorbs it</strong>. On the QTR-8A the analog output voltage is <strong>higher over a dark surface</strong> and lower over a light one, so after reading it through the ADS1115, a high number means &ldquo;black line&rdquo;. (Check this on your own board: some other sensors work the opposite way.)</p>
+<div class="callout callout-caution"><div class="callout-title">Keep the signal inside the ADC's range</div><p>The QTR-8A can be powered from 3.3 to 5 V and its outputs swing up to the supply voltage. Power it from <strong>3.3 V</strong> when it feeds an ESP32 or ADS1115 running at 3.3 V, so the outputs never exceed what the ADC accepts.</p></div>
+<h3>Geometry: pitch against line width</h3>
+<figure><img src="/study-materials/stage-2/content/img/7-1.svg" alt="Top view of the 8-sensor array over a black line; three sensors see the line with values 304, 1000 and 1000 and the computed position is positive" loading="lazy"><figcaption>Eight sensors, 9.525 mm apart (about 67 mm between the outer two). A 22 mm line is about 2.3 sensor pitches wide, so two or three sensors see it at the same time. The numbers are illustrative calibrated values.</figcaption></figure>
+<p>This overlap is what makes smooth steering possible. If only one sensor could see the line, you would only know &ldquo;the line is at sensor 4&rdquo;. When two or three see it with different strengths, the <em>ratio</em> tells you where the line is between them, to a fraction of a sensor. The weighted average in Lesson 03 uses exactly this idea.</p>
+<ul>
+<li>A line much <strong>narrower</strong> than the pitch can slip between two sensors and be seen by neither.</li>
+<li>A line much <strong>wider</strong> makes many sensors dark at once and flattens the position signal.</li>
+<li>The total width (about 67 mm) is your <strong>capture range</strong>: if the line is more than about 33 mm off centre, the array loses it.</li>
+</ul>
+<h3>Look-ahead: why the mounting distance matters</h3>
+<figure><img src="/study-materials/stage-2/content/img/7-3.svg" alt="Side view of a robot with the sensor array mounted a look-ahead distance L ahead of the wheel axle and a few millimetres above the floor" loading="lazy"><figcaption>The array sits a distance <code>L</code> ahead of the wheels, a few millimetres above the floor.</figcaption></figure>
+<p>The array reads the floor <code>L</code> millimetres <em>in front of</em> the wheels. That is a head start: the robot learns about a bend <code>L / v</code> seconds before its wheels get there. With <code>L = 50 mm</code> and <code>v = 300 mm/s</code> that is about 0.17 s. Faster robots need more look-ahead, because the same delay in the sensor and motors covers more floor.</p>
+<ul>
+<li><strong>Too close to the axle:</strong> little warning, so the robot reacts late at speed.</li>
+<li><strong>Too far ahead:</strong> a small turn of the body swings the array a long way sideways, so the reading jumps around and the loop tends to wobble. The array is also more likely to run off a tight bend.</li>
+</ul>
+</section>
+
+<section id="calibration">
+<h2>Calibration in practice</h2>
+<p>Different sensors read different numbers over the same surface, and the same sensor reads differently under a different lamp. <code>calibrate()</code> from Lesson 03 solves this: while you sweep the array over the line and the floor, it records the lowest and highest raw value of each sensor, and later <code>readCalibrated()</code> maps each sensor to 0 (floor) to 1000 (line).</p>
+<h3>When to calibrate</h3>
+<ul>
+<li>At the <strong>start of every session</strong>, and whenever you move to a different track, floor or room.</li>
+<li>After changing the sensor <strong>height</strong>, the supply voltage or the ADC gain.</li>
+<li>Whenever the lighting changes a lot. Infrared from sunlight or halogen lamps adds to the readings and can wash out the contrast. Test indoors first, away from direct sun.</li>
+</ul>
+<h3>How to do it well</h3>
+<ol>
+<li>Put the robot over the track with the <strong>array at its normal running height</strong>.</li>
+<li>Start <code>calibrate()</code> (for example with a button press) and, for a few seconds, slide or rotate the robot so that <em>every</em> sensor passes over both the black line and the white floor. A slow side-to-side sweep, about 20 mm each way, works well.</li>
+<li>Check the results: print the stored minimum and maximum of each sensor. A healthy sensor has a big gap between them. A sensor with a tiny gap never saw the line (or is faulty or too high).</li>
+<li>Run the robot a few centimetres and print <code>readCalibrated()</code>: over the white floor you should see values close to 0 and over the line close to 1000.</li>
+</ol>
+<h3>Storing and reusing the values</h3>
+<p>If your track and lighting stay the same, you can save the calibration to flash and skip the sweep after a reset. The ESP32 <code>Preferences</code> library stores small values permanently. The array names below (<code>calMin</code>, <code>calMax</code>) stand for whatever arrays your Lesson 03 code uses to keep the minimum and maximum values; rename as needed.</p>
+<pre><code class="language-cpp">#include &lt;Preferences&gt;
+Preferences prefs;
+
+extern uint16_t calMin[NUM_SENSORS];   // use the names from your own sensor code
+extern uint16_t calMax[NUM_SENSORS];
+
+void saveCalibration() {
+  prefs.begin("qtr", false);                                  // namespace, read-write
+  prefs.putBytes("min", calMin, sizeof(calMin));
+  prefs.putBytes("max", calMax, sizeof(calMax));
+  prefs.end();
+}
+
+bool loadCalibration() {                                      // returns false if nothing is saved
+  prefs.begin("qtr", true);                                   // read-only
+  bool ok = prefs.getBytesLength("min") == sizeof(calMin) &amp;&amp;
+            prefs.getBytesLength("max") == sizeof(calMax);
+  if (ok) {
+    prefs.getBytes("min", calMin, sizeof(calMin));
+    prefs.getBytes("max", calMax, sizeof(calMax));
+  }
+  prefs.end();
+  return ok;
+}</code></pre>
+<p>A good habit: on start-up call <code>loadCalibration()</code>, and if it fails, or if you hold a button, run <code>calibrate()</code> and then <code>saveCalibration()</code>. Show the result on the OLED or Serial so you know which one happened.</p>
+</section>
+
+<section id="line-detection">
+<h2>Line detection</h2>
+<p>With calibrated values from 0 to 1000 you can turn raw numbers into decisions. Three questions matter every cycle:</p>
+<ol>
+<li><strong>Is there a line at all?</strong> (<code>lineSeen</code>)</li>
+<li><strong>Where is it?</strong> (the position)</li>
+<li><strong>Is the pattern strange?</strong> (all white, all black)</li>
+</ol>
+<div class="card-grid">
+<div class="info-card"><h4>Position -3500 to +3500</h4><p>Sensor 0 is the leftmost, so a line under it gives about &minus;3500, a line centred gives 0 and a line under sensor 7 gives about +3500. Each sensor is worth 1000 units, so a position of 1000 means roughly one sensor width to the right.</p></div>
+<div class="info-card"><h4>All white</h4><p>No sensor sees the line, so the line is lost (off the array, or the robot lifted). The position is meaningless: do not steer by it.</p></div>
+<div class="info-card"><h4>All black</h4><p>Every sensor is dark: a crossing, a wide junction, or the finish box. A single line never does this.</p></div>
+</div>
+<p>One scan gives you everything. This helper reads the sensors once and works out all three answers. It uses the same maths as <code>readLinePosition()</code> from Lesson 03 (which reads the sensors itself), but it also returns the &ldquo;all dark&rdquo; flag without a second, slow scan.</p>
+<pre><code class="language-cpp">const uint16_t SEEN_THRESHOLD = 200;   // a sensor above this counts as "on the line"
+const uint16_t NOISE_FLOOR    = 50;    // ignore tiny values when averaging
+const uint16_t DARK_THRESHOLD = 700;   // "really black"
+
+struct LineReading {
+  int  position;    // -3500..+3500, 0 = centred
+  bool seen;        // at least one sensor on the line
+  bool allDark;     // every sensor on black (junction / finish box)
+};
+
+LineReading scanLine(int lastPosition) {
+  uint16_t cal[NUM_SENSORS];
+  readCalibrated(cal);
+
+  long weighted = 0, total = 0;
+  bool seen = false;
+  int darkCount = 0;
+  for (int i = 0; i &lt; NUM_SENSORS; i++) {
+    if (cal[i] &gt; SEEN_THRESHOLD) seen = true;
+    if (cal[i] &gt; DARK_THRESHOLD) darkCount++;
+    if (cal[i] &gt; NOISE_FLOOR) {
+      weighted += (long)cal[i] * i * 1000;
+      total    += cal[i];
+    }
+  }
+
+  LineReading r;
+  r.seen    = seen;
+  r.allDark = (darkCount == NUM_SENSORS);
+  r.position = seen ? (int)(weighted / total) - 3500 : lastPosition;   // keep the old value if lost
+  return r;
+}</code></pre>
+<div class="callout callout-tip"><div class="callout-title">Choosing thresholds</div><p>Print the calibrated values while the robot sits on the line, then on the floor, then half on the edge, and choose thresholds that separate them with room to spare. Thresholds that work only at one spot on the table will fail on the track. Keep <code>SEEN_THRESHOLD</code> clearly above the white-floor noise and clearly below the line value.</p></div>
+</section>
+
+<section id="basic-following">
+<h2>Basic line following</h2>
+<h3>Warm-up: bang-bang with a few sensors</h3>
+<p>The simplest follower asks only &ldquo;which side is the line on?&rdquo; and steers by a fixed amount. It uses just the middle sensors and no position maths:</p>
+<pre><code class="language-cpp">const int BASE = 130;       // forward speed (PWM), example
+const int TURN = 60;        // fixed steering amount, example
+const uint16_t T = 400;     // "sees the line" threshold on the 0..1000 scale
+
+void bangBangStep() {
+  uint16_t cal[NUM_SENSORS];
+  readCalibrated(cal);
+
+  bool left   = cal[2] &gt; T || cal[3] &gt; T;      // line toward the left of centre
+  bool right  = cal[4] &gt; T || cal[5] &gt; T;      // line toward the right of centre
+
+  if (left &amp;&amp; !right)       drive(BASE - TURN, BASE + TURN);   // steer left
+  else if (right &amp;&amp; !left) drive(BASE + TURN, BASE - TURN);   // steer right
+  else                       drive(BASE, BASE);                  // centred (or unclear): straight
+}</code></pre>
+<p>Run it on a gentle track. It works, but it is jerky: the correction is either zero or a fixed jolt, however small the error. The robot snakes from one side of the line to the other, and it must go slowly or the jolts throw it off the track.</p>
+<figure><img src="/study-materials/stage-2/content/img/7-2.svg" alt="Graph of steering correction against line position: bang-bang is a step of fixed size with a dead band, proportional steering is a straight line through zero" loading="lazy"><figcaption>Bang-bang gives the same push for a small error as for a large one, and nothing in the middle band. Proportional steering grows smoothly with the error. (Both curves are drawn directly from the formulas, not measured.)</figcaption></figure>
+<h3>Proportional steering from the line position</h3>
+<p>Now use all eight sensors. The position already <em>is</em> the error (setpoint 0 = centred), so as in Lesson 06 the correction is <code>Kp &times; position</code>. A small error gives a small turn and a large error a big one. The correction is added to one wheel and subtracted from the other:</p>
+<pre><code class="language-text">leftSpeed  = base + correction
+rightSpeed = base - correction</code></pre>
+<p>With the sign convention used here (positive position = line to the right), a positive correction speeds the left wheel and slows the right one, so the robot turns <strong>right</strong>, toward the line.</p>
+<pre><code class="language-cpp">const int   BASE_SPEED = 130;     // PWM, example
+const float KP         = 0.03f;   // example: 3500 * 0.03 = 105
+const int   MAX_CORR   = 120;     // limit on the steering correction
+const int   SLOW_DOWN  = 50;      // how much to ease off at the largest error
+
+void followStep(int position) {
+  int correction = (int)(KP * position);
+  correction = constrain(correction, -MAX_CORR, MAX_CORR);          // clamp
+
+  // Slow down in sharp curves: the bigger the error, the lower the speed
+  int speed = BASE_SPEED - (int)(SLOW_DOWN * (abs(position) / 3500.0f));
+
+  int left  = constrain(speed + correction, -255, 255);
+  int right = constrain(speed - correction, -255, 255);
+  drive(left, right);
+}</code></pre>
+<ul>
+<li><strong>Clamping</strong> keeps the numbers inside what <code>drive()</code> accepts, and stops a huge error from reversing one wheel hard.</li>
+<li><strong>Speed reduction</strong> on large error is a very cheap trick that adds a lot of reliability: slow in curves, fast on straights.</li>
+<li>If the robot steers <em>away</em> from the line, flip the sign of <code>correction</code>. Make sure first that sensor 0 really is on the robot's left.</li>
+<li>Tuning: start with a low <code>KP</code> (the robot drifts off at bends), raise it until the robot starts to wobble across the line, then use a value about 30 to 40% below that. The wobble that remains is what the derivative term of Lesson 08 is for.</li>
+</ul>
+</section>
+
+<section id="lost-line">
+<h2>When the line is lost: a state machine</h2>
+<p>Sooner or later the line leaves the array: a sharp corner, a gap, a bump that lifts the sensors. If you do nothing, the robot drives straight off into the room. The fix is a small <strong>state machine</strong> like the one in Lesson 02:</p>
+<figure><img src="/study-materials/stage-2/content/img/7-4.svg" alt="State diagram: IDLE to FOLLOW on a button press, FOLLOW to LOST when the line is not seen, LOST back to FOLLOW when found or to STOP after a timeout, FOLLOW to STOP at the finish box" loading="lazy"><figcaption>FOLLOW steers by the line. LOST spins toward the side where the line was last seen and gives up after a timeout.</figcaption></figure>
+<p>The trick is memory. While following, the robot remembers on which <strong>side</strong> the line was last seen. If the line disappears off the right edge, it very likely lies to the right, so spinning right is the best guess. A timeout stops the robot if the search fails (say after 1 second) instead of spinning for ever.</p>
+<pre><code class="language-cpp">enum State { IDLE, FOLLOW, LOST, STOP };
+State state = IDLE;
+unsigned long stateStart = 0;
+int lastSide = 1;                          // +1 = line last seen on the right, -1 = left
+int lastPosition = 0;
+
+const int           SPIN_SPEED   = 90;     // example
+const unsigned long LOST_TIMEOUT = 1000;   // ms
+const unsigned long LOOP_MS      = 20;     // about 50 Hz, measure your own scan time first
+const int           BUTTON_PIN   = 14;     // active LOW
+unsigned long lastLoop = 0;
+int darkCount = 0;
+
+void changeState(State next) { state = next; stateStart = millis(); }
+
+void setup() {
+  motorsBegin();
+  sensorsBegin();
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  // calibrate here or load a saved calibration (see the Calibration section)
+}
+
+void loop() {
+  unsigned long now = millis();
+  if (now - lastLoop &lt; LOOP_MS) return;      // fixed-rate loop (Lesson 02)
+  lastLoop = now;
+
+  LineReading r = scanLine(lastPosition);
+
+  switch (state) {
+    case IDLE:
+      drive(0, 0);
+      if (digitalRead(BUTTON_PIN) == LOW) changeState(FOLLOW);
+      break;
+
+    case FOLLOW:
+      if (r.allDark) {                                  // junction or finish box
+        if (++darkCount &gt;= 3) changeState(STOP);       // a few cycles in a row, to avoid false alarms
+        break;
+      }
+      darkCount = 0;
+      if (!r.seen) { changeState(LOST); break; }
+      lastPosition = r.position;
+      if (r.position &gt; 1000)  lastSide = 1;            // remember which side the line is on
+      if (r.position &lt; -1000) lastSide = -1;
+      followStep(r.position);
+      break;
+
+    case LOST:
+      drive(SPIN_SPEED * lastSide, -SPIN_SPEED * lastSide);   // pivot toward the last side seen
+      if (r.seen) changeState(FOLLOW);
+      else if (now - stateStart &gt; LOST_TIMEOUT) changeState(STOP);
+      break;
+
+    case STOP:
+      drive(0, 0);
+      break;
+  }
+}</code></pre>
+<p>Notice what is <em>not</em> here: no <code>delay()</code> anywhere, and each state does exactly one job. Print the state name when it changes; it makes debugging far easier. Fitting more behaviour (a restart button, speed zones, junction rules for the maze robot) means adding states or conditions, not rewriting everything.</p>
+</section>
+
+<section id="motor-control">
+<h2>Motor control details that make or break it</h2>
+<h3>Trim: the two motors are not identical</h3>
+<p>Two motors given the same PWM almost never turn at the same speed. The robot drifts to one side on a straight line, and the controller spends its effort fighting the drift. Measure it: put the robot on a long straight line or a plain floor, run <code>drive(150, 150)</code> for about 2 m and see which way it veers. Compensate with a small gain on the faster side:</p>
+<pre><code class="language-cpp">const float TRIM_LEFT  = 1.00f;     // example: multiply the faster side by less than 1
+const float TRIM_RIGHT = 0.97f;
+
+void driveTrimmed(int left, int right) {
+  drive((int)(left * TRIM_LEFT), (int)(right * TRIM_RIGHT));
+}</code></pre>
+<p>Use <code>driveTrimmed()</code> in place of <code>drive()</code> in <code>followStep()</code>. A better long-term fix is a speed loop on each wheel using the encoders (Lesson 06, example a).</p>
+<h3>Minimum PWM: stiction</h3>
+<p>Small geared motors do not move at all below some PWM (friction in the gearbox and the motor). Find yours by raising the PWM slowly with the wheel on the ground until it just turns. Keep your base speed well above this value, so that when the steering correction reduces the inner wheel it still turns smoothly rather than stalling and jerking. For very tight curves it is often better to let the inner wheel go slightly <em>negative</em> (a pivot) than to let it hover near the stall point.</p>
+<h3>Battery voltage drops</h3>
+<p>The N20 motors we assumed are 12 V motors on a 3S LiPo (12.6 V full, 11.1 V nominal). As the battery drains, the same PWM means less voltage and less speed, so a robot tuned on a fresh pack runs slower, and may corner differently, later in the day. Use a battery at a similar charge each time when you compare tuning runs, and consider a speed loop that keeps the speed constant. Never run a LiPo flat: stop and recharge before a cell falls below the lowest voltage your pack's label or maker specifies (commonly about 3.3 V per cell under load, but check yours), and use a low-voltage alarm.</p>
+<div class="callout callout-caution"><div class="callout-title">Safety while testing</div><ul>
+<li>Test with the wheels in the air first. A robot that suddenly takes off the bench can fall and damage itself or a LiPo.</li>
+<li>Keep a power switch you can reach quickly, and never leave a charged LiPo unattended.</li>
+<li>Motors and the TB6612FNG can get hot after long runs. Let them cool.</li>
+</ul></div>
+</section>
+
+<section id="troubleshooting">
+<h2>Troubleshooting</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Symptom</th><th>Likely cause</th><th>What to check or change</th></tr></thead>
+<tbody>
+<tr><td>Robot turns <em>away</em> from the line</td><td>Sign of the correction reversed, or sensor order reversed</td><td>Print position while moving the line left/right by hand; flip the sign</td></tr>
+<tr><td>Robot wobbles across the line</td><td>Kp too high, loop too slow, or too much look-ahead</td><td>Lower Kp; measure the loop time; shorten the array arm; add derivative in Lesson 08</td></tr>
+<tr><td>Leaves the line on curves</td><td>Speed too high, Kp too low</td><td>Lower base speed; raise SLOW_DOWN; raise Kp a little</td></tr>
+<tr><td>All values similar, line hard to see</td><td>Sensors too high, bad calibration, wrong ADC range</td><td>Lower the mount to 3 to 6 mm; recalibrate over both line and floor</td></tr>
+<tr><td>Values change with the room</td><td>Ambient infrared (sun, lamps)</td><td>Shield the array; recalibrate at the venue</td></tr>
+<tr><td>Line lost at a gap or sharp corner</td><td>No recovery state</td><td>Use the LOST state; tune SPIN_SPEED and the timeout</td></tr>
+<tr><td>Stops at a crossing</td><td>All-dark rule triggered</td><td>That is by design here; junction rules come later</td></tr>
+<tr><td>One wheel does not turn at low correction</td><td>Stiction (minimum PWM)</td><td>Raise the base speed or allow reverse on the inner wheel</td></tr>
+<tr><td>Robot drifts on a straight</td><td>Motor mismatch</td><td>Adjust the trim values</td></tr>
+<tr><td>Worse as the battery drains</td><td>Lower motor voltage</td><td>Test with the same charge level; add a speed loop</td></tr>
+<tr><td>Jerky, laggy steering</td><td>Slow loop (ADS1115 scan) or blocking code</td><td>Time the loop with <code>micros()</code>; remove <code>delay()</code> and slow prints</td></tr>
+</tbody></table></div>
+<h3>Practice tasks</h3>
+<ol>
+<li>Print the eight calibrated values at 10 Hz and slide the robot across the line. Draw what you see.</li>
+<li>Time one full sensor scan with <code>micros()</code> and work out the highest loop rate you can use.</li>
+<li>Run the bang-bang follower on a straight line, then the proportional one. Compare how the robot sways.</li>
+<li>Find <code>MIN_PWM</code> for each wheel and the trim that makes the robot drive straight.</li>
+<li>Test the recovery: pick the robot up and put it down just off the line to the right, then to the left, and check that it spins the right way.</li>
+</ol>
+</section>
+
+<section id="key-takeaways">
+<h2>Key takeaways</h2>
+<ul>
+<li>The QTR-8A reads <strong>higher over black</strong>. Mount it 3 to 6 mm above the floor (3 mm is the optimal height on the Pololu page).</li>
+<li>With 9.525 mm pitch and a 19 to 25 mm line, two or three sensors see the line at once, which is what lets the weighted average give a smooth position.</li>
+<li><strong>Look-ahead</strong> gives you advance warning in proportion to speed, but too much of it makes the robot wobble.</li>
+<li>Calibrate at the start of each session, at the venue, with the array at running height. You can save the values with <code>Preferences</code>.</li>
+<li>All white means the line is lost; all black means a junction or finish box. Check both before you trust the position.</li>
+<li>Bang-bang is a good warm-up; <strong>proportional steering</strong> <code>drive(base + c, base &minus; c)</code> with clamping and slowing in curves is the real thing.</li>
+<li>Use a FOLLOW / LOST / STOP state machine: remember the last side seen, spin that way, and stop after a timeout.</li>
+<li>Trim, minimum PWM and battery voltage change the robot's behaviour as much as the gains do.</li>
+<li>Next: Lesson 08 adds derivative and integral action (full PID) and track features.</li>
+</ul>
+</section>

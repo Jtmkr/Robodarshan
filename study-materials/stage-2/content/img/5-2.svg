@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 380" role="img" aria-label="Illustrative graph of wheel speed against PWM command. Below a threshold PWM the motor does not move (dead zone). Above it speed rises roughly linearly, and a low battery gives a lower curve than a fresh battery for the same PWM.">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#334155"/></marker>
+    <marker id="r" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#dc2626"/></marker>
+  </defs>
+  <rect width="680" height="380" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">
+    <text x="340" y="24" text-anchor="middle" font-weight="700" font-size="15">PWM command vs wheel speed (illustrative shape only)</text>
+    <!-- dead zone -->
+    <rect x="80" y="40" width="95" height="260" fill="#fef3c7"/>
+    <text x="127" y="150" text-anchor="middle" fill="#92400e" font-weight="700">dead</text>
+    <text x="127" y="168" text-anchor="middle" fill="#92400e" font-weight="700">zone</text>
+    <text x="127" y="190" text-anchor="middle" fill="#92400e" font-size="12">motor does</text>
+    <text x="127" y="206" text-anchor="middle" fill="#92400e" font-size="12">not move</text>
+    <!-- axes -->
+    <line x1="80" y1="300" x2="650" y2="300" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+    <line x1="80" y1="300" x2="80" y2="36" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+    <g text-anchor="middle" font-size="12" fill="#475569">
+      <text x="80" y="318">0</text><text x="220" y="318">64</text><text x="362" y="318">128</text><text x="503" y="318">192</text><text x="620" y="318">255</text>
+    </g>
+    <text x="350" y="342" text-anchor="middle">PWM command (0 to 255)</text>
+    <text transform="translate(26 170) rotate(-90)" text-anchor="middle">wheel speed</text>
+    <!-- curves -->
+    <path d="M80 300 H175 V273 L620 69" fill="none" stroke="#2563eb" stroke-width="3"/>
+    <path d="M80 300 H190 V282 L620 120" fill="none" stroke="#ea580c" stroke-width="3"/>
+    <line x1="80" y1="300" x2="620" y2="69" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 5"/>
+    <!-- legend -->
+    <g font-size="12">
+      <line x1="195" y1="58" x2="225" y2="58" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 5"/><text x="232" y="62">ideal: speed proportional to PWM</text>
+      <line x1="195" y1="78" x2="225" y2="78" stroke="#2563eb" stroke-width="3"/><text x="232" y="82">fresh battery</text>
+      <line x1="195" y1="98" x2="225" y2="98" stroke="#ea580c" stroke-width="3"/><text x="232" y="102">low battery or heavy load</text>
+    </g>
+    <!-- same PWM different speed -->
+    <line x1="400" y1="172" x2="400" y2="197" stroke="#dc2626" stroke-width="2" marker-start="url(#r)" marker-end="url(#r)"/>
+    <text x="414" y="228" fill="#dc2626" font-weight="700" font-size="12">same PWM,</text>
+    <text x="414" y="244" fill="#dc2626" font-weight="700" font-size="12">different speed</text>
+  </g>
+</svg>

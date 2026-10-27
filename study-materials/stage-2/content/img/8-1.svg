@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 380" role="img" aria-label="Top view of an eight-sensor array over a curved line. Sensors 1 and 2 see the line, so the position is minus 2000 on a scale from minus 3500 to plus 3500. With a setpoint of 0 the error is plus 2000, meaning the line is to the left and the robot must steer left.">
+  <defs>
+    <marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#dc2626"/></marker>
+  </defs>
+  <rect width="680" height="380" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#1e293b">
+    <text x="340" y="26" text-anchor="middle" font-weight="700" font-size="15">Top view: the sensor array over a curved line (robot drives up the page)</text>
+
+    <!-- line -->
+    <path d="M440 160 C330 160 205 170 205 110 V48" fill="none" stroke="#334155" stroke-width="48"/>
+
+    <!-- sensors -->
+    <g stroke="#2563eb" stroke-width="2">
+      <circle cx="100" cy="90" r="14" fill="#ffffff"/>
+      <circle cx="170" cy="90" r="14" fill="#334155"/>
+      <circle cx="240" cy="90" r="14" fill="#334155"/>
+      <circle cx="310" cy="90" r="14" fill="#ffffff"/>
+      <circle cx="380" cy="90" r="14" fill="#ffffff"/>
+      <circle cx="450" cy="90" r="14" fill="#ffffff"/>
+      <circle cx="520" cy="90" r="14" fill="#ffffff"/>
+      <circle cx="590" cy="90" r="14" fill="#ffffff"/>
+    </g>
+    <g text-anchor="middle" font-size="13">
+      <text x="100" y="64">S0</text>
+      <text x="170" y="64">S1</text>
+      <text x="240" y="64">S2</text>
+      <text x="310" y="64">S3</text>
+      <text x="380" y="64">S4</text>
+      <text x="450" y="64">S5</text>
+      <text x="520" y="64">S6</text>
+      <text x="590" y="64">S7</text>
+    </g>
+    <g text-anchor="middle" font-size="14" fill="#475569">
+      <text x="100" y="204">0</text>
+      <text x="170" y="204">640</text>
+      <text x="240" y="204">640</text>
+      <text x="310" y="204">0</text>
+      <text x="380" y="204">0</text>
+      <text x="450" y="204">0</text>
+      <text x="520" y="204">0</text>
+      <text x="590" y="204">0</text>
+    </g>
+    <text x="30" y="222" font-size="13" fill="#475569">readCalibrated() values above each sensor (1000 = darkest)</text>
+
+    <!-- ruler -->
+    <line x1="100" y1="268" x2="590" y2="268" stroke="#94a3b8" stroke-width="3"/>
+    <g stroke="#94a3b8" stroke-width="2">
+      <line x1="100" y1="262" x2="100" y2="274"/>
+      <line x1="345" y1="262" x2="345" y2="274"/>
+      <line x1="590" y1="262" x2="590" y2="274"/>
+    </g>
+    <g text-anchor="middle" font-size="13" fill="#475569">
+      <text x="100" y="292">&#8722;3500</text>
+      <text x="345" y="292">0</text>
+      <text x="590" y="292">+3500</text>
+    </g>
+    <path d="M205 266 l-8 -14 h16 z" fill="#ea580c"/>
+    <path d="M345 266 l-8 -14 h16 z" fill="#16a34a"/>
+    <text x="205" y="242" text-anchor="middle" fill="#ea580c" font-weight="700">position = &#8722;2000</text>
+    <text x="345" y="242" text-anchor="middle" fill="#16a34a" font-weight="700">setpoint = 0</text>
+
+    <!-- error arrow -->
+    <line x1="205" y1="314" x2="341" y2="314" stroke="#dc2626" stroke-width="3" marker-end="url(#r)"/>
+    <text x="275" y="338" text-anchor="middle" fill="#dc2626" font-weight="700">error = 0 &#8722; (&#8722;2000) = +2000</text>
+    <text x="340" y="364" text-anchor="middle" font-size="13" fill="#475569">Positive error: the line is on the left of centre, so the robot must steer left.</text>
+  </g>
+</svg>

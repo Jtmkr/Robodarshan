@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 335" role="img" aria-label="Side view of a line follower showing the QTR-8A mounted a look-ahead distance L ahead of the wheel axle and a few millimetres above the floor">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#334155"/></marker></defs>
+<rect width="680" height="335" rx="12" fill="#f8fafc"/>
+<g font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#1e293b">
+<text x="20" y="30" font-size="14" font-weight="700">Side view (not to scale for the heights)</text>
+<line x1="20" y1="250" x2="660" y2="250" stroke="#1e293b" stroke-width="4"/><text x="640" y="270" text-anchor="end" font-size="12" fill="#475569">floor</text>
+<rect x="170" y="120" width="190" height="70" rx="8" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/><text x="265" y="160" text-anchor="middle" font-weight="700">robot body</text>
+<circle cx="200" cy="216" r="34" fill="#334155" stroke="#1e293b" stroke-width="2"/><circle cx="200" cy="216" r="8" fill="#e2e8f0"/>
+<text x="200" y="285" text-anchor="middle" font-size="13">wheel axle</text>
+<rect x="360" y="170" width="140" height="8" fill="#94a3b8"/>
+<rect x="480" y="170" width="8" height="52" fill="#94a3b8"/>
+<rect x="468" y="222" width="32" height="10" rx="2" fill="#16a34a"/>
+<text x="484" y="206" text-anchor="middle" font-size="13" font-weight="700" fill="#16a34a" display="none">x</text>
+<text x="560" y="214" font-size="13" font-weight="700" fill="#16a34a">QTR-8A</text><text x="560" y="230" font-size="12" fill="#475569">sensors face down</text>
+<path d="M200 100 H484" fill="none" stroke="#dc2626" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<line x1="200" y1="96" x2="200" y2="180" stroke="#dc2626" stroke-dasharray="4 4"/><line x1="484" y1="96" x2="484" y2="222" stroke="#dc2626" stroke-dasharray="4 4"/>
+<text x="342" y="90" text-anchor="middle" font-size="14" font-weight="700" fill="#dc2626">look-ahead L (example 50 mm)</text>
+<path d="M520 232 V250" fill="none" stroke="#ea580c" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="530" y="246" font-size="13" font-weight="700" fill="#ea580c">h = 3 to 6 mm</text>
+<text x="20" y="318" font-size="13" fill="#1e293b">The sensors see the floor L ahead of the wheels. At 300 mm/s that is L / v = 50 / 300 = about 0.17 s of warning.</text>
+</g>
+</svg>

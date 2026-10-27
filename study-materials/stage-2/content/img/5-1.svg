@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 360" role="img" aria-label="Block diagrams. Open loop: PWM command goes to the motor driver and motor, and the wheel speed is not checked. Closed loop: the target speed is compared with the encoder measurement, the controller computes a PWM command from the error, and the encoder feeds the measurement back.">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#334155"/></marker>
+  </defs>
+  <rect width="680" height="360" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">
+    <!-- Open loop -->
+    <text x="20" y="26" font-weight="700" font-size="15">Open loop: command and hope</text>
+    <rect x="30" y="46" width="130" height="50" rx="8" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <text x="95" y="76" text-anchor="middle">PWM command</text>
+    <rect x="240" y="46" width="170" height="50" rx="8" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <text x="325" y="76" text-anchor="middle">Driver + motor</text>
+    <rect x="490" y="46" width="160" height="50" rx="8" fill="#fff" stroke="#ea580c" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="570" y="76" text-anchor="middle">Wheel speed (?)</text>
+    <g stroke="#334155" stroke-width="2.5" marker-end="url(#a)">
+      <line x1="160" y1="71" x2="238" y2="71"/>
+      <line x1="410" y1="71" x2="488" y2="71"/>
+    </g>
+    <text x="340" y="124" text-anchor="middle" fill="#475569">Battery level, load and friction change the result, and nothing checks it.</text>
+
+    <!-- Closed loop -->
+    <text x="20" y="170" font-weight="700" font-size="15">Closed loop: measure and correct</text>
+    <text x="14" y="228" font-size="12">Target speed</text>
+    <line x1="14" y1="250" x2="54" y2="250" stroke="#334155" stroke-width="2.5" marker-end="url(#a)"/>
+    <circle cx="70" cy="250" r="16" fill="#fff" stroke="#334155" stroke-width="2"/>
+    <text x="55" y="247" font-size="12" font-weight="700">+</text>
+    <text x="74" y="268" font-size="12" font-weight="700">−</text>
+    <line x1="86" y1="250" x2="148" y2="250" stroke="#334155" stroke-width="2.5" marker-end="url(#a)"/>
+    <text x="118" y="240" text-anchor="middle" font-size="12">error</text>
+    <rect x="150" y="222" width="120" height="56" rx="8" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <text x="210" y="246" text-anchor="middle" font-weight="700">Controller</text>
+    <text x="210" y="264" text-anchor="middle" font-size="12" fill="#475569">P + feedforward</text>
+    <line x1="270" y1="250" x2="318" y2="250" stroke="#334155" stroke-width="2.5" marker-end="url(#a)"/>
+    <text x="294" y="240" text-anchor="middle" font-size="12">PWM</text>
+    <rect x="320" y="222" width="110" height="56" rx="8" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <text x="375" y="246" text-anchor="middle">Driver +</text>
+    <text x="375" y="264" text-anchor="middle">motor</text>
+    <line x1="430" y1="250" x2="648" y2="250" stroke="#334155" stroke-width="2.5" marker-end="url(#a)"/>
+    <text x="445" y="240" font-size="12">actual wheel speed</text>
+    <circle cx="560" cy="250" r="4" fill="#334155"/>
+    <!-- feedback -->
+    <path d="M560 250 V320 H70 V268" fill="none" stroke="#16a34a" stroke-width="2.5" marker-end="url(#a)"/>
+    <rect x="250" y="302" width="160" height="36" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+    <text x="330" y="325" text-anchor="middle">Encoder → speed</text>
+    <text x="500" y="344" text-anchor="middle" font-size="12" fill="#475569">measured speed</text>
+  </g>
+</svg>

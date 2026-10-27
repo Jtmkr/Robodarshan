@@ -711,6 +711,79 @@
     });
   }
 
+  /* -------- copy buttons on code blocks -------- */
+
+  const COPY_ICON =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const CHECK_ICON =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+
+  // clipboard.writeText needs a secure context (https); fall back to a hidden
+  // textarea + execCommand so it also works on plain http / local previews.
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        /* permission denied: try the fallback */
+      }
+    }
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(area);
+    area.select();
+    let ok = false;
+    try {
+      ok = document.execCommand('copy');
+    } catch (err) {
+      ok = false;
+    }
+    area.remove();
+    return ok;
+  }
+
+  // Wraps every code block of a lesson in a box with a "Copy" button.
+  function addCopyButtons() {
+    els.article.querySelectorAll('.prose pre').forEach((pre) => {
+      if (pre.parentElement.classList.contains('code-block')) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'code-block';
+      pre.parentNode.insertBefore(wrap, pre);
+      wrap.appendChild(pre);
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'copy-btn';
+      button.setAttribute('aria-label', 'Copy code');
+      button.innerHTML = `${COPY_ICON}<span>Copy</span>`;
+      let reset = null;
+      button.addEventListener('click', async () => {
+        const text = (pre.querySelector('code') || pre).textContent.replace(/\n$/, '');
+        const ok = await copyText(text);
+        button.classList.toggle('is-done', ok);
+        button.classList.toggle('is-failed', !ok);
+        button.innerHTML = ok ? `${CHECK_ICON}<span>Copied</span>` : `${COPY_ICON}<span>Press Ctrl+C</span>`;
+        if (!ok) {
+          // Select the code so the learner can copy it by hand.
+          const range = document.createRange();
+          range.selectNodeContents(pre);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+        clearTimeout(reset);
+        reset = setTimeout(() => {
+          button.classList.remove('is-done', 'is-failed');
+          button.innerHTML = `${COPY_ICON}<span>Copy</span>`;
+        }, 1800);
+      });
+      wrap.appendChild(button);
+    });
+  }
+
   /* -------- lesson / project / session pages -------- */
 
   function pagerFor(kind, item, stage) {
@@ -821,6 +894,7 @@
     renderSidebar(route);
     wireQuizzes();
     wireCompletion();
+    addCopyButtons();
     buildToc();
 
     if (keepScroll) window.scrollTo(0, scrollY);

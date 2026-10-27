@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 380" role="img" aria-label="Bar chart of eight calibrated sensor values 0, 0, 0, 100, 800, 500, 0, 0. The weighted average gives a line position of about plus 786, slightly right of centre.">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#dc2626"/></marker>
+  </defs>
+  <rect width="680" height="380" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">
+    <text x="340" y="26" text-anchor="middle" font-weight="700" font-size="15">Calibrated readings (0 to 1000) at one moment</text>
+    <!-- centre line -->
+    <line x1="345" y1="62" x2="345" y2="262" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="345" y="54" text-anchor="middle" fill="#475569">0 = line centred</text>
+    <!-- baseline -->
+    <line x1="60" y1="240" x2="630" y2="240" stroke="#334155" stroke-width="2"/>
+    <!-- bars: sensor i at x = 100 + 70 i ; height = value * 0.15 -->
+    <!-- S3: value 100 -> height 15 -->
+    <rect x="290" y="225" width="40" height="15" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <!-- S4: value 800 -> height 120 -->
+    <rect x="360" y="120" width="40" height="120" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <!-- S5: value 500 -> height 75 -->
+    <rect x="430" y="165" width="40" height="75" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <g text-anchor="middle">
+      <text x="100" y="232" fill="#475569">0</text><text x="170" y="232" fill="#475569">0</text><text x="240" y="232" fill="#475569">0</text>
+      <text x="310" y="218" font-weight="700">100</text>
+      <text x="380" y="113" font-weight="700">800</text>
+      <text x="450" y="158" font-weight="700">500</text>
+      <text x="520" y="232" fill="#475569">0</text><text x="590" y="232" fill="#475569">0</text>
+    </g>
+    <!-- sensor labels and positions -->
+    <g text-anchor="middle">
+      <text x="100" y="260">S0</text><text x="170" y="260">S1</text><text x="240" y="260">S2</text><text x="310" y="260">S3</text>
+      <text x="380" y="260">S4</text><text x="450" y="260">S5</text><text x="520" y="260">S6</text><text x="590" y="260">S7</text>
+    </g>
+    <g text-anchor="middle" fill="#475569" font-size="12">
+      <text x="100" y="278">−3500</text><text x="170" y="278">−2500</text><text x="240" y="278">−1500</text><text x="310" y="278">−500</text>
+      <text x="380" y="278">+500</text><text x="450" y="278">+1500</text><text x="520" y="278">+2500</text><text x="590" y="278">+3500</text>
+    </g>
+    <!-- result marker -->
+    <line x1="400" y1="316" x2="400" y2="290" stroke="#dc2626" stroke-width="3" marker-end="url(#a)"/>
+    <text x="400" y="334" text-anchor="middle" fill="#dc2626" font-weight="700">line position ≈ +786</text>
+    <text x="340" y="360" text-anchor="middle" fill="#334155">position = (Σ value × sensorPosition) ÷ (Σ value) = 1,100,000 ÷ 1400 ≈ +786</text>
+  </g>
+</svg>

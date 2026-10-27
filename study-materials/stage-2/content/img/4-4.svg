@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 335" role="img" aria-label="A small gear on the motor driving a gear twice its size, and bars showing that as the gear ratio goes from 1 to 1 to 2 to 1 to 4 to 1 the output speed halves each time while the output torque roughly doubles">
+  <rect width="680" height="335" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">
+    <text x="30" y="30" font-weight="700" font-size="14">One gear stage, ratio 2 : 1</text>
+    <!-- gears -->
+    <circle cx="105" cy="150" r="33" fill="#e0ecff" stroke="#2563eb" stroke-width="6" stroke-dasharray="4 3"/>
+    <circle cx="105" cy="150" r="24" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <circle cx="105" cy="150" r="5" fill="#334155"/>
+    <circle cx="206" cy="150" r="66" fill="#e0ecff" stroke="#2563eb" stroke-width="6" stroke-dasharray="4 3"/>
+    <circle cx="206" cy="150" r="56" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <circle cx="206" cy="150" r="5" fill="#334155"/>
+    <text x="105" y="98" text-anchor="middle" font-weight="700">12 teeth</text>
+    <text x="105" y="114" text-anchor="middle" font-size="12" fill="#475569">on the motor</text>
+    <text x="206" y="239" text-anchor="middle" font-weight="700">24 teeth</text>
+    <text x="206" y="255" text-anchor="middle" font-size="12" fill="#475569">towards the wheel</text>
+    <text x="165" y="290" text-anchor="middle" font-weight="700">ratio = 24 / 12 = 2 : 1</text>
+
+    <!-- bars -->
+    <text x="360" y="30" font-weight="700" font-size="14">Output of the gearbox (500 RPM motor)</text>
+    <g font-weight="700">
+      <text x="360" y="70">1 : 1 (no reduction)</text>
+      <text x="360" y="153">2 : 1</text>
+      <text x="360" y="236">4 : 1</text>
+    </g>
+    <!-- speed bars -->
+    <g fill="#e0ecff" stroke="#2563eb" stroke-width="2">
+      <rect x="360" y="80" width="150" height="18" rx="3"/>
+      <rect x="360" y="163" width="75" height="18" rx="3"/>
+      <rect x="360" y="246" width="37.5" height="18" rx="3"/>
+    </g>
+    <g font-size="13" fill="#1e293b">
+      <text x="520" y="94">500 RPM</text>
+      <text x="445" y="177">250 RPM</text>
+      <text x="407" y="260">125 RPM</text>
+    </g>
+    <!-- torque bars -->
+    <g fill="#fed7aa" stroke="#ea580c" stroke-width="2">
+      <rect x="360" y="104" width="40" height="18" rx="3"/>
+      <rect x="360" y="187" width="72" height="18" rx="3"/>
+      <rect x="360" y="270" width="144" height="18" rx="3"/>
+    </g>
+    <g font-size="13" fill="#1e293b">
+      <text x="410" y="118">1.0 × torque</text>
+      <text x="442" y="201">1.8 × torque</text>
+      <text x="514" y="284">3.6 × torque</text>
+    </g>
+    <text x="360" y="310" font-size="12" fill="#475569">Blue = speed, orange = torque.</text>
+    <text x="360" y="326" font-size="12" fill="#475569">Torque assumes 90 % gear efficiency (an assumption).</text>
+  </g>
+</svg>

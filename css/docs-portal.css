@@ -772,6 +772,64 @@ button {
   white-space: nowrap;
 }
 
+.code-block {
+  position: relative;
+  margin: 0 0 22px;
+}
+
+.code-block pre {
+  margin: 0;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev-2);
+  color: var(--text-soft);
+  font: 600 12.5px var(--font);
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.copy-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.code-block:hover .copy-btn,
+.copy-btn:focus-visible {
+  opacity: 1;
+}
+
+.copy-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.copy-btn.is-done {
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.copy-btn.is-failed {
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+/* leave room so the button never covers the first line of code */
+.code-block pre {
+  padding-top: 38px;
+}
+
 .prose pre {
   margin: 0 0 22px;
   padding: 16px 18px;

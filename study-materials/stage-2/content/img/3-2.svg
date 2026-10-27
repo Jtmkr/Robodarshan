@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 440" role="img" aria-label="ESP32 connected over two I2C wires to two ADS1115 chips, one with ADDR to ground at address 0x48 and one with ADDR to 3.3 volts at address 0x49. Each chip reads four outputs of the QTR-8A sensor array.">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#334155"/></marker>
+  </defs>
+  <rect width="680" height="440" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">
+    <!-- ESP32 -->
+    <rect x="20" y="40" width="140" height="330" rx="10" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <text x="90" y="62" text-anchor="middle" font-weight="700" font-size="16">ESP32</text>
+    <text x="152" y="92" text-anchor="end">GPIO21 SDA</text>
+    <text x="152" y="114" text-anchor="end">GPIO22 SCL</text>
+    <g text-anchor="middle" fill="#475569">
+      <text x="90" y="220">Also on this bus:</text>
+      <text x="90" y="242">MPU6050 (0x68)</text>
+      <text x="90" y="262">OLED (0x3C)</text>
+    </g>
+
+    <!-- I2C wires -->
+    <g stroke-width="2.5" fill="none">
+      <path d="M160 88 H320" stroke="#2563eb"/>
+      <path d="M230 88 V278 H320" stroke="#2563eb"/>
+      <path d="M160 110 H320" stroke="#16a34a"/>
+      <path d="M260 110 V300 H320" stroke="#16a34a"/>
+    </g>
+    <circle cx="230" cy="88" r="4" fill="#2563eb"/>
+    <circle cx="260" cy="110" r="4" fill="#16a34a"/>
+    <text x="196" y="80" text-anchor="middle" fill="#2563eb" font-weight="700">SDA</text>
+    <text x="196" y="132" text-anchor="middle" fill="#16a34a" font-weight="700">SCL</text>
+
+    <!-- ADS1115 #1 -->
+    <rect x="320" y="40" width="150" height="140" rx="10" fill="#fff" stroke="#334155" stroke-width="2"/>
+    <text x="395" y="62" text-anchor="middle" font-weight="700">ADS1115 #1</text>
+    <text x="328" y="92">SDA</text><text x="328" y="114">SCL</text>
+    <g text-anchor="end"><text x="462" y="92">A0</text><text x="462" y="114">A1</text><text x="462" y="136">A2</text><text x="462" y="158">A3</text></g>
+    <text x="395" y="200" text-anchor="middle" fill="#dc2626" font-weight="700">ADDR → GND  =  0x48</text>
+
+    <!-- ADS1115 #2 -->
+    <rect x="320" y="230" width="150" height="140" rx="10" fill="#fff" stroke="#334155" stroke-width="2"/>
+    <text x="395" y="252" text-anchor="middle" font-weight="700">ADS1115 #2</text>
+    <text x="328" y="282">SDA</text><text x="328" y="304">SCL</text>
+    <g text-anchor="end"><text x="462" y="282">A0</text><text x="462" y="304">A1</text><text x="462" y="326">A2</text><text x="462" y="348">A3</text></g>
+    <text x="395" y="390" text-anchor="middle" fill="#ea580c" font-weight="700">ADDR → 3V3  =  0x49</text>
+
+    <!-- QTR-8A -->
+    <rect x="540" y="40" width="120" height="330" rx="10" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <text x="600" y="62" text-anchor="middle" font-weight="700" font-size="16">QTR-8A</text>
+    <g>
+      <text x="552" y="92">S1 (left)</text><text x="552" y="114">S2</text><text x="552" y="136">S3</text><text x="552" y="158">S4</text>
+      <text x="552" y="282">S5</text><text x="552" y="304">S6</text><text x="552" y="326">S7</text><text x="552" y="348">S8 (right)</text>
+    </g>
+    <text x="600" y="210" text-anchor="middle" fill="#475569">8 analog</text>
+    <text x="600" y="228" text-anchor="middle" fill="#475569">outputs</text>
+    <g stroke="#334155" stroke-width="2" marker-end="url(#a)">
+      <line x1="470" y1="88" x2="538" y2="88"/><line x1="470" y1="110" x2="538" y2="110"/>
+      <line x1="470" y1="132" x2="538" y2="132"/><line x1="470" y1="154" x2="538" y2="154"/>
+      <line x1="470" y1="278" x2="538" y2="278"/><line x1="470" y1="300" x2="538" y2="300"/>
+      <line x1="470" y1="322" x2="538" y2="322"/><line x1="470" y1="344" x2="538" y2="344"/>
+    </g>
+    <text x="340" y="420" text-anchor="middle" fill="#475569">Power the QTR-8A and both ADS1115 from 3.3 V so no output can exceed the ADS1115 supply. All grounds joined.</text>
+  </g>
+</svg>

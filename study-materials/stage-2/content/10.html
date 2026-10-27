@@ -1,0 +1,306 @@
+<section id="pcb-workflow-and-tools">
+<h2>From idea to board: the workflow and the tools</h2>
+<p>Until now your robot has been a sandwich of breakout boards and jumper wires. It works, until one wire slips out during a run. A <strong>printed circuit board (PCB)</strong> replaces the wires with copper traces, so the connections are permanent, small and repeatable. In this lesson you will design a <strong>carrier board</strong>: a PCB that holds your ESP32 DevKit, the motor driver, the ADC boards and all the connectors, so the robot becomes one neat unit.</p>
+<p>Every PCB project, in any tool, follows the same path:</p>
+<figure><img src="/study-materials/stage-2/content/img/10-1.svg" alt="Design flow: idea, schematic, electrical rules check, footprints, layout, routing, design rules check, Gerber and drill files, order" loading="lazy"><figcaption>The design flow. Both checks (ERC and DRC) can send you back a step, and that is normal.</figcaption></figure>
+<ol>
+<li><strong>Idea:</strong> list the parts, draw a block diagram, decide which pin does what.</li>
+<li><strong>Schematic:</strong> draw the circuit as symbols and wires.</li>
+<li><strong>ERC:</strong> the computer checks the schematic for electrical mistakes.</li>
+<li><strong>Footprints:</strong> tell the tool the real copper pattern of every part.</li>
+<li><strong>Layout and routing:</strong> place the parts on the board outline and draw the traces.</li>
+<li><strong>DRC:</strong> the computer checks the board against the manufacturer's limits.</li>
+<li><strong>Gerber and drill files:</strong> export what the factory needs, look at them, then order.</li>
+</ol>
+<h3>KiCad: the tool we use</h3>
+<p>The club teaches with <strong>KiCad</strong>, a free and open-source suite that runs on Windows, Linux and macOS. At the time of writing the stable series is <strong>KiCad 10</strong> (check kicad.org for the current release). A KiCad project has a <strong>schematic editor</strong>, a <strong>PCB editor</strong>, a <strong>symbol and footprint library editor</strong>, a <strong>3D viewer</strong> and a <strong>Gerber viewer</strong>, all started from one project window.</p>
+<div class="callout callout-note"><div class="callout-title">Menus change between versions</div><p>The menu names and shortcut keys in this lesson are the ones we know from recent KiCad versions. Your screen may differ slightly. If you cannot find a tool, use the search or the <strong>Help</strong> menu, and read the release notes of your version.</p></div>
+<h3>EasyEDA: the other tool in the syllabus</h3>
+<p><strong>EasyEDA</strong> is an online PCB tool made by the company behind LCSC (parts) and JLCPCB (manufacturing); it runs in a browser and also has a desktop client. Here is an honest comparison:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>&nbsp;</th><th>KiCad</th><th>EasyEDA</th></tr></thead>
+<tbody>
+<tr><td>Where it runs</td><td>Installed on your computer, works offline</td><td>In a browser (plus a desktop client)</td></tr>
+<tr><td>Cost and licence</td><td>Free, open source</td><td>Free to use, but it is a company service</td></tr>
+<tr><td>Parts library</td><td>Standard libraries plus downloads; you often check footprints yourself</td><td>Large library connected to LCSC parts, so symbols and footprints are one click away</td></tr>
+<tr><td>Ordering</td><td>Export Gerbers and send them to any manufacturer</td><td>Built-in order buttons for its partner manufacturer and assembly service</td></tr>
+<tr><td>Files</td><td>Plain project files you keep and version with Git</td><td>Projects live in your online account</td></tr>
+</tbody></table></div>
+<p>Neither is &ldquo;the right one&rdquo;. EasyEDA is fast for a first board, and KiCad gives you full control and files you own. The skills (schematic, placement, routing, rules, Gerbers) transfer completely, so if you learn them in KiCad you can use EasyEDA in an afternoon. Features and terms of both services change, so check their current websites before you rely on a detail.</p>
+</section>
+
+<section id="schematic">
+<h2>Schematic capture and footprints</h2>
+<p>The schematic says <em>what is connected to what</em>. It does not care where things sit on the board. Draw it neatly: a messy schematic hides mistakes.</p>
+<h3>Symbols, wires and labels</h3>
+<ul>
+<li><strong>Symbol:</strong> the drawing of a part (resistor, header, IC). Add one with <strong>Place &rarr; Add Symbol</strong> (shortcut <code>A</code>). Your ESP32 DevKit can be a plain pin-header symbol; you only need its pins.</li>
+<li><strong>Wire:</strong> draw with <code>W</code>. A wire connects only where its end touches a pin end, or at a junction dot.</li>
+<li><strong>Net label:</strong> <code>L</code> places a name on a wire. All wires with the same label are connected, even if no wire joins them. Use labels such as <code>SDA</code>, <code>SCL</code>, <code>ENC_L_A</code> instead of long crossing wires.</li>
+<li><strong>Power symbols:</strong> <code>P</code> adds symbols like <code>GND</code>, <code>+3V3</code>, <code>+5V</code>. Every symbol with the same power name is connected together.</li>
+<li><strong>No-connect flag:</strong> <code>Q</code> marks a pin you deliberately leave unused, so the checker stays quiet about it.</li>
+</ul>
+<h3>Annotation and ERC</h3>
+<p><strong>Annotation</strong> gives every part a unique name (R1, R2, C1&hellip;). Run it from <strong>Tools &rarr; Annotate Schematic</strong>. Then run the <strong>Electrical Rules Checker</strong> from <strong>Inspect &rarr; Electrical Rules Checker</strong>. The ERC finds mistakes that would be nasty on a real board. Common messages:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>ERC message</th><th>What it usually means</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Pin not connected</td><td>A pin is floating, or you forgot a wire.</td><td>Connect it, or add a no-connect flag if it is intentional.</td></tr>
+<tr><td>Input Power pin not driven by any Output Power pins</td><td>A power net has no source the checker knows about.</td><td>Add a <code>PWR_FLAG</code> to that net (see below).</td></tr>
+<tr><td>Pins of type X and Y are connected</td><td>Two outputs shorted together, or a similar clash.</td><td>Find the net and check the wiring.</td></tr>
+<tr><td>Label connected to only one object</td><td>A typo in a net label, so it joins nothing.</td><td>Fix the spelling so both ends match exactly.</td></tr>
+<tr><td>Duplicate reference</td><td>Two parts share a name.</td><td>Run annotation again.</td></tr>
+</tbody></table></div>
+<div class="callout callout-tip"><div class="callout-title">What is PWR_FLAG?</div><p>Power comes into the board through a connector, and a connector pin is not marked as a power source. The ERC therefore complains that your 12 V net is &ldquo;not driven&rdquo;. A <code>PWR_FLAG</code> symbol (add it with <code>P</code>) tells the checker &ldquo;power really arrives here&rdquo;. Put one on the battery <code>+</code> and <code>GND</code> nets and on the 5 V net fed by the buck module. It is only a note for the checker and adds no real part.</p></div>
+<p>Do not just silence warnings. Read each one and understand it first; a warning you ignored is often the one that becomes a dead board.</p>
+<h3>Footprints: the most expensive mistake to get wrong</h3>
+<p>A <strong>footprint</strong> is the copper pattern (pads and holes) for a part. After the schematic is done, assign a footprint to every symbol (the footprint assignment tool, or the footprint field of each symbol).</p>
+<ul>
+<li><strong>Check against the real part.</strong> Put your actual DevKit, driver board and ADS1115 breakout next to a ruler or calipers. Measure the row spacing and the pin positions. Many modules look identical and are not.</li>
+<li>The common header pitch is <strong>2.54 mm</strong> (0.1 inch). An ESP32 DevKit has two rows of headers, and the <strong>distance between the rows differs between the 30-pin and 38-pin versions and between brands</strong>. Measure yours.</li>
+<li>The bare ESP32-WROOM module (used later) has castellated pads at <strong>1.27 mm</strong> pitch; use the footprint from the module datasheet or the official library.</li>
+<li>Breakout boards (TB6612FNG, ADS1115, MPU6050, OLED) have the pins in a vendor-specific order. Do not trust a library footprint by name; check the order of the labels on your board.</li>
+<li>To be safe, <strong>print the PCB footprints at 1:1 on paper</strong> and place the real parts on the printout. If the pins do not line up, find out now.</li>
+</ul>
+<div class="callout callout-caution"><div class="callout-title">Library footprints can be wrong</div><p>A symbol or footprint from the internet is only as good as its author. A mirrored or shifted pin row is a board you cannot use. Always verify against the datasheet drawing or the real part.</p></div>
+</section>
+
+<section id="carrier-board-esp32">
+<h2>The ESP32 carrier board for the line follower</h2>
+<p>Our first target is a carrier board that carries everything in the Stage 2 line follower. It does not replace the ESP32 DevKit: the DevKit plugs into sockets (female headers), so you can swap it if it breaks.</p>
+<div class="callout callout-note"><div class="callout-title">Assumptions in this lesson</div><ul>
+<li>ESP32 DevKit (classic ESP32-WROOM-32), TB6612FNG breakout, two ADS1115 breakouts, QTR-8A, MPU6050 and SSD1306 OLED modules, N20 motors with encoders, a 3S LiPo and a 12 V to 5 V buck module.</li>
+<li>The pin map is the suggested one from the other Stage 2 lessons. It is a suggestion; change it if your build differs.</li>
+<li>All module pin orders and sizes are <strong>examples</strong>. Replace them with measurements of your own parts.</li>
+</ul></div>
+<figure><img src="/study-materials/stage-2/content/img/10-2.svg" alt="Block diagram of the carrier board with power, motor control, encoder, I2C and sensor connections around the ESP32 DevKit" loading="lazy"><figcaption>Block diagram of the carrier board. Draw something like this before opening KiCad.</figcaption></figure>
+<h3>Connection plan</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Group</th><th>Signals and pins</th></tr></thead>
+<tbody>
+<tr><td>Motor driver (TB6612FNG)</td><td>PWMA = 25, AIN1 = 26, AIN2 = 27, PWMB = 13, BIN1 = 32, BIN2 = 33, STBY = 4. VM from the battery, VCC from 3.3 V.</td></tr>
+<tr><td>I&sup2;C bus</td><td>SDA = 21, SCL = 22 to two ADS1115 (0x48, 0x49), the MPU6050 (0x68) and the OLED (0x3C).</td></tr>
+<tr><td>Encoders</td><td>Left A = 34, left B = 35, right A = 36 (input-only pins), right B = 18. GPIO39 is kept free for the battery voltage divider.</td></tr>
+<tr><td>Buttons</td><td>GPIO 14, 16, 17 to ground (use <code>INPUT_PULLUP</code>).</td></tr>
+<tr><td>Line sensor</td><td>QTR-8A outputs 1 to 8 go to the ADS1115 inputs: chip 0x48 takes channels 0 to 3, chip 0x49 takes channels 4 to 7.</td></tr>
+</tbody></table></div>
+<h3>What goes on the board</h3>
+<ul>
+<li><strong>Sockets</strong> for the ESP32 DevKit, TB6612FNG breakout, two ADS1115 breakouts, MPU6050 and OLED. Add a solder jumper or a header for each ADS1115 <code>ADDR</code> pin: to GND for 0x48, to VDD for 0x49.</li>
+<li>A connector for the <strong>QTR-8A</strong>: ground, power and the 8 outputs (and the optional LED-control pin if you use it). Power it from <strong>3.3 V</strong> so its outputs never go above the ADC supply voltage. Check the module's own datasheet for its current and for the pin order.</li>
+<li>Two <strong>6-pin connectors for the N20 motors</strong>: two motor wires, encoder power, encoder ground, A and B. The order differs between vendors, so wire it to your motor's cable. Many encoders work from 3.3 V; confirm yours, as 5 V encoder outputs must never reach an ESP32 input. Add footprints for four optional 10 k&Omega; pull-up resistors on the encoder lines (the input-only pins 34 to 39 have no internal pull-ups).</li>
+<li><strong>Three buttons</strong> with no external resistors needed.</li>
+<li>Battery input through an <strong>XT60</strong> connector (match the plug on your LiPo), a <strong>power switch</strong> rated for the current, and a <strong>12 V to 5 V buck module</strong> footprint. A 3S pack is 12.6 V when full, so check that your module accepts that input voltage and that its output is set to 5 V <em>before</em> the ESP32 is connected.</li>
+<li><strong>Test points</strong> for VBAT, 5 V, 3.3 V, GND, SDA and SCL.</li>
+</ul>
+<h3>Power and reverse-polarity protection</h3>
+<p>Connecting a LiPo backwards destroys things in a fraction of a second. Two usual fixes:</p>
+<ul>
+<li><strong>A series Schottky diode:</strong> simple, but it wastes about a third to half a volt and gets warm at motor currents.</li>
+<li><strong>A P-channel MOSFET on the positive line</strong> (battery to the drain, load on the source side, gate to ground through a resistor): it blocks a reversed battery and wastes very little power. Pick one with enough current rating, a low on-resistance at the gate voltage you will really have, and a gate-source limit above your battery voltage. Follow the datasheet and a reference circuit.</li>
+</ul>
+<p>Also consider a <strong>fuse or resettable fuse</strong> on the battery input, and a bulk capacitor (for example 100 &micro;F or more) near the motor driver VM pin. And never plug USB and the buck module into the DevKit at the same time without a protection diode or a way to disconnect one of them, because the two supplies can fight.</p>
+<div class="callout callout-caution"><div class="callout-title">Safety</div><p>A LiPo can deliver very large current into a short and can catch fire. Check polarity on the connector with a multimeter before the first power-up, and use a current-limited bench supply or a fuse for the first test if you have one.</p></div>
+</section>
+
+<section id="layout">
+<h2>Layout: placing parts and planning copper</h2>
+<p>Open the PCB editor and load your design with <strong>Tools &rarr; Update PCB from Schematic</strong> (shortcut <code>F8</code>). All footprints appear in a heap, joined by thin lines called the <strong>ratsnest</strong>. These lines show what still needs a trace.</p>
+<h3>Board outline and mounting holes</h3>
+<ul>
+<li>Draw the <strong>board outline</strong> on the <code>Edge.Cuts</code> layer as one closed shape. Make it fit your chassis; rounded corners are nicer and safer.</li>
+<li>Add <strong>mounting holes</strong> (M3 is common) at the corners, and keep parts away from them.</li>
+<li>Remember connector sides: the QTR-8A and motors are on the front and sides, the battery and switch where you can reach them.</li>
+</ul>
+<h3>Placement strategy</h3>
+<ol>
+<li>Place the large and fixed parts first: the DevKit sockets, connectors, the buck module, the XT60.</li>
+<li>Group parts by function. Keep the <strong>motor power</strong> parts (battery input, buck, TB6612, motor connectors) on one side and the <strong>logic and sensor</strong> parts (ESP32, ADS1115, MPU6050, OLED) on the other.</li>
+<li>Rotate parts so the ratsnest lines are short and do not cross much.</li>
+<li>Place the <strong>decoupling capacitors</strong> last-but-important: right next to the supply pin of each chip, with the short path to its ground.</li>
+</ol>
+<figure><img src="/study-materials/stage-2/content/img/10-3.svg" alt="Left, a bad layout with a far capacitor and an I2C trace beside motor current. Right, a good layout with the capacitor at the pin and separate motor and logic zones" loading="lazy"><figcaption>Good and bad placement in one picture.</figcaption></figure>
+<h3>Keep noise away from sensitive lines</h3>
+<p>Motors draw current in sharp bursts, and a trace that carries those bursts radiates and shares voltage with its neighbours. Keep motor power and motor wires away from the I&sup2;C lines, the encoder lines and the QTR-8A analog lines. Do not run a signal trace in parallel next to a motor trace for a long distance. If they must cross, cross at a right angle on different layers.</p>
+<h3>Decoupling, ground and copper pours</h3>
+<ul>
+<li><strong>Decoupling capacitor:</strong> a small ceramic (typically 100 nF) from each IC supply pin to ground, placed as close as you can. It supplies the quick bursts of current so the supply line stays steady. Bulk capacitors (10 to 100 &micro;F or more) go near the power entry and near the motor driver.</li>
+<li><strong>Ground plane:</strong> on a two-layer board, use one layer (usually the bottom) mostly as ground. Add a <strong>copper zone</strong> (Place &rarr; Zone, shortcut <code>Ctrl+Shift+Z</code>) on the <code>GND</code> net and fill it (<code>B</code>). Every ground pin then connects to it with a short via or a direct pad connection.</li>
+<li><strong>Star ground idea:</strong> do not let the motor return current flow through the sensor area. Arrange the board so that the motor ground and the logic ground meet near the battery connector, and the motor current takes the short way back from the driver to the battery.</li>
+</ul>
+<h3>Trace width for current</h3>
+<p>A trace is a wire made of a thin copper strip, and it heats up when current flows. The standard IPC-2221 relation for the cross-section area is</p>
+<p><code>I = k &times; &Delta;T<sup>0.44</sup> &times; A<sup>0.725</sup></code></p>
+<p>where <code>I</code> is current in A, <code>&Delta;T</code> the allowed temperature rise in &deg;C, <code>A</code> the cross-section in square mils, and <code>k</code> is 0.048 for outer layers (0.024 for inner layers). With ordinary 1 oz copper (about 35 &micro;m thick) on an outer layer and a 10 &deg;C rise, this works out roughly to:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Current</th><th>Minimum width (about)</th></tr></thead>
+<tbody>
+<tr><td>0.5 A</td><td>0.12 mm</td></tr>
+<tr><td>1 A</td><td>0.3 mm</td></tr>
+<tr><td>2 A</td><td>0.8 mm</td></tr>
+<tr><td>3 A</td><td>1.4 mm</td></tr>
+</tbody></table></div>
+<p>These are minimums from a formula, and the formula is an approximation. A practical rule for this robot: <strong>0.25 to 0.3 mm for signals, 0.5 mm or more for 3.3 V and 5 V rails, and 1.5 mm or wider (or a pour) for battery and motor power</strong>. Wider is almost always better and costs nothing. KiCad can also calculate widths for you in its built-in PCB calculator.</p>
+<h3>Vias, silkscreen and polarity marks</h3>
+<ul>
+<li>A <strong>via</strong> is a plated hole that moves a trace from one layer to another. Use as few as you can on signals, and several vias for a high-current connection.</li>
+<li>The <strong>silkscreen</strong> is the printed text on the board. Label every connector (what it is and pin 1), mark the <strong>polarity</strong> of battery and capacitors, mark switch positions and write the board name and version. Keep text off the pads.</li>
+<li>Label which ADS1115 is 0x48 and which is 0x49. Your future self will thank you.</li>
+</ul>
+</section>
+
+<section id="routing-and-drc">
+<h2>Routing and DRC</h2>
+<h3>Routing: drawing the traces</h3>
+<p><strong>Routing</strong> turns each ratsnest line into a copper trace. In KiCad, start the interactive router from <strong>Route &rarr; Route Single Track</strong> (key <code>X</code>), click on a pad, and move the mouse. The router pushes around obstacles for you. You can also draw traces by hand, which gives more control.</p>
+<ul>
+<li><strong>Route the important nets first:</strong> power, then high-current motor nets, then sensitive signals, then the easy ones.</li>
+<li><strong>Use 45-degree bends</strong> and avoid 90-degree and acute angles. Sharp angles are harder to manufacture cleanly and can trap acid in the etching.</li>
+<li><strong>Keep traces short and direct.</strong> Do not loop around for no reason.</li>
+<li>Keep the two I&sup2;C lines close to each other, and keep their total length short.</li>
+<li>For wide power traces, use a zone or a thick trace rather than thin traces in parallel.</li>
+<li>Avoid running signal traces under a socketed module's noisy parts, and leave gaps from the board edge.</li>
+</ul>
+<div class="callout callout-tip"><div class="callout-title">Do not fight the router</div><p>If a trace will not fit, move a part. Layout and routing are one loop: change placement, rotate a part, or swap equivalent pins (for example, two motor direction pins on the DevKit) to untangle the board. If you swap pins, update the schematic and the code.</p></div>
+<h3>DRC: the design rules check</h3>
+<p>The <strong>Design Rules Checker</strong> (<strong>Inspect &rarr; Design Rules Checker</strong>) looks at your finished board and checks:</p>
+<ul>
+<li><strong>Clearance:</strong> copper that is too close to other copper (a possible short).</li>
+<li><strong>Minimum trace width, via size and drill size</strong> the manufacturer cannot make.</li>
+<li><strong>Unconnected nets:</strong> a trace you forgot.</li>
+<li><strong>Edge clearance:</strong> copper too near the board outline.</li>
+<li><strong>Silkscreen over pads</strong> and other manufacturing problems.</li>
+</ul>
+<p>The numbers it checks against are your <strong>design rules</strong>, set in <strong>File &rarr; Board Setup &rarr; Design Rules</strong>. Do not guess them. Open your PCB manufacturer's website, find the <strong>capabilities page</strong> for the board type you will order (for example, a standard two-layer board), and enter its current minimum trace width, clearance, via and hole sizes. Capabilities change from time to time and between services, so we do not quote numbers here. Many manufacturers also publish a ready-made KiCad rules setup.</p>
+<p>Fix every error. A warning might be fine, but you should know why. Run DRC again after each fix, and after refilling zones.</p>
+</section>
+
+<section id="gerber-and-ordering">
+<h2>Gerber files, 3D view and ordering</h2>
+<h3>What a Gerber is</h3>
+<p>The factory does not use your KiCad project. It uses <strong>Gerber files</strong>, an industry-standard format with one file per layer (copper, solder mask, silkscreen and the board outline), plus <strong>drill files</strong> that tell the machine where to drill holes.</p>
+<h3>Exporting from KiCad</h3>
+<ol>
+<li>Refill all zones (<code>B</code>) and run DRC one last time.</li>
+<li>Open <strong>File &rarr; Plot</strong>. Choose <strong>Gerber</strong> as the format and tick the layers: <code>F.Cu</code>, <code>B.Cu</code>, <code>F.Silkscreen</code>, <code>B.Silkscreen</code>, <code>F.Mask</code>, <code>B.Mask</code> and <code>Edge.Cuts</code>. (Add the paste layers only if you order a stencil or assembly.)</li>
+<li>Choose an output folder and click <strong>Plot</strong>.</li>
+<li>Click <strong>Generate Drill Files</strong>. Use the Excellon format and generate the plated and non-plated holes. Many factories also want the drill map; follow their guide.</li>
+<li>Put all the files into one <strong>zip</strong>.</li>
+</ol>
+<pre><code class="language-text">carrier-v1-gerbers.zip
+  carrier-F_Cu.gbr          top copper
+  carrier-B_Cu.gbr          bottom copper
+  carrier-F_Mask.gbr        top solder mask
+  carrier-B_Mask.gbr        bottom solder mask
+  carrier-F_Silkscreen.gbr  top printing
+  carrier-B_Silkscreen.gbr  bottom printing
+  carrier-Edge_Cuts.gbr     board outline
+  carrier-PTH.drl           plated holes
+  carrier-NPTH.drl          non-plated holes (mounting holes)</code></pre>
+<p>The exact names depend on your KiCad version and the factory's preferences; the content is what matters.</p>
+<h3>Look before you order</h3>
+<ul>
+<li>Open the zip in the <strong>Gerber Viewer</strong> (a tool in the KiCad project window) or in the manufacturer's online viewer. Switch layers on and off. Check the outline, the holes and the mirrored text.</li>
+<li>Open the <strong>3D Viewer</strong> in the PCB editor (<strong>View &rarr; 3D Viewer</strong>, <code>Alt+3</code>). If your parts have 3D models, you can see whether the headers face the right way and whether tall parts collide. Rotate the board and look at it from every side.</li>
+<li>Print the layout at 1:1 once more and put the real parts on it.</li>
+</ul>
+<h3>Ordering and assembly tips</h3>
+<ul>
+<li>Order from a manufacturer that publishes its capabilities, and read their file-upload guide. Most have an instant quote page where you upload the zip.</li>
+<li>The basic choices are the number of layers (2 for us), thickness (1.6 mm is standard), copper weight (1 oz), solder mask colour and surface finish. Start with the defaults.</li>
+<li>Boards often come in small minimum quantities, so order a few spares. Also order a few extra connectors and modules.</li>
+<li>Some factories also assemble the small surface-mount parts. That is useful later, but our first carrier board uses mostly through-hole headers that you solder yourself.</li>
+<li>When the boards arrive, <strong>do not plug in the DevKit first</strong>. Check for shorts with a multimeter in continuity mode between 5 V and GND, 3.3 V and GND, VBAT and GND, then power up without modules and check the rails.</li>
+</ul>
+</section>
+
+<section id="stm32-carrier">
+<h2>The same carrier for the STM32F411 Black Pill</h2>
+<p>The <strong>STM32F411 Black Pill</strong> has many ADC pins and hardware encoder timers. A carrier board for it is almost the same board: the power, motor driver, connectors and mounting stay, only the signals move to different pins and the socket footprint changes. (A Black Pill has 40 pins in two rows; measure yours.)</p>
+<figure><img src="/study-materials/stage-2/content/img/10-4.svg" alt="Table showing ESP32 pins and the suggested STM32F411 Black Pill pins and functions for each carrier board signal" loading="lazy"><figcaption>A suggested STM32 pin plan for the same signals.</figcaption></figure>
+<h3>What changes and why</h3>
+<ul>
+<li><strong>Line sensor straight to ADC.</strong> The F411 has an ADC with 16 inputs, and on the Black Pill 10 are on pins <code>PA0</code> to <code>PA7</code>, <code>PB0</code> and <code>PB1</code>. All 8 QTR-8A outputs can go to <code>PA0</code> to <code>PA7</code>, and the two ADS1115 chips (and their slow readings) can be dropped. On the carrier, keep the ADS1115 footprints as optional, or leave them out of the STM32 version.</li>
+<li><strong>Encoders on hardware timers.</strong> A timer in <em>encoder mode</em> counts the quadrature pulses by itself, with no interrupt code. We use <code>TIM4</code> channels 1 and 2 on <code>PB6</code>/<code>PB7</code> and <code>TIM1</code> channels 1 and 2 on <code>PA8</code>/<code>PA9</code>.</li>
+<li><strong>PWM</strong> from <code>TIM3</code> channels 3 and 4 on <code>PB0</code>/<code>PB1</code>. They do not clash with the other timers.</li>
+<li><strong>I&sup2;C</strong> moves to <code>PB8</code> (SCL) and <code>PB9</code> (SDA) of I2C1, so <code>PB6</code>/<code>PB7</code> stay free for the encoder timer. The Arduino core's default I&sup2;C pins can differ, so say it in the code.</li>
+<li><strong>Logic level:</strong> the STM32 ADC pins measure up to 3.3 V. Power the QTR-8A from 3.3 V.</li>
+<li><strong>Do not use</strong> <code>PA11</code>/<code>PA12</code> (USB), <code>PA13</code>/<code>PA14</code> (SWD programming) or the crystal pins.</li>
+</ul>
+<div class="callout callout-caution"><div class="callout-title">Verify before you commit</div><p>The pin and alternate-function assignments in the figure come from our reading of the STM32F411 datasheet's alternate-function table. <strong>Check each one yourself in the datasheet table and in your board's pinout</strong>, and also check that the pins you choose are not used by something on your Black Pill (an on-board LED, a button, the USB). Two of the button pins in our plan have other roles: <code>PA10</code> is the USART1 receive pin and <code>PB4</code> belongs to the JTAG debug port at reset, so test them early or pick other free pins.</p></div>
+<h3>Why have both sockets?</h3>
+<p>Some clubs design one carrier with <em>both</em> an ESP32 socket and a Black Pill socket, with a jumper choosing which is used. That is harder: the sockets share the same connectors and you must make sure only one board drives each net. For a first board, build one version and keep the schematic for the other.</p>
+</section>
+
+<section id="bare-mcu-boards">
+<h2>Advanced: boards with a bare microcontroller</h2>
+<p>A carrier board uses a ready-made DevKit or Black Pill that already contains the power regulator, USB, crystal and reset circuit. A <strong>bare-MCU board</strong> puts the chip (or a bare module) on your PCB. It saves space and money, but you must design what the DevKit did. Here is the minimum for each target. Treat it as an overview and always follow the official <strong>hardware design guidelines and datasheet</strong> of the exact part.</p>
+<div class="callout callout-caution"><div class="callout-title">Not for the first board</div><p>These boards need more experience: antenna keep-out areas, crystal layout, USB signals and a boot process that can refuse to start if one resistor is wrong. Beginners should build a carrier board first and make a bare-MCU board as a second project.</p></div>
+<h3>ESP32-WROOM module: the minimum</h3>
+<ul>
+<li><strong>3.3 V supply</strong> that can deliver enough current for Wi-Fi bursts (the module datasheet gives a recommended figure, around half an ampere for the whole board is a common guideline). Use a proper regulator, not a weak one.</li>
+<li><strong>Decoupling:</strong> a bulk capacitor (the guideline uses about 10 &micro;F) plus a 100 nF capacitor, close to the module's 3V3 pin.</li>
+<li><strong>EN pin:</strong> the chip enable. Pull it up to 3.3 V with a resistor and add a capacitor to ground so it rises slowly at power-up. The reference design uses roughly 10 k&Omega; and 1 &micro;F. Add a reset button from EN to ground if you wish.</li>
+<li><strong>GPIO0 (boot):</strong> low at reset means &ldquo;download mode&rdquo; and high means &ldquo;run the program&rdquo;. Add a button to ground, and leave it floating or pulled high in normal use.</li>
+<li><strong>Other strapping pins:</strong> <code>GPIO12</code> must not be pulled high at boot on a module with 3.3 V flash, and <code>GPIO2</code> and <code>GPIO15</code> have boot roles. Do not attach strong external loads to them.</li>
+<li><strong>Programming:</strong> a USB-UART chip (the usual CP2102 or CH340 type) or just a 6-pin header (3V3, GND, TX0, RX0, EN, GPIO0) for an external adapter. The auto-reset circuit on DevKits uses two transistors to drive EN and GPIO0 from the adapter's DTR and RTS lines; copy the reference schematic.</li>
+<li><strong>Antenna:</strong> keep copper, ground pour, components and wires away from the antenna end of the module, as the datasheet shows.</li>
+</ul>
+<h3>STM32F411: the minimum</h3>
+<ul>
+<li><strong>Supply decoupling:</strong> a 100 nF capacitor at every <code>VDD</code> pin, as close as you can, and a bigger one (the reference design suggests 4.7 &micro;F) on the supply. <code>VDDA</code> (the analog supply) needs its own filtering.</li>
+<li><strong>VCAP:</strong> the chip has a core regulator that needs an external capacitor on the <code>VCAP</code> pin(s). The datasheet gives the value and the required low ESR; for the 48-pin F411 we remember a single 4.7 &micro;F ceramic, but <strong>read your package's datasheet</strong>. Without it, the chip will not run.</li>
+<li><strong>HSE crystal:</strong> an external crystal (the Black Pill uses 25 MHz) between <code>PH0</code> and <code>PH1</code>, with two load capacitors to ground. A common estimate is <code>C = 2 &times; (C<sub>L</sub> &minus; C<sub>stray</sub>)</code>, where <code>C<sub>L</sub></code> is the load capacitance in the crystal's datasheet and the stray part is a few pF. For USB the clock has to be accurate, so use a crystal.</li>
+<li><strong>BOOT0:</strong> pull it to ground with a resistor (for example 10 k&Omega;) for normal start. Pull it to 3.3 V at reset to enter the built-in bootloader. Keep <code>PB2</code> (BOOT1) low.</li>
+<li><strong>Reset:</strong> the <code>NRST</code> pin has an internal pull-up; add a button and a 100 nF capacitor to ground.</li>
+<li><strong>SWD header:</strong> 3.3 V, GND, <code>SWDIO</code> (<code>PA13</code>), <code>SWCLK</code> (<code>PA14</code>) and <code>NRST</code>, for an ST-Link programmer. It is the most reliable way to program and debug.</li>
+<li><strong>USB:</strong> <code>PA11</code> (D&minus;) and <code>PA12</code> (D+) to the connector, as a short matched pair, with the shield connected as in the reference design, and a regulator for 3.3 V.</li>
+<li>Tie <code>VBAT</code> to <code>VDD</code> if you do not use a battery backup.</li>
+</ul>
+<p>The values above are overviews from the manufacturers' guidelines as we understand them. Verify them against the current datasheet and reference manual before sending a board to be made.</p>
+</section>
+
+<section id="checklist-and-mistakes">
+<h2>Pre-order checklist and common beginner mistakes</h2>
+<h3>Pre-order checklist</h3>
+<ul>
+<li>ERC has no unexplained errors; every power net has a <code>PWR_FLAG</code> where needed.</li>
+<li>Every footprint has been compared with the real part (printed 1:1 and tested).</li>
+<li>DRC passes with the <strong>manufacturer's current</strong> rules; zones are refilled.</li>
+<li>Battery polarity, XT60 orientation and the power switch are correct, and reverse protection is in place.</li>
+<li>Decoupling capacitors are next to each chip, and the motor power is separate from I&sup2;C and analog lines.</li>
+<li>Trace widths suit the currents; mounting holes fit your chassis.</li>
+<li>Connectors are labelled on the silkscreen, with pin 1 and polarity; version and date are on the board.</li>
+<li>Test points exist for the main rails.</li>
+<li>Gerbers and drill files were inspected in a viewer; the 3D view looks right.</li>
+<li>The pin map in the schematic matches the pin map in your code.</li>
+</ul>
+<h3>Common beginner mistakes</h3>
+<ul>
+<li><strong>Wrong footprint or mirrored header</strong>: the board does not fit the module.</li>
+<li><strong>Forgetting a connection</strong> because the ratsnest was not fully routed; always check the DRC for unconnected items.</li>
+<li><strong>Traces too thin for the motor current</strong>, which heat up or burn.</li>
+<li><strong>Not placing a capacitor at the chip</strong>, so the board resets randomly.</li>
+<li><strong>Using a strapping pin</strong> (<code>GPIO0</code>, <code>2</code>, <code>12</code>, <code>15</code>) for something that pulls it the wrong way at boot.</li>
+<li><strong>Using the flash pins</strong> <code>GPIO6</code> to <code>GPIO11</code>.</li>
+<li><strong>Powering a sensor from 5 V</strong> so that its output goes above 3.3 V.</li>
+<li><strong>Making the board before the pin map is tested</strong> on a breadboard. Test every module and the code on the breadboard first, then move to the PCB.</li>
+<li><strong>Skipping the test with a multimeter</strong> before the first power-up.</li>
+</ul>
+<div class="callout callout-note"><div class="callout-title">Plan for version 2</div><p>Almost nobody gets a board perfect the first time. Add a few spare pads and test points, expect to fix at least one small mistake, and keep the KiCad project in Git so you can see what you changed between versions.</p></div>
+</section>
+
+<section id="key-takeaways">
+<h2>Key takeaways</h2>
+<ul>
+<li>The flow is: idea, schematic, ERC, footprints, layout, routing, DRC, Gerbers, order. Both checks can send you back a step.</li>
+<li>Use KiCad (menus differ slightly between versions); EasyEDA is a browser-based alternative with built-in parts and ordering, and the skills transfer between them.</li>
+<li>Run ERC and understand every message. <code>PWR_FLAG</code> tells the checker where power comes in.</li>
+<li><strong>Check every footprint against the real part</strong>, and print it at 1:1.</li>
+<li>Place decoupling capacitors next to the chip pins, keep motor power away from I&sup2;C, encoder and analog lines, and use a ground pour with a sensible return path.</li>
+<li>Size traces for the current (IPC-2221 gives roughly 0.8 mm for 2 A on 1 oz outer copper at a 10 &deg;C rise); use wider for power.</li>
+<li>Set the DRC from your manufacturer's current capabilities, not from numbers someone quoted.</li>
+<li>Export Gerber and drill files, inspect them in a viewer and the 3D view, and test the new board with a multimeter before you plug in expensive parts.</li>
+<li>The STM32 carrier moves the signals to hardware timers and ADC pins; a bare-MCU board needs more experience, so start with a carrier board.</li>
+</ul>
+</section>

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 350" role="img" aria-label="Roadmap of six milestones: build the chassis, check sensors and motors, PID line follower, track features, maze solver, and test and present, with an optional encoder speed control bonus.">
+<defs><marker id="s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#334155"/></marker></defs>
+<rect width="680" height="350" rx="12" fill="#f8fafc"/>
+<g font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#1e293b" text-anchor="middle">
+<text x="340" y="26" font-weight="700" font-size="15">Roadmap: six milestones</text>
+<rect x="20" y="46" width="180" height="84" rx="10" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+<text x="110" y="74" font-weight="700" font-size="15">1  Build the robot</text>
+<text x="110" y="96" font-size="13" fill="#475569">chassis, motors, power</text>
+<text x="110" y="116" font-size="13" fill="#2563eb">Lessons 04, 11</text>
+<rect x="250" y="46" width="180" height="84" rx="10" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+<text x="340" y="74" font-weight="700" font-size="15">2  Parts work alone</text>
+<text x="340" y="96" font-size="13" fill="#475569">sensors, motors, encoders</text>
+<text x="340" y="116" font-size="13" fill="#2563eb">Lessons 01, 03, 05</text>
+<rect x="480" y="46" width="180" height="84" rx="10" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+<text x="570" y="74" font-weight="700" font-size="15">3  PID line follower</text>
+<text x="570" y="96" font-size="13" fill="#475569">follows a curvy track</text>
+<text x="570" y="116" font-size="13" fill="#2563eb">Lessons 06, 07, 08</text>
+<rect x="20" y="176" width="180" height="84" rx="10" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+<text x="110" y="204" font-weight="700" font-size="15">4  Track features</text>
+<text x="110" y="226" font-size="13" fill="#475569">turns, junctions, gaps</text>
+<text x="110" y="246" font-size="13" fill="#2563eb">Lesson 08</text>
+<rect x="250" y="176" width="180" height="84" rx="10" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+<text x="340" y="204" font-weight="700" font-size="15">5  Maze solver</text>
+<text x="340" y="226" font-size="13" fill="#475569">explore, then solve</text>
+<text x="340" y="246" font-size="13" fill="#2563eb">Lesson 09</text>
+<rect x="480" y="176" width="180" height="84" rx="10" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+<text x="570" y="204" font-weight="700" font-size="15">6  Test and present</text>
+<text x="570" y="226" font-size="13" fill="#475569">measure, debug, show</text>
+<text x="570" y="246" font-size="13" fill="#2563eb">Lesson 12</text>
+<g stroke="#334155" stroke-width="2.5" fill="none" marker-end="url(#s)">
+<path d="M200 88 H248"/><path d="M430 88 H478"/>
+<path d="M570 130 V153 H110 V174"/>
+<path d="M200 218 H248"/><path d="M430 218 H478"/>
+</g>
+<rect x="120" y="290" width="440" height="42" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="2" stroke-dasharray="7 4"/>
+<text x="340" y="308" font-weight="700" fill="#9a3412">Optional bonus: encoder-based speed control</text>
+<text x="340" y="326" font-size="13" fill="#475569">Lessons 05, 06. Add it any time after milestone 3.</text>
+</g></svg>

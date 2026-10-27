@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 370" role="img" aria-label="Layout sketch comparing a bad placement, with a far decoupling capacitor and an I2C trace running beside the motor current, with a good placement, with the capacitor beside the MCU pin and separate motor and logic zones">
+  <rect width="680" height="370" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b" text-anchor="middle">
+    <text x="170" y="34" font-size="16" font-weight="700" fill="#dc2626">Bad placement</text>
+    <text x="510" y="34" font-size="16" font-weight="700" fill="#16a34a">Good placement</text>
+
+    <!-- BAD -->
+    <rect x="15" y="50" width="310" height="250" rx="8" fill="#fff" stroke="#94a3b8" stroke-width="2"/>
+    <rect x="30" y="70" width="60" height="24" rx="4" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+    <text x="60" y="87">Battery</text>
+    <rect x="30" y="180" width="80" height="40" rx="5" fill="#fff" stroke="#334155" stroke-width="2"/>
+    <text x="70" y="205">Driver</text>
+    <rect x="120" y="90" width="90" height="60" rx="6" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <text x="165" y="125">MCU</text>
+    <rect x="285" y="167" width="28" height="16" rx="3" fill="#fef3c7" stroke="#ea580c" stroke-width="2"/>
+    <rect x="270" y="255" width="46" height="30" rx="4" fill="#fff" stroke="#9333ea" stroke-width="2"/>
+    <text x="293" y="275">I2C</text>
+    <g fill="none" stroke-linejoin="round">
+      <path d="M60 94 L60 180" stroke="#dc2626" stroke-width="6"/>
+      <path d="M110 210 L316 210" stroke="#dc2626" stroke-width="6"/>
+      <path d="M165 150 L165 222 L293 222 L293 255" stroke="#9333ea" stroke-width="2.5"/>
+      <path d="M210 115 L235 115 L235 175 L285 175" stroke="#ea580c" stroke-width="2.5"/>
+    </g>
+    <text x="170" y="324">Capacitor far from the pin (long loop).</text>
+    <text x="170" y="344">I2C trace runs beside motor current.</text>
+
+    <!-- GOOD -->
+    <rect x="355" y="50" width="310" height="250" rx="8" fill="#fff" stroke="#94a3b8" stroke-width="2"/>
+    <rect x="360" y="55" width="120" height="240" rx="6" fill="#ffedd5"/>
+    <rect x="485" y="55" width="175" height="240" rx="6" fill="#eff6ff"/>
+    <text x="420" y="73" fill="#9a3412">Motor power zone</text>
+    <text x="572" y="73" fill="#1d4ed8">Logic and sensor zone</text>
+    <rect x="370" y="85" width="60" height="24" rx="4" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+    <text x="400" y="102">Battery</text>
+    <rect x="370" y="180" width="80" height="40" rx="5" fill="#fff" stroke="#334155" stroke-width="2"/>
+    <text x="410" y="205">Driver</text>
+    <rect x="370" y="250" width="80" height="30" rx="4" fill="#fff" stroke="#334155" stroke-width="2"/>
+    <text x="410" y="270">Motors</text>
+    <rect x="520" y="110" width="90" height="60" rx="6" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <text x="565" y="145">MCU</text>
+    <rect x="612" y="124" width="20" height="14" rx="3" fill="#fef3c7" stroke="#ea580c" stroke-width="2"/>
+    <rect x="515" y="240" width="100" height="30" rx="4" fill="#fff" stroke="#9333ea" stroke-width="2"/>
+    <text x="565" y="260">I2C / sensors</text>
+    <g fill="none" stroke-linejoin="round">
+      <path d="M400 109 L400 180" stroke="#dc2626" stroke-width="6"/>
+      <path d="M410 220 L410 250" stroke="#dc2626" stroke-width="6"/>
+      <path d="M450 200 L500 200 L500 140 L520 140" stroke="#2563eb" stroke-width="2.5"/>
+      <path d="M565 170 L565 240" stroke="#9333ea" stroke-width="2.5"/>
+    </g>
+    <text x="510" y="324">Capacitor touches the supply pin.</text>
+    <text x="510" y="344">Motor current stays in its own zone.</text>
+  </g>
+</svg>

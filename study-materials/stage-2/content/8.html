@@ -1,0 +1,804 @@
+<section id="what-we-build">
+<h2>What we are building</h2>
+<p>You can already read a line sensor (Lesson 03), drive two motors (Lesson 01), organise a program with a state machine (Lesson 02) and compute a PID output (Lesson 06). This lesson joins them into a <strong>PID line follower</strong>: a robot that keeps a black line centred under its sensor array and drives smoothly, instead of the zig-zag of a simple on/off follower.</p>
+<p>We build it in three layers, and you should finish each layer before starting the next:</p>
+<ol>
+<li><strong>A simple PID follower</strong> that follows a gently curving line (sections 2 to 4), tuned by hand (section 5).</li>
+<li><strong>Track features</strong>: sharp 90&deg; turns, T-junctions, cross junctions, gaps and dead ends, handled with a state machine (section 6).</li>
+<li><strong>An OLED menu with three buttons</strong> so you can change Kp, Ki, Kd and the speed at the track side without a laptop, and keep the values after power-off (sections 7 and 8).</li>
+</ol>
+<div class="callout callout-note"><div class="callout-title">Assumptions in this lesson</div><ul>
+<li>Hardware as in the earlier lessons: ESP32 DevKit, TB6612FNG driver, QTR-8A array read through two ADS1115 chips, N20 motors with encoders (1400 counts per wheel turn, 34 mm wheels, 85 mm wheel base), SSD1306 OLED at 0x3C. <strong>All of these are assumptions</strong>; replace them with your own robot's numbers.</li>
+<li><code>readLinePosition()</code> returns <strong>&minus;3500 (line under sensor 0, the leftmost) to +3500 (line under sensor 7)</strong>, with 0 meaning centred. If your Lesson 03 version uses the opposite sign, flip the sign of the error in section 2 and nothing else.</li>
+<li>All gain, speed, distance and threshold numbers are <strong>examples</strong>. They depend on your motors, wheels, battery, sensor height and scaling.</li>
+<li>Function names are the shared ones: <code>drive()</code>, <code>readCalibrated()</code>, <code>readLinePosition()</code>, <code>leftTicks()</code>, <code>rightTicks()</code>, <code>resetEncoders()</code>, <code>pidCompute()</code>, with <code>PidGains</code> and <code>PidState</code>.</li>
+</ul></div>
+<div class="callout callout-caution"><div class="callout-title">Starter code, not tested on your robot</div><p>All code here was written without access to the hardware. Pins, motor directions and every number must be tested and tuned on the real robot. Test with the wheels off the ground first, and keep a finger near the power switch. Handle the LiPo battery carefully: never short it and check the polarity before connecting.</p></div>
+</section>
+
+<section id="error-calculation">
+<h2>Error calculation</h2>
+<p>A controller needs one number that says &ldquo;how wrong am I right now?&rdquo; For a line follower that number is the <strong>error</strong>: how far the line is from where we want it.</p>
+<figure><img src="/study-materials/stage-2/content/img/8-1.svg" alt="Top view of an eight-sensor array over a curved line, with sensors 1 and 2 seeing the line, position minus 2000, setpoint 0 and error plus 2000" loading="lazy"><figcaption>Sensors 1 and 2 are over the line, so the weighted position is &minus;2000. The error is the setpoint minus the position: +2000.</figcaption></figure>
+<h3>Position, setpoint and error</h3>
+<ul>
+<li><strong>Position</strong> comes from <code>readLinePosition()</code>. It is a weighted average of the eight calibrated readings, expressed in steps of 1000 per sensor: &minus;3500 means the line is under sensor 0, 0 means it is between sensors 3 and 4, +3500 means sensor 7.</li>
+<li><strong>Setpoint</strong> is where we want the line to be. For a follower that is the middle of the array: <code>0</code>.</li>
+<li><strong>Error</strong> = setpoint &minus; position.</li>
+</ul>
+<pre><code class="language-cpp">const int SETPOINT = 0;                         // line centred under the array
+
+bool lineSeen;
+int position = readLinePosition(lineSeen);      // -3500 .. +3500
+float error = SETPOINT - position;              // + means the line is to the LEFT</code></pre>
+<div class="callout callout-key"><div class="callout-title">Our sign convention (keep it everywhere)</div><p>Sensor 0 is on the left, so a line on the left gives a <strong>negative position</strong> and therefore a <strong>positive error</strong>. Positive error means &ldquo;steer left&rdquo;. In section 4 a positive correction makes the <em>left</em> wheel slower and the <em>right</em> wheel faster, which turns the robot left. If your robot runs away from the line instead of towards it, the sign is wrong somewhere: swap the two signs in the mixer.</p></div>
+<h3>What the error means physically</h3>
+<p>Because one sensor step is about 9.5 mm (the QTR-8A pitch), an error of 1000 is roughly 9.5 mm of sideways offset, and the full range of &plusmn;3500 is about 33 mm each way. The error is measured under the sensor array, which sits <em>ahead</em> of the wheels, so it is an early warning of where the robot is going, not where the wheels are now.</p>
+<h3>Scaling</h3>
+<p>The size of the error decides what gains work. With raw units (&plusmn;3500) a good Kp is a small decimal such as 0.05, because 3500 &times; 0.05 = 175 is already a strong PWM correction. Some people divide the error by 3500 first so it runs &minus;1 to +1; then Kp is around 100 to 200 instead. Both are the same controller. We keep raw units in this lesson. Whatever you choose, <strong>write the scaling in a comment</strong>: a gain without its scaling is meaningless.</p>
+<p>One more rule: if no sensor sees the line (<code>lineSeen</code> is <code>false</code>), the position is not trustworthy. Do not feed it into the PID. We handle that case separately.</p>
+</section>
+
+<section id="pid-loop">
+<h2>The PID control loop</h2>
+<p>Lesson 06 explained P, I and D. Here is the one-minute version in line-following terms:</p>
+<div class="card-grid">
+<div class="info-card"><h4>P: proportional</h4><p>Correct in proportion to the error now. Far from the line, steer hard. Main source of &ldquo;following&rdquo;.</p></div>
+<div class="info-card"><h4>I: integral</h4><p>Adds up past error. Removes a small steady offset, but can wind up and cause overshoot. Usually tiny or zero.</p></div>
+<div class="info-card"><h4>D: derivative</h4><p>Reacts to how fast the error is changing. Brakes the swing, so the robot does not overshoot the line.</p></div>
+</div>
+<figure><img src="/study-materials/stage-2/content/img/8-2.svg" alt="Block diagram of the line follower control loop: setpoint and measured position give the error, the PID gives a correction, the mixer adds base speed, the motors move the robot and the sensor array measures the new position" loading="lazy"><figcaption>The control loop. The sensors close the loop: every pass measures what the previous correction achieved.</figcaption></figure>
+<h3>Fixed loop timing</h3>
+<p>The I and D terms depend on time, so the loop must run at a steady rate, and <code>pidCompute()</code> needs the real time step <code>dt</code> in seconds. Use <code>micros()</code> as in Lesson 02, never <code>delay()</code>.</p>
+<p>How fast can you go? The ADS1115 is slow (up to 860 samples per second per chip), so one scan of eight sensors takes <strong>very roughly 12 to 20 ms</strong> (the same estimate as in Lesson 03). That is an estimate: measure your own with <code>micros()</code> around <code>readLinePosition()</code>. Set the loop period at or just above the scan time (20 ms = 50 Hz is a realistic start). If you need a faster loop, that is the argument for the STM32F411 Black Pill and its on-chip ADC. Even when the loop is late, the measured <code>dt</code> keeps the PID honest.</p>
+<h3>Anti-windup and derivative</h3>
+<ul>
+<li><strong>Anti-windup:</strong> the <code>integralLimit</code> argument caps how large the stored integral may grow, so a long off-line period cannot build up a huge integral. We also reset the integral whenever the controller restarts (new run, line re-found, after a turn).</li>
+<li><strong>Derivative:</strong> <code>pidCompute()</code> computes the derivative from the change in error divided by <code>dt</code>. Two traps: a huge derivative on the very first call (because <code>lastError</code> is stale), and noisy sensors amplified by Kd. Avoid the first by resetting <code>PidState</code> when you start; reduce the second by keeping Kd modest and calibrating well. Check your Lesson 06 version for how it clamps the integral.</li>
+</ul>
+<h3>A complete, simple PID line follower</h3>
+<p>This is the whole sketch for layer 1. <code>steer()</code> is written in the next section.</p>
+<pre><code class="language-cpp">#include "motors.h"
+#include "sensors.h"
+#include "pid.h"                               // PidGains, PidState, pidCompute()
+
+const int   SETPOINT       = 0;                // line centred
+const float INTEGRAL_LIMIT = 3000.0f;          // example anti-windup cap
+const unsigned long LOOP_US = 20000;           // 20 ms; must be >= your scan time
+
+PidGains gains = {0.05f, 0.0f, 0.004f};        // EXAMPLE start: Kp, Ki, Kd (raw +-3500 error)
+PidState pid;
+float baseSpeed = 70.0f;                       // PWM units (0..255), start slow
+unsigned long lastLoopUs = 0;
+bool wasLost = false;
+
+void steer(float base, float correction);      // written in the next section
+
+void searchForLine() {                         // line lost: spin back towards the last side
+  const int SEARCH_PWM = 90;
+  if (pid.lastError &gt;= 0) drive(-SEARCH_PWM, SEARCH_PWM);   // it was on the left: spin left
+  else                     drive(SEARCH_PWM, -SEARCH_PWM);
+}
+
+void setup() {
+  Serial.begin(115200);
+  motorsBegin();
+  sensorsBegin();
+  calibrate();                                 // Lesson 03: sweep over the line and the floor
+  lastLoopUs = micros();
+}
+
+void loop() {
+  unsigned long nowUs = micros();
+  if (nowUs - lastLoopUs &lt; LOOP_US) return;    // not time yet (wrap-safe subtraction)
+  float dt = (nowUs - lastLoopUs) / 1000000.0f;
+  lastLoopUs = nowUs;
+
+  bool lineSeen;
+  int position = readLinePosition(lineSeen);
+  if (!lineSeen) {                             // do not feed a meaningless position to the PID
+    searchForLine();
+    wasLost = true;
+    return;
+  }
+
+  float error = SETPOINT - position;           // + = line on the left
+  if (wasLost) {                               // restart cleanly after a lost line
+    pid.integral = 0;
+    pid.lastError = error;
+    wasLost = false;
+  }
+
+  float correction = pidCompute(gains, pid, error, dt, INTEGRAL_LIMIT);
+  steer(baseSpeed, correction);
+}</code></pre>
+<p>Read <code>loop()</code> as a story: wait for the next tick, measure the position, compute the error, ask the PID for a correction, turn it into wheel speeds. That is the whole follower.</p>
+</section>
+
+<section id="motor-speed-correction">
+<h2>Motor-speed correction</h2>
+<p>The PID gives one number, the <strong>correction</strong>. The <strong>mixer</strong> turns it into two wheel speeds: one wheel is sped up and the other slowed down by the same amount, so the robot turns while the average speed stays the same.</p>
+<pre><code class="language-text">leftSpeed  = base - correction     (positive correction = turn left)
+rightSpeed = base + correction</code></pre>
+<p>Check it with an example. Line on the left, position &minus;2000, error +2000, Kp = 0.05: correction = +100. With base = 70, the left wheel gets &minus;30 and the right wheel gets 170. The robot pivots left towards the line. (If your convention is the mirror image, the same idea reads <code>base + correction</code> for the left wheel. Pick one and make sure the error sign matches.)</p>
+<h3>The mixer, with clamping and reverse</h3>
+<p>Notice that the left wheel above is <strong>negative</strong>: it runs backwards. That is what lets the robot take tight turns, because one wheel reversing makes it rotate nearly on the spot. <code>drive()</code> accepts &minus;255 to 255, so we allow it. Two details matter:</p>
+<ul>
+<li>If one wheel would exceed 255, simply clipping it changes the turning amount. Instead subtract the excess from <em>both</em> wheels, so the <em>difference</em> (which does the steering) is preserved.</li>
+<li>A motor does not start turning at very low PWM (the dead band). A <strong>minimum PWM</strong> of, say, 30 to 40 out of 255 is common for small gearmotors. It is an example number: find yours by raising a single wheel's PWM from 0 until it just turns.</li>
+</ul>
+<pre><code class="language-cpp">const int   MIN_PWM       = 35;      // EXAMPLE dead band: measure on your motors
+const float SLOW_FRACTION = 0.5f;    // at full error, base speed drops to 50 %
+
+// Map 1..255 onto MIN_PWM..255 so small commands still turn the wheel.
+int applyMinPwm(int speed) {
+  if (speed == 0) return 0;
+  int mag = MIN_PWM + abs(speed) * (255 - MIN_PWM) / 255;
+  return speed &gt; 0 ? mag : -mag;
+}
+
+void steer(float base, float correction) {
+  int left  = (int)(base - correction);
+  int right = (int)(base + correction);
+
+  int over = max(left, right) - 255;           // one side too fast?
+  if (over &gt; 0) { left -= over; right -= over; }   // keep the difference
+  left  = constrain(left,  -255, 255);
+  right = constrain(right, -255, 255);
+
+  drive(applyMinPwm(left), applyMinPwm(right));
+}</code></pre>
+<h3>Slow down in curves</h3>
+<p>A large error means a curve or a tight correction, and that is exactly when high speed is dangerous. A simple, very effective trick is to lower the base speed as the error grows:</p>
+<pre><code class="language-cpp">float adaptiveBase(float error) {
+  float k = constrain(fabsf(error) / 3500.0f, 0.0f, 1.0f);   // 0 centred ... 1 at the edge
+  return baseSpeed * (1.0f - SLOW_FRACTION * k);
+}
+
+// in the loop:  steer(adaptiveBase(error), correction);</code></pre>
+<p>On straights the robot runs at full <code>baseSpeed</code>; entering a curve it slows automatically, then speeds up again.</p>
+<div class="callout callout-tip"><div class="callout-title">Battery compensation (idea)</div><p>A 3S LiPo drops from 12.6 V to around 10 V or lower as it empties, and the same PWM then gives a slower robot. Your tuning is then only right for one battery level. If you can measure the pack voltage, scale the speeds: <code>scale = 11.1f / vbat</code> (limited to about 0.8 to 1.2), then multiply <code>base</code> by it. Measuring the pack needs a resistor divider into a spare ADC input, or an I2C power monitor; the suggested pin map keeps GPIO39 free for exactly this (Lesson 11 shows the divider and the code), so wire it if you want the battery voltage on the screen. Never connect 12 V directly to an ESP32 pin. Do not discharge a LiPo below the voltage on its datasheet or label.</p></div>
+</section>
+
+<section id="tuning">
+<h2>Tuning a line follower</h2>
+<p>Tuning means finding Kp, Ki, Kd (and speed) that make this particular robot follow smoothly. There is no magic formula: you change one thing, watch, and decide. A fixed procedure keeps it quick.</p>
+<h3>Step by step</h3>
+<ol>
+<li><strong>Prepare.</strong> Calibrate the sensors on the actual track, check that the position is symmetric (line under S0 gives about &minus;3500, under S7 about +3500) and that the robot steers <em>towards</em> the line. Use a fresh, fully charged battery.</li>
+<li><strong>Start slow.</strong> Set <code>baseSpeed</code> low (around a third of the maximum), Ki = 0, Kd = 0.</li>
+<li><strong>Kp only.</strong> Raise Kp until the robot follows the line with a regular, small side-to-side wobble. Too low and it drifts off curves; too high and the wobble grows. Then back Kp off by about 20 to 30 %.</li>
+<li><strong>Add Kd.</strong> Raise Kd slowly. The wobble should fade and the robot should look calmer and &ldquo;lock on&rdquo;. If it starts to buzz or twitch, Kd is too high.</li>
+<li><strong>Add Ki last, and small.</strong> Often Ki stays at 0. Use it only to cure a steady lean to one side on a long straight, and keep the integral limit low.</li>
+<li><strong>Raise the speed</strong> a little, then repeat steps 3 and 4: gains that work slowly rarely work fast. Raise speed until the robot starts cutting corners or losing the line, then stop and keep a margin.</li>
+</ol>
+<div class="callout callout-note"><div class="callout-title">Example starting ranges (raw error &plusmn;3500, 20 ms loop)</div><p>These depend on your scaling, wheels and motors. Treat them only as a place to start: <strong>Kp 0.02 to 0.08</strong> (PWM per unit of error); <strong>Kd 0.002 to 0.01</strong> (a rough rule: Kd &asymp; Kp &times; 0.05 to 0.15 s, because it multiplies the error change per second); <strong>Ki 0 to 0.02</strong>. If you normalise the error to &minus;1..+1, multiply Kp by 3500.</p></div>
+<h3>What to watch</h3>
+<ul>
+<li><strong>Wobble:</strong> the robot swings across the line. Reduce Kp or add Kd.</li>
+<li><strong>Lag:</strong> it reacts late and drifts wide on curves. Raise Kp, or lower the speed.</li>
+<li><strong>Cutting corners:</strong> on tight bends it runs outside the line because it is too fast for the sensor look-ahead. Lower the speed or the <code>SLOW_FRACTION</code>.</li>
+</ul>
+<h3>Log to the Serial Plotter</h3>
+<p>Numbers you can see beat guessing. Arduino IDE 2.x has a Serial Plotter that graphs lines of <code>name:value</code> pairs separated by commas. Print at a low rate (every 50 ms) so the printing does not disturb the control loop. Divide large values so they fit on one graph.</p>
+<pre><code class="language-cpp">void logPlot(int position, float error, float correction) {
+  static unsigned long lastLogMs = 0;
+  if (millis() - lastLogMs &lt; 50) return;       // 20 prints per second
+  lastLogMs = millis();
+  Serial.print("position:");   Serial.print(position);
+  Serial.print(",correction:"); Serial.print(correction);
+  Serial.print(",error:");     Serial.println(error);
+}</code></pre>
+<p>A healthy graph shows the position hovering around zero with small, quickly fading ripples. A growing sine wave means Kp too high; a slow, lazy return means Kp or Kd too low.</p>
+<h3>Symptom, cause, fix</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Robot runs off the line immediately</td><td>Error or mixer sign wrong</td><td>Swap the signs in <code>steer()</code>; check the position sign</td></tr>
+<tr><td>Growing side-to-side wobble</td><td>Kp too high, or Kd too low</td><td>Lower Kp, raise Kd a little</td></tr>
+<tr><td>Fast twitching or buzzing on straights</td><td>Kd too high, noisy sensors, uneven loop timing</td><td>Lower Kd, recalibrate, check <code>dt</code></td></tr>
+<tr><td>Drifts wide on curves, late to react</td><td>Kp too low or speed too high</td><td>Raise Kp, lower speed, use <code>adaptiveBase()</code></td></tr>
+<tr><td>Leans to one side on a straight</td><td>Motor mismatch or calibration offset</td><td>Match the motors (Lesson 12), recalibrate; tiny Ki as a last resort</td></tr>
+<tr><td>Overshoots, then wobbles for a long time after a curve</td><td>Ki too high, integral wind-up</td><td>Reduce Ki or the integral limit; reset the integral</td></tr>
+<tr><td>Good on a full battery, worse later</td><td>Battery sag lowers motor speed</td><td>Battery compensation, or tune on a mid-charge pack</td></tr>
+<tr><td>Stalls or stutters when the correction is small</td><td>Below the motor dead band</td><td>Raise <code>MIN_PWM</code></td></tr>
+</tbody></table></div>
+</section>
+
+<section id="track-features">
+<h2>Handling track features</h2>
+<p>A PID follower is great on curves, but it knows nothing about corners and junctions. The practice track has 90&deg; turns, T-junctions, cross junctions, curved lines and gaps. These need <em>decisions</em>, and decisions are what a <strong>state machine</strong> (Lesson 02) is for. Only the first state runs PID.</p>
+<h3>Curves</h3>
+<p>Gentle curves need nothing extra: the PID follows them, and <code>adaptiveBase()</code> slows the robot down where the error grows. Only when the line becomes wide or the sensors go blank do we leave the follow state.</p>
+<h3>Reading the sensor pattern</h3>
+<p>The array can be turned into a <strong>pattern</strong>: for each sensor, is it on the line (calibrated value above a threshold) or not. A normal line covers 2 or 3 neighbouring sensors. A junction or corner is a line running <em>across</em> the array, covering many sensors at once.</p>
+<figure><img src="/study-materials/stage-2/content/img/8-3.svg" alt="Six sensor patterns: curve, 90 degree left corner, T-junction, cross junction, finish box, and gap or dead end, each with eight squares showing which sensors see the line at first contact and after driving forward" loading="lazy"><figcaption>A corner, a T and a cross all look the same at first contact: a bar across the array. They differ only in what happens after you roll forward a little.</figcaption></figure>
+<p>That is the key insight. At first contact you cannot tell a left corner from a T or a cross. So the rule is: <strong>detect &ldquo;a wide bar&rdquo;, drive forward a short, known distance with the encoders, then look again</strong>. In the second look, whether the line still continues straight tells you what you crossed.</p>
+<p>One practical point: do not call both <code>readLinePosition()</code> and <code>readCalibrated()</code> in the same pass, because each scan is slow (several milliseconds). One scan per loop is the budget, so the code below reads <code>readCalibrated()</code> once and computes the position from it with the same weighted average as Lesson 03. (If your Lesson 03 gives you a function that takes an existing reading, use that.)</p>
+<pre><code class="language-cpp">// track.h  (types live in a header so the Arduino auto-prototype step is happy)
+#pragma once
+#include &lt;Arduino.h&gt;
+#include "sensors.h"
+
+enum State { S_IDLE, S_FOLLOW, S_JUNCTION, S_TURN_LEFT, S_TURN_RIGHT, S_TURN_BACK, S_LOST, S_STOP };
+
+struct Pattern {
+  uint8_t mask;        // bit i = 1 when sensor i is on the line
+  uint8_t count;       // how many sensors are on the line
+  bool leftEdge;       // S0 and S1 both on
+  bool rightEdge;      // S6 and S7 both on
+  bool centre;         // S3 or S4 on
+};
+
+struct Scan {
+  uint16_t cal[NUM_SENSORS];
+  int  position;       // -3500..+3500
+  bool lineSeen;
+  Pattern pattern;
+};
+
+struct JunctionInfo { bool left; bool right; bool straight; bool finish; };
+
+enum Move { MOVE_LEFT, MOVE_STRAIGHT, MOVE_RIGHT, MOVE_BACK };
+
+void scanTrack(Scan&amp; s);
+bool isJunctionLike(const Pattern&amp; p);
+Move decideMove(const JunctionInfo&amp; j);</code></pre>
+<pre><code class="language-cpp">// track.cpp (part 1): one scan, position and pattern
+#include "track.h"
+
+const uint16_t BLACK_THRESHOLD = 500;   // calibrated value that counts as "on the line"
+const uint16_t LINE_SEEN_MIN   = 200;   // weakest peak that still counts as a line (example)
+const uint8_t  JUNCTION_COUNT  = 5;     // this many sensors on at once = a bar (example)
+
+static Pattern makePattern(const uint16_t cal[NUM_SENSORS]) {
+  Pattern p = {0, 0, false, false, false};
+  for (int i = 0; i &lt; NUM_SENSORS; i++) {
+    if (cal[i] &gt; BLACK_THRESHOLD) { p.mask |= (1 &lt;&lt; i); p.count++; }
+  }
+  p.leftEdge  = (p.mask &amp; 0x03) == 0x03;     // sensors 0 and 1
+  p.rightEdge = (p.mask &amp; 0xC0) == 0xC0;     // sensors 6 and 7
+  p.centre    = (p.mask &amp; 0x18) != 0;        // sensors 3 or 4
+  return p;
+}
+
+void scanTrack(Scan&amp; s) {
+  readCalibrated(s.cal);
+  long weighted = 0, total = 0;
+  uint16_t peak = 0;
+  for (int i = 0; i &lt; NUM_SENSORS; i++) {
+    weighted += (long)s.cal[i] * (i * 1000L);
+    total    += s.cal[i];
+    if (s.cal[i] &gt; peak) peak = s.cal[i];
+  }
+  s.lineSeen = (peak &gt;= LINE_SEEN_MIN);
+  s.position = s.lineSeen ? (int)(weighted / total) - 3500 : 0;
+  s.pattern  = makePattern(s.cal);
+}
+
+bool isJunctionLike(const Pattern&amp; p) {
+  return p.count &gt;= JUNCTION_COUNT;          // a normal line covers only 2 or 3
+}</code></pre>
+<h3>Junction policy</h3>
+<p>Once we know what the junction offers (<code>left</code>, <code>right</code>, <code>straight</code>), a <strong>policy</strong> picks the move. Different tracks need different policies. A common choice is the <strong>left-hand rule</strong>: always take the leftmost opening. Other examples are &ldquo;always right&rdquo; or &ldquo;straight if possible&rdquo;. <em>Use whatever your track or the club organisers specify</em>; in code it is one small function, easy to swap:</p>
+<pre><code class="language-cpp">// track.cpp (part 2): the policy, left-hand rule
+Move decideMove(const JunctionInfo&amp; j) {
+  if (j.left)     return MOVE_LEFT;
+  if (j.straight) return MOVE_STRAIGHT;
+  if (j.right)    return MOVE_RIGHT;
+  return MOVE_BACK;                            // nothing open: dead end, turn around
+}</code></pre>
+<p>Lesson 09 turns exactly this decision point into a maze solver by recording the choices.</p>
+<h3>Distance and turning helpers</h3>
+<p>The encoders give distance. At 1400 counts per wheel turn and a 34 mm wheel, one millimetre is 1400 / (&pi; &times; 34) &asymp; 13.1 counts. To pivot on the spot by an angle, each wheel travels (wheel base / 2) &times; angle in radians: for 90&deg; and an 85 mm wheel base that is 42.5 &times; 1.571 &asymp; 67 mm, or about 875 counts per wheel.</p>
+<pre><code class="language-cpp">// helpers.cpp (or at the top of the sketch)
+long mmToTicks(float mm) {
+  return (long)(mm * TICKS_PER_REV / (PI * WHEEL_DIAMETER_MM));
+}
+long pivotTicks(float degrees) {               // ticks EACH wheel travels when pivoting
+  return mmToTicks((WHEEL_BASE_MM / 2.0f) * degrees * PI / 180.0f);
+}
+long travelledTicks() {                        // average distance since resetEncoders()
+  return (labs(leftTicks()) + labs(rightTicks())) / 2;
+}
+
+enum PivotResult { PIVOTING, PIVOT_FOUND, PIVOT_GAVE_UP };
+
+// dir = -1 pivot left, +1 pivot right.
+// Turn at least minTicks (to get off the old line), then stop when the centre sensors
+// see a line. Give up after maxTicks so we never spin forever.
+PivotResult pivotStep(int dir, long minTicks, long maxTicks, const Pattern&amp; p) {
+  const int TURN_PWM = 110;                    // example
+  drive(dir * TURN_PWM, -dir * TURN_PWM);
+  long travelled = travelledTicks();
+  if (travelled &gt;= maxTicks) return PIVOT_GAVE_UP;
+  if (travelled &gt;= minTicks &amp;&amp; p.centre) return PIVOT_FOUND;
+  return PIVOTING;
+}</code></pre>
+<p>Why the minimum? On a cross, the straight line is still under the array when the pivot starts, so the centre sensors are already &ldquo;on&rdquo;. Turning at least about 50&deg; first makes sure we leave the old line before we start looking for the new one.</p>
+<h3>The state machine</h3>
+<p>Here are the states and what each one does. This follows the state-and-<code>enterState()</code> pattern of Lesson 02.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>State</th><th>Behaviour</th><th>Leaves when</th></tr></thead>
+<tbody>
+<tr><td><code>S_IDLE</code></td><td>Motors off, waiting</td><td>Run requested (button)</td></tr>
+<tr><td><code>S_FOLLOW</code></td><td>PID line following</td><td>Wide bar seen: <code>S_JUNCTION</code>; line gone: <code>S_LOST</code></td></tr>
+<tr><td><code>S_JUNCTION</code></td><td>Roll forward a set distance, note what was seen</td><td>Distance done: policy chooses a turn, <code>S_FOLLOW</code>, or <code>S_STOP</code></td></tr>
+<tr><td><code>S_TURN_LEFT</code> / <code>S_TURN_RIGHT</code></td><td>Pivot until the centre sensors find the line</td><td>Found: <code>S_FOLLOW</code>; gave up: <code>S_STOP</code></td></tr>
+<tr><td><code>S_TURN_BACK</code></td><td>Pivot about 180&deg; (U-turn)</td><td>Same as above</td></tr>
+<tr><td><code>S_LOST</code></td><td>Drive straight on slowly (maybe a gap)</td><td>Line found: <code>S_FOLLOW</code>; too far: <code>S_TURN_BACK</code></td></tr>
+<tr><td><code>S_STOP</code></td><td>Motors off (finish or failure)</td><td>Run requested again</td></tr>
+</tbody></table></div>
+<pre><code class="language-cpp">// in the main sketch: the per-state functions
+const float JUNCTION_ADVANCE_MM = 45.0f;   // ASSUMPTION: about the sensor-to-axle distance
+const float GAP_MM              = 60.0f;   // longest gap we still drive straight across
+const int   JUNCTION_PWM        = 70;      // slow and straight through junctions
+
+JunctionInfo junction;
+
+void followStep(const Scan&amp; s, float dt) {
+  if (isJunctionLike(s.pattern)) {                    // a bar across the array
+    junction = {s.pattern.leftEdge, s.pattern.rightEdge, false, false};
+    enterState(S_JUNCTION);                           // also resets the encoders
+    return;
+  }
+  if (!s.lineSeen) { enterState(S_LOST); return; }
+
+  float error = SETPOINT - s.position;
+  float correction = pidCompute(gains, pid, error, dt, INTEGRAL_LIMIT);
+  steer(adaptiveBase(error), correction);
+}
+
+void junctionStep(const Scan&amp; s) {
+  junction.left  |= s.pattern.leftEdge;               // keep what we saw while crossing
+  junction.right |= s.pattern.rightEdge;
+  drive(JUNCTION_PWM, JUNCTION_PWM);
+  if (travelledTicks() &lt; mmToTicks(JUNCTION_ADVANCE_MM)) return;
+
+  junction.finish   = (s.pattern.count &gt;= 7);         // still all black: finish box
+  junction.straight = s.pattern.centre &amp;&amp; !junction.finish;
+  drive(0, 0);
+
+  if (junction.finish) { enterState(S_STOP); return; }
+  switch (decideMove(junction)) {
+    case MOVE_LEFT:     enterState(S_TURN_LEFT);  break;
+    case MOVE_RIGHT:    enterState(S_TURN_RIGHT); break;
+    case MOVE_STRAIGHT: enterState(S_FOLLOW);     break;
+    default:            enterState(S_TURN_BACK);  break;
+  }
+}
+
+void turnStep(int dir, float minDeg, float maxDeg, const Scan&amp; s) {
+  PivotResult r = pivotStep(dir, pivotTicks(minDeg), pivotTicks(maxDeg), s.pattern);
+  if (r == PIVOT_FOUND)         enterState(S_FOLLOW);
+  else if (r == PIVOT_GAVE_UP)  enterState(S_STOP);
+}
+
+void lostStep(const Scan&amp; s) {
+  if (s.lineSeen) { enterState(S_FOLLOW); return; }   // a gap: we crossed it
+  drive(JUNCTION_PWM, JUNCTION_PWM);
+  if (travelledTicks() &gt; mmToTicks(GAP_MM)) enterState(S_TURN_BACK);   // dead end
+}</code></pre>
+<h3>Gaps, dead ends and the finish</h3>
+<ul>
+<li><strong>Gap:</strong> a short break in the line. The robot sees no line, so it rolls straight on for up to <code>GAP_MM</code>. If the line returns, back to following.</li>
+<li><strong>Dead end:</strong> the line ends. After the gap distance with nothing found, the robot does a U-turn. If the U-turn cannot find a line either, it stops.</li>
+<li><strong>Cross vs T vs finish box:</strong> after rolling forward, a continuing centre line means &ldquo;cross&rdquo; (or a side branch); blank floor means &ldquo;T&rdquo; (or a corner); still all black means a wide black box.</li>
+</ul>
+<div class="callout callout-caution"><div class="callout-title">Check these against your track</div><p><code>JUNCTION_ADVANCE_MM</code> should be about the distance from the sensor array back to the wheel axle, so the wheels are over the junction centre when you pivot, and long enough that the array has passed the bar. The finish box rule assumes the box is longer than that advance distance. Line width, the sensor height and the count thresholds all change the numbers. Ask the organisers for the real track dimensions and finish rules.</p></div>
+</section>
+
+<section id="oled-menu">
+<h2>Add an OLED and three buttons</h2>
+<p>Once the simple follower works, tuning with a laptop gets tiring: change a number, upload, carry the robot back to the track, repeat. An <strong>OLED display and three buttons</strong> let you change Kp, Ki, Kd and the speed on the spot, and keep them in flash.</p>
+<figure><img src="/study-materials/stage-2/content/img/8-4.svg" alt="Three buttons on GPIO14, GPIO16 and GPIO17 as Select, Up and Down, with mock-ups of the menu, edit and running screens of the OLED" loading="lazy"><figcaption>The button map and three example screens.</figcaption></figure>
+<h3>Hardware and libraries</h3>
+<ul>
+<li>OLED: SSD1306, 128 &times; 64, I2C address <code>0x3C</code>, on the shared I2C bus (SDA = GPIO21, SCL = GPIO22).</li>
+<li>Buttons: Select/Menu on <code>GPIO14</code>, Up on <code>GPIO16</code>, Down on <code>GPIO17</code>, each between the pin and GND, with <code>INPUT_PULLUP</code>. The pin reads <code>HIGH</code> when released and <strong><code>LOW</code> when pressed</strong>. (GPIO16 and 17 are fine on the ESP32-WROOM-32 DevKit, but they are used for PSRAM on WROVER boards.)</li>
+<li>Libraries: install <strong>Adafruit SSD1306</strong> and <strong>Adafruit GFX Library</strong> (plus Adafruit BusIO, which the Library Manager offers automatically). This code was written against the 2.5.x series of Adafruit SSD1306 and 1.11.x of Adafruit GFX; check your installed versions if a call is not found.</li>
+</ul>
+<h3>Two buttons are not enough, three are</h3>
+<ul>
+<li><strong>Select:</strong> open an item; in edit mode, save and go back; while running, emergency stop.</li>
+<li><strong>Up / Down:</strong> move in the menu; change a value when editing.</li>
+</ul>
+<h3>Non-blocking debounce and auto-repeat</h3>
+<p>A mechanical button bounces: the signal flickers for a few milliseconds when pressed. Do not use <code>delay()</code> to wait it out. Instead, a button counts as pressed only when the raw reading has stayed the same for a debounce time (about 25 ms), checked with <code>millis()</code>. For Up and Down we also want <strong>auto-repeat</strong>: hold the button and the value keeps changing. This tiny function returns <code>true</code> once per press, and again at intervals while held:</p>
+<pre><code class="language-cpp">// ui.cpp (part 1): buttons
+#include &lt;Wire.h&gt;
+#include &lt;Adafruit_GFX.h&gt;
+#include &lt;Adafruit_SSD1306.h&gt;
+#include "ui.h"
+#include "settings.h"
+#include "sensors.h"                 // calibrate(), NUM_SENSORS
+
+static const uint8_t PIN_SELECT = 14, PIN_UP = 16, PIN_DOWN = 17;
+static const unsigned long DEBOUNCE_MS     = 25;
+static const unsigned long REPEAT_DELAY_MS = 400;   // hold this long before repeating
+static const unsigned long REPEAT_MS       = 120;   // then repeat at this rate
+
+struct Button {
+  uint8_t pin;
+  bool repeats;                      // auto-repeat when held?
+  bool lastRaw;                      // last raw reading (true = pressed)
+  bool pressed;                      // debounced state
+  unsigned long changedAt;           // when the raw reading last changed
+  unsigned long pressedAt;           // when the debounced press began
+  unsigned long lastRepeat;
+};
+
+static Button btnSelect = {PIN_SELECT, false, false, false, 0, 0, 0};
+static Button btnUp     = {PIN_UP,     true,  false, false, 0, 0, 0};
+static Button btnDown   = {PIN_DOWN,   true,  false, false, 0, 0, 0};
+
+static bool buttonFired(Button&amp; b) {
+  unsigned long now = millis();
+  bool raw = (digitalRead(b.pin) == LOW);            // active LOW
+  if (raw != b.lastRaw) { b.lastRaw = raw; b.changedAt = now; }
+
+  if (now - b.changedAt &gt;= DEBOUNCE_MS &amp;&amp; raw != b.pressed) {
+    b.pressed = raw;                                 // stable long enough: accept
+    if (raw) { b.pressedAt = now; b.lastRepeat = now; return true; }
+  }
+  if (b.repeats &amp;&amp; b.pressed &amp;&amp; now - b.pressedAt &gt;= REPEAT_DELAY_MS
+      &amp;&amp; now - b.lastRepeat &gt;= REPEAT_MS) {
+    b.lastRepeat = now;
+    return true;                                     // held: repeat
+  }
+  return false;
+}
+
+static int stepMultiplier(const Button&amp; b) {          // held for 2 s: change 10x faster
+  return (b.pressed &amp;&amp; millis() - b.pressedAt &gt; 2000) ? 10 : 1;
+}</code></pre>
+<h3>The menu as a small state machine</h3>
+<p>The UI is itself a tiny state machine with four screens: <code>SCR_MENU</code>, <code>SCR_EDIT</code>, <code>SCR_SENSORS</code> and <code>SCR_RUN</code>. The menu items are Run, Calibrate, Kp, Ki, Kd, Base speed and a live sensor bar view. The four tunable numbers are described by one table, so adding a fifth later is one line:</p>
+<pre><code class="language-cpp">// ui.cpp (part 2): menu data and state
+enum Screen { SCR_MENU, SCR_EDIT, SCR_SENSORS, SCR_RUN };
+enum Item   { IT_RUN, IT_CALIBRATE, IT_KP, IT_KI, IT_KD, IT_BASE, IT_SENSORS, IT_COUNT };
+
+static const char* const itemNames[IT_COUNT] =
+    {"Run", "Calibrate", "Kp", "Ki", "Kd", "Base speed", "Sensor bar"};
+
+struct Editable { const char* name; float* value; float step, minV, maxV; int decimals; };
+
+static const Editable editables[] = {              // order = IT_KP, IT_KI, IT_KD, IT_BASE
+  {"Kp",         &amp;gains.kp,  0.005f,  0.0f,  1.0f, 3},
+  {"Ki",         &amp;gains.ki,  0.001f,  0.0f,  0.5f, 3},
+  {"Kd",         &amp;gains.kd,  0.0005f, 0.0f,  0.1f, 4},
+  {"Base speed", &amp;baseSpeed, 5.0f,    0.0f, 255.0f, 0},
+};
+
+static Adafruit_SSD1306 oled(128, 64, &amp;Wire, -1);   // width, height, I2C bus, no reset pin
+static bool oledOk = false;
+
+static Screen screen = SCR_MENU;
+static int  cursor = 0;                  // selected menu item
+static int  editing = 0;                 // index into editables[]
+static bool startFlag = false, stopFlag = false, dirty = true;
+static unsigned long lastDrawMs = 0;
+
+static void showMessage(const char* line1, const char* line2);   // defined with the drawing code
+
+const unsigned long DRAW_INTERVAL_MS   = 150;      // never redraw faster than this
+const bool          LIVE_VIEW_WHILE_RUNNING = false;   // see the warning below</code></pre>
+<pre><code class="language-cpp">// ui.cpp (part 3): what each button does on each screen
+static void handleMenu(bool sel, bool up, bool down) {
+  if (up   &amp;&amp; cursor &gt; 0)            { cursor--; dirty = true; }
+  if (down &amp;&amp; cursor &lt; IT_COUNT - 1) { cursor++; dirty = true; }
+  if (!sel) return;
+
+  switch (cursor) {
+    case IT_RUN:                                    // draw first, THEN start the robot
+      screen = SCR_RUN; showMessage("RUNNING", "any button = STOP");
+      startFlag = true;
+      break;
+    case IT_CALIBRATE:
+      showMessage("CALIBRATE", "see Lesson 03");   // calibrate() blocks, so say so first
+      calibrate();
+      dirty = true;
+      break;
+    case IT_SENSORS: screen = SCR_SENSORS; dirty = true; break;
+    default:                                        // Kp, Ki, Kd, Base speed
+      editing = cursor - IT_KP; screen = SCR_EDIT; dirty = true; break;
+  }
+}
+
+static void handleEdit(bool sel, bool up, bool down) {
+  const Editable&amp; e = editables[editing];
+  if (up || down) {
+    int mult = stepMultiplier(up ? btnUp : btnDown);
+    float v = *e.value + (up ? 1 : -1) * e.step * mult;
+    *e.value = constrain(v, e.minV, e.maxV);
+    dirty = true;
+  }
+  if (sel) { settingsSave(); screen = SCR_MENU; dirty = true; }   // save once, on exit
+}</code></pre>
+<p>Note that flash is written only when you press Select, not on every change. Flash memory survives only a limited number of writes, so never save inside the auto-repeat.</p>
+<h3>Drawing the screens</h3>
+<p>The Adafruit library draws into a RAM buffer, and <code>oled.display()</code> then sends the whole buffer over I2C. These are the calls used below: <code>clearDisplay()</code>, <code>setTextSize()</code>, <code>setTextColor()</code>, <code>setCursor()</code>, <code>print()</code>, <code>drawRect()</code>, <code>fillRect()</code>, <code>display()</code>.</p>
+<pre><code class="language-cpp">// ui.cpp (part 4): drawing
+static void showMessage(const char* line1, const char* line2) {
+  if (!oledOk) return;
+  oled.clearDisplay(); oled.setTextSize(1); oled.setTextColor(SSD1306_WHITE);
+  oled.setCursor(0, 0);  oled.print(line1);
+  oled.setCursor(0, 16); oled.print(line2);
+  oled.display();
+}
+
+static void drawMenu() {
+  oled.clearDisplay(); oled.setTextSize(1); oled.setTextColor(SSD1306_WHITE);
+  oled.setCursor(0, 0); oled.print("MENU");
+  const int VISIBLE = 5;
+  int first = constrain(cursor - 2, 0, IT_COUNT - VISIBLE);   // scroll window
+  for (int row = 0; row &lt; VISIBLE; row++) {
+    int item = first + row, y = 12 + row * 10;
+    oled.setCursor(0, y);
+    oled.print(item == cursor ? "&gt; " : "  ");
+    oled.print(itemNames[item]);
+    if (item &gt;= IT_KP &amp;&amp; item &lt;= IT_BASE) {
+      const Editable&amp; e = editables[item - IT_KP];
+      oled.setCursor(84, y); oled.print(*e.value, e.decimals);
+    }
+  }
+  oled.display();
+}
+
+static void drawEdit() {
+  const Editable&amp; e = editables[editing];
+  oled.clearDisplay(); oled.setTextSize(1); oled.setTextColor(SSD1306_WHITE);
+  oled.setCursor(0, 0);  oled.print("EDIT "); oled.print(e.name);
+  oled.setTextSize(2);
+  oled.setCursor(0, 22); oled.print(*e.value, e.decimals);
+  oled.setTextSize(1);
+  oled.setCursor(0, 56); oled.print("Up/Dn:chg Sel:save");
+  oled.display();
+}
+
+static void drawSensors(const UiInfo&amp; info) {      // live bar view: one bar per sensor
+  oled.clearDisplay(); oled.setTextSize(1); oled.setTextColor(SSD1306_WHITE);
+  oled.setCursor(0, 0); oled.print("pos "); oled.print(info.position);
+  for (int i = 0; i &lt; NUM_SENSORS; i++) {
+    int h = constrain((int)info.cal[i] * 44 / 1000, 0, 44);
+    oled.drawRect(i * 16, 16, 14, 46, SSD1306_WHITE);
+    oled.fillRect(i * 16 + 1, 62 - h, 12, h, SSD1306_WHITE);
+  }
+  oled.display();
+}
+
+static void drawRun(const UiInfo&amp; info) {
+  oled.clearDisplay(); oled.setTextSize(1); oled.setTextColor(SSD1306_WHITE);
+  oled.setCursor(0, 0);  oled.print("RUN "); oled.print(info.stateName);
+  oled.setCursor(0, 14); oled.print("pos "); oled.print(info.position);
+  oled.drawRect(0, 28, 128, 10, SSD1306_WHITE);
+  int x = map(constrain(info.position, -3500, 3500), -3500, 3500, 0, 120);
+  oled.fillRect(x, 29, 8, 8, SSD1306_WHITE);
+  if (info.batteryV &gt; 0) { oled.setCursor(0, 44); oled.print("bat "); oled.print(info.batteryV, 1); oled.print("V"); }
+  oled.setCursor(0, 56); oled.print("any button: STOP");
+  oled.display();
+}</code></pre>
+<p>The sensor bar view is the best calibration check you can have at the track: slide the robot over the line and watch the bars rise and fall without opening a laptop.</p>
+<h3>Never stall the control loop</h3>
+<div class="callout callout-caution"><div class="callout-title">I2C drawing takes time</div><p>Sending a full 128 &times; 64 frame (1024 bytes) over 400 kHz I2C takes <strong>roughly 25 ms</strong>. That is an estimate; time <code>oled.display()</code> with <code>micros()</code>. In that time the robot has driven blind for two or three control periods, and the same I2C bus carries the sensor ADCs. So:</p>
+<ul>
+<li><strong>Do not redraw the display while running fast.</strong> The default here is to draw nothing while the robot runs (<code>LIVE_VIEW_WHILE_RUNNING = false</code>); a &ldquo;RUNNING&rdquo; screen is drawn <em>before</em> it starts.</li>
+<li>If you enable live view for slow test runs, keep it at 5 to 7 updates per second (every 150 to 200 ms), and do not trust the tuning at speed.</li>
+<li>Never call <code>display()</code> inside the PID code path. Do all drawing in one function, called once per <code>loop()</code> pass, and limit it with a timer.</li>
+<li>Do not move the drawing to a second FreeRTOS task unless you protect the I2C bus: <code>Wire</code> is not safe to use from two tasks at once.</li>
+</ul></div>
+<pre><code class="language-cpp">// ui.cpp (part 5): the one function called from loop()
+void uiUpdate(const UiInfo&amp; info) {
+  bool sel  = buttonFired(btnSelect);
+  bool up   = buttonFired(btnUp);
+  bool down = buttonFired(btnDown);
+  unsigned long now = millis();
+
+  if (info.running) {                       // robot is moving: buttons = STOP, draw (almost) nothing
+    if (sel || up || down) stopFlag = true;
+    if (LIVE_VIEW_WHILE_RUNNING &amp;&amp; oledOk &amp;&amp; now - lastDrawMs &gt;= 200) {
+      lastDrawMs = now; drawRun(info);
+    }
+    return;
+  }
+
+  if (screen == SCR_RUN &amp;&amp; !startFlag) { screen = SCR_MENU; dirty = true; }   // run ended
+
+  switch (screen) {
+    case SCR_MENU:    handleMenu(sel, up, down);  break;
+    case SCR_EDIT:    handleEdit(sel, up, down);  break;
+    case SCR_SENSORS: if (sel) { screen = SCR_MENU; dirty = true; }
+                      else if (now - lastDrawMs &gt;= DRAW_INTERVAL_MS) dirty = true;  // live
+                      break;
+    default: break;
+  }
+
+  if (oledOk &amp;&amp; dirty &amp;&amp; now - lastDrawMs &gt;= DRAW_INTERVAL_MS) {
+    lastDrawMs = now; dirty = false;
+    if (screen == SCR_MENU)         drawMenu();
+    else if (screen == SCR_EDIT)    drawEdit();
+    else if (screen == SCR_SENSORS) drawSensors(info);
+  }
+}
+
+bool uiStartRequested() { bool f = startFlag; startFlag = false; return f; }
+bool uiStopRequested()  { bool f = stopFlag;  stopFlag  = false; return f; }
+
+void uiBegin() {
+  pinMode(PIN_SELECT, INPUT_PULLUP);
+  pinMode(PIN_UP,     INPUT_PULLUP);
+  pinMode(PIN_DOWN,   INPUT_PULLUP);
+  Wire.begin(21, 22);                       // remove if sensorsBegin() already does this
+  Wire.setClock(400000);
+  oledOk = oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  if (!oledOk) Serial.println("OLED not found at 0x3C");   // buttons still work
+}</code></pre>
+<p>And the small header the main sketch includes:</p>
+<pre><code class="language-cpp">// ui.h
+#pragma once
+#include &lt;Arduino.h&gt;
+#include "sensors.h"                        // NUM_SENSORS
+
+struct UiInfo {
+  bool running;                             // true while the robot is driving
+  const char* stateName;
+  int position;
+  float batteryV;                           // 0 = not measured
+  const uint16_t* cal;                      // latest calibrated readings
+};
+
+void uiBegin();
+void uiUpdate(const UiInfo&amp; info);
+bool uiStartRequested();
+bool uiStopRequested();</code></pre>
+<h3>Saving settings to flash</h3>
+<p>Values changed on the menu live in RAM and vanish at power-off. The ESP32 has a small area of flash called <strong>NVS</strong> (non-volatile storage) for exactly this, and the <code>Preferences</code> library, which comes with the ESP32 Arduino core, makes it easy: values are stored by name inside a <strong>namespace</strong>.</p>
+<pre><code class="language-cpp">// settings.h
+#pragma once
+#include "pid.h"
+extern PidGains gains;
+extern float baseSpeed;
+void settingsLoad();
+void settingsSave();</code></pre>
+<pre><code class="language-cpp">// settings.cpp
+#include &lt;Preferences.h&gt;
+#include "settings.h"
+
+PidGains gains = {0.05f, 0.0f, 0.004f};     // factory defaults, used until something is saved
+float baseSpeed = 70.0f;
+
+static Preferences prefs;
+
+void settingsLoad() {
+  prefs.begin("linefol", false);            // namespace name (max 15 chars); read-write so it
+                                            // is created on the very first boot
+  gains.kp  = prefs.getFloat("kp",   gains.kp);     // second argument = default if missing
+  gains.ki  = prefs.getFloat("ki",   gains.ki);
+  gains.kd  = prefs.getFloat("kd",   gains.kd);
+  baseSpeed = prefs.getFloat("base", baseSpeed);
+  prefs.end();
+}
+
+void settingsSave() {
+  prefs.begin("linefol", false);
+  prefs.putFloat("kp",   gains.kp);
+  prefs.putFloat("ki",   gains.ki);
+  prefs.putFloat("kd",   gains.kd);
+  prefs.putFloat("base", baseSpeed);
+  prefs.end();
+}</code></pre>
+<ul>
+<li>Call <code>settingsLoad()</code> <strong>once in <code>setup()</code></strong>, before the first run, so the robot boots with its last tuned values.</li>
+<li>Keys are limited to 15 characters. Opening a namespace read-only fails if it does not exist yet, which is why we open it read-write.</li>
+<li>Saving takes a few milliseconds and happens only while the robot is stopped (on Select in the edit screen), so it never disturbs the control loop.</li>
+<li>Save the calibration data the same way if you want to skip calibration after every power-up (see the practice tasks).</li>
+</ul>
+</section>
+
+<section id="sketch-structure">
+<h2>Putting the sketch together</h2>
+<p>Use the modular approach of Lesson 02: one small module per job, and a short main file.</p>
+<pre><code class="language-text">pid_line_follower/
+  pid_line_follower.ino   setup(), loop(), the state machine functions
+  motors.h / motors.cpp   motorsBegin(), drive()               (Lessons 01, 02)
+  sensors.h / sensors.cpp sensorsBegin(), calibrate(), readCalibrated()   (Lesson 03)
+  encoders.h / encoders.cpp  encodersBegin(), leftTicks(), rightTicks()   (Lessons 03, 05)
+  pid.h                   PidGains, PidState, pidCompute()     (Lesson 06)
+  follow.h / follow.cpp   steer(), adaptiveBase(), applyMinPwm()  (section 4)
+  track.h / track.cpp     State, Scan, Pattern, scanTrack(), decideMove()  (section 6)
+  settings.h / settings.cpp  gains, baseSpeed, settingsLoad(), settingsSave()
+  ui.h / ui.cpp           OLED, buttons, menu</code></pre>
+<p>The main file ties it together. The tick, the state switch and the UI call are all that is left:</p>
+<pre><code class="language-cpp">// pid_line_follower.ino (outline; includes for the modules above go first)
+PidState pid;
+Scan latest;                                // most recent scan, also used by the UI
+State state = S_IDLE;
+unsigned long lastLoopUs = 0;
+
+const char* stateName() {
+  static const char* const names[] = {"IDLE", "FOLLOW", "JUNCT", "TURN L", "TURN R", "TURN U", "LOST", "STOP"};
+  return names[state];
+}
+
+void enterState(State next) {
+  state = next;
+  resetEncoders();                          // each state measures its own distance
+  if (next == S_FOLLOW) pid = PidState();   // fresh PID: no stale integral or derivative
+  if (next == S_IDLE || next == S_STOP) drive(0, 0);
+}
+
+void controlStep(float dt) {
+  scanTrack(latest);                        // exactly ONE scan per control pass
+  const Scan&amp; s = latest;
+  switch (state) {
+    case S_IDLE:
+    case S_STOP:       drive(0, 0); if (uiStartRequested()) enterState(S_FOLLOW); break;
+    case S_FOLLOW:     followStep(s, dt);          break;
+    case S_JUNCTION:   junctionStep(s);            break;
+    case S_TURN_LEFT:  turnStep(-1,  50, 150, s);  break;   // min and max angle in degrees
+    case S_TURN_RIGHT: turnStep(+1,  50, 150, s);  break;
+    case S_TURN_BACK:  turnStep(+1, 120, 240, s);  break;
+    case S_LOST:       lostStep(s);                break;
+  }
+  if (uiStopRequested()) enterState(S_STOP);          // any button while running
+}
+
+void setup() {
+  Serial.begin(115200);
+  motorsBegin(); sensorsBegin(); encodersBegin();
+  settingsLoad();                           // gains and speed from the last session
+  uiBegin();
+  enterState(S_IDLE);
+  lastLoopUs = micros();
+}
+
+void loop() {
+  unsigned long nowUs = micros();
+  if (nowUs - lastLoopUs &gt;= LOOP_US) {
+    float dt = (nowUs - lastLoopUs) / 1000000.0f;
+    lastLoopUs = nowUs;
+    controlStep(dt);
+  }
+  UiInfo info = { state != S_IDLE &amp;&amp; state != S_STOP, stateName(),
+                  latest.position, 0.0f, latest.cal };      // 0.0f: battery not measured
+  uiUpdate(info);
+}</code></pre>
+<p>The order is deliberate: control first, UI second, and the UI draws nothing while running. Build it in the same order as the lesson: first the plain loop from section 3, then the state machine, then the menu. Test after every step. Calibrate with the robot over the real track, in the real lighting.</p>
+</section>
+
+<section id="practice-tasks">
+<h2>Practice tasks and track checklist</h2>
+<ol>
+<li><strong>Log it:</strong> plot <code>position</code>, <code>error</code> and <code>correction</code> on the Serial Plotter during a run. Mark where the wobble starts.</li>
+<li><strong>Tune by the book:</strong> follow the step-by-step procedure and write down Kp, Kd, speed and the lap time after each step.</li>
+<li><strong>Speed hunt:</strong> find the highest speed at which the robot still finishes a curvy lap three times in a row. Then try <code>adaptiveBase()</code> with different <code>SLOW_FRACTION</code> values.</li>
+<li><strong>Corner test:</strong> build a track with one 90&deg; left and one 90&deg; right turn. Make the robot pass each ten times without help.</li>
+<li><strong>Junction test:</strong> add a T and a cross. Print the <code>JunctionInfo</code> flags to Serial and confirm the robot recognises each one correctly. Then change the policy to &ldquo;always right&rdquo;.</li>
+<li><strong>Persistent calibration:</strong> extend <code>settings.cpp</code> to store the calibration min/max values so the robot does not need to be recalibrated after every power cycle (this needs a small change in your Lesson 03 module).</li>
+<li><strong>Measure the display cost:</strong> time <code>oled.display()</code> with <code>micros()</code> and compare with your control period.</li>
+</ol>
+<h3>Track checklist</h3>
+<ul>
+<li>Sensors calibrated on this track, in this lighting, and the position sign checked.</li>
+<li>Battery charged; connections tight; wheels clean.</li>
+<li>Straight line, gentle curve and tight curve each followed three times.</li>
+<li>90&deg; left and right turns pass 10 out of 10 times.</li>
+<li>T-junction, cross junction and finish box recognised and handled as the policy says.</li>
+<li>A gap and a dead end are handled without the robot spinning forever.</li>
+<li>Gains and speed saved, and still correct after a power cycle.</li>
+<li>Any button stops the robot during a run.</li>
+</ul>
+<p>If the robot misbehaves in ways tuning cannot fix (a pull to one side, random twitches, resets), go through the checks in Lesson 12 (Robot Debugging).</p>
+</section>
+
+<section id="key-takeaways">
+<h2>Key takeaways</h2>
+<ul>
+<li><strong>Error</strong> = setpoint &minus; position. With sensor 0 on the left, a positive error means the line is on the left. Keep the sign convention identical in the error and the mixer.</li>
+<li>Run <strong>PID</strong> at a fixed rate and pass the real <code>dt</code>. Limit the integral, reset the PID when it restarts, and do not feed it a position when no line is seen.</li>
+<li><strong>Motor correction</strong> adds and subtracts the PID output from a base speed, clamps while preserving the difference, may let a wheel reverse, respects the motor dead band, and slows down when the error is large.</li>
+<li><strong>Tune</strong> in order: slow, Kp only, add Kd, add a little Ki last, then raise the speed. Plot your signals, and use the symptom table.</li>
+<li>A corner, T and cross all look like a bar at first. <strong>Roll forward a measured distance</strong> with the encoders, then look again to tell them apart. A small state machine plus a one-function <strong>policy</strong> makes the behaviour clear and easy to change.</li>
+<li>The OLED and three buttons let you tune at the track. Use <strong>non-blocking debounce</strong>, save to <code>Preferences</code> only on Select, and never draw while the robot runs fast: an I2C screen refresh costs tens of milliseconds.</li>
+</ul>
+</section>

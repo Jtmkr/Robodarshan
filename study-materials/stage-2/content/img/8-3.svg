@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 520" role="img" aria-label="Six sensor patterns: a curve, a 90 degree left corner, a T-junction, a cross junction, a finish box and a gap or dead end. For each, eight squares show which sensors see the line at first contact and after driving forward a short distance.">
+<rect width="680" height="520" rx="12" fill="#f8fafc"/>
+<g font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#1e293b">
+<text x="340" y="26" text-anchor="middle" font-weight="700" font-size="15">What the array sees at six track features (robot drives up)</text>
+<g transform="translate(20,40)">
+<rect width="200" height="196" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="100" y="19" text-anchor="middle" font-weight="700">Curve</text>
+<g><path d="M100 118 V98 C100 80 78 84 78 62 V30" fill="none" stroke="#334155" stroke-width="22"/></g>
+<rect x="12" y="76" width="176" height="20" rx="4" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="5 3"/>
+<rect x="12" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="34" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="56" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="78" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="100" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="122" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="144" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="166" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="100" y="188" text-anchor="middle" font-size="12" fill="#475569">keep following (PID)</text>
+</g>
+<g transform="translate(240,40)">
+<rect width="200" height="196" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="100" y="19" text-anchor="middle" font-weight="700">90&#176; left corner</text>
+<g><path d="M100 118 V86 H12" fill="none" stroke="#334155" stroke-width="22" stroke-linejoin="miter"/></g>
+<rect x="12" y="76" width="176" height="20" rx="4" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="5 3"/>
+<rect x="12" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="34" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="56" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="78" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="100" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="122" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="144" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="166" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="12" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="34" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="56" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="78" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="100" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="122" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="144" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="166" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="100" y="188" text-anchor="middle" font-size="12" fill="#475569">turn left</text>
+</g>
+<g transform="translate(460,40)">
+<rect width="200" height="196" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="100" y="19" text-anchor="middle" font-weight="700">T-junction</text>
+<g><path d="M100 118 V86 M12 86 H188" fill="none" stroke="#334155" stroke-width="22"/></g>
+<rect x="12" y="76" width="176" height="20" rx="4" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="5 3"/>
+<rect x="12" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="34" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="56" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="78" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="100" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="122" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="144" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="166" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="12" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="34" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="56" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="78" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="100" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="122" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="144" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="166" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="100" y="188" text-anchor="middle" font-size="12" fill="#475569">policy decides: left or right</text>
+</g>
+<g transform="translate(20,248)">
+<rect width="200" height="196" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="100" y="19" text-anchor="middle" font-weight="700">Cross junction</text>
+<g><path d="M100 118 V30 M12 86 H188" fill="none" stroke="#334155" stroke-width="22"/></g>
+<rect x="12" y="76" width="176" height="20" rx="4" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="5 3"/>
+<rect x="12" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="34" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="56" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="78" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="100" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="122" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="144" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="166" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="12" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="34" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="56" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="78" y="148" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="100" y="148" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="122" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="144" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="166" y="148" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="100" y="188" text-anchor="middle" font-size="12" fill="#475569">policy decides (straight is open)</text>
+</g>
+<g transform="translate(240,248)">
+<rect width="200" height="196" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="100" y="19" text-anchor="middle" font-weight="700">Finish box</text>
+<g><rect x="20" y="46" width="160" height="66" fill="#334155"/><path d="M100 118 V110" stroke="#334155" stroke-width="22"/></g>
+<rect x="12" y="76" width="176" height="20" rx="4" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="5 3"/>
+<rect x="12" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="34" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="56" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="78" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="100" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="122" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="144" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="166" y="126" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="12" y="148" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="34" y="148" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="56" y="148" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="78" y="148" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="100" y="148" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="122" y="148" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="144" y="148" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="166" y="148" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<text x="100" y="188" text-anchor="middle" font-size="12" fill="#475569">all black: stop</text>
+</g>
+<g transform="translate(460,248)">
+<rect width="200" height="196" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="100" y="19" text-anchor="middle" font-weight="700">Gap / dead end</text>
+<g><path d="M100 118 V104" fill="none" stroke="#334155" stroke-width="22"/><path d="M100 96 V30" fill="none" stroke="#94a3b8" stroke-width="4" stroke-dasharray="6 6"/></g>
+<rect x="12" y="76" width="176" height="20" rx="4" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="5 3"/>
+<rect x="12" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="34" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="56" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="78" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="100" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="122" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="144" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<rect x="166" y="126" width="18" height="16" rx="2" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="100" y="188" text-anchor="middle" font-size="12" fill="#475569">go straight, then U-turn</text>
+</g>
+<rect x="20" y="460" width="18" height="16" rx="2" fill="#334155" stroke="#2563eb" stroke-width="1.5"/>
+<text x="44" y="473" font-size="12">sensor sees the line</text>
+<rect x="190" y="458" width="26" height="20" rx="4" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="5 3"/>
+<text x="222" y="473" font-size="12">sensor array</text>
+<text x="20" y="496" font-size="12" fill="#475569">Top squares: at first contact. Bottom squares: after driving forward about one sensor-to-axle</text>
+<text x="20" y="512" font-size="12" fill="#475569">distance. Squares run S0 to S7, left to right.</text>
+</g></svg>

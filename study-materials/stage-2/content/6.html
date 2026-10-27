@@ -1,0 +1,298 @@
+<section id="feedback-loop">
+<h2>Error and setpoint: the feedback loop</h2>
+<p>So far your robot has mostly been giving orders: &ldquo;motors at 150&rdquo;. But 150 does not mean the same thing on a full battery and on a tired one, on a smooth floor and on a carpet, or for the left motor and the right motor. A <strong>controller</strong> fixes this by <em>looking at what actually happened</em> and correcting the next command. That is called <strong>feedback</strong> (or closed-loop control), and PID is the most popular way to do it.</p>
+<p>Three words matter before anything else:</p>
+<div class="card-grid">
+<div class="info-card"><h4>Setpoint (r)</h4><p>What you <em>want</em>: a wheel speed of 3000 counts per second, or &ldquo;line exactly under the middle of the array&rdquo;.</p></div>
+<div class="info-card"><h4>Measurement (y)</h4><p>What a sensor says you <em>have</em>: speed from the encoder, or line position from the QTR-8A.</p></div>
+<div class="info-card"><h4>Error (e)</h4><p>The gap: <code>e = r &minus; y</code>. Zero means perfect. The sign tells you which way to push.</p></div>
+</div>
+<figure><img src="/study-materials/stage-2/content/img/6-1.svg" alt="Block diagram of a PID loop: setpoint minus measured output gives the error, which feeds P, I and D blocks whose sum drives the motor and robot; a sensor feeds the output back" loading="lazy"><figcaption>The PID loop. The error is processed three different ways, and the sum becomes the command <code>u</code> sent to the motors. The sensor closes the loop.</figcaption></figure>
+<p>Every pass of the loop does the same four things: <strong>measure, compute the error, compute the command, apply it</strong>. The only thing PID decides is how to turn the error into a command.</p>
+<div class="callout callout-note"><div class="callout-title">Starter code and assumptions</div><p>The code in this lesson is starter code written without access to your hardware. Pins, directions and every gain value are examples: test and tune them on your real robot. It uses the helpers from earlier lessons (<code>drive()</code>, <code>leftTicks()</code>, <code>readLinePosition()</code>) and the <code>millis()</code> / <code>micros()</code> timing from Lesson 02. Motor numbers (1400 encoder counts per wheel turn, 34 mm wheel) are the assumed N20 values from Lesson 03 and 05: use your own.</p></div>
+</section>
+
+<section id="p-i-d">
+<h2>P, I and D: three ways to look at the error</h2>
+<p>PID adds together three simple ideas. Each looks at the same error, but from a different angle in time.</p>
+<h3>P: proportional, the present</h3>
+<p>&ldquo;The further I am from the goal, the harder I push.&rdquo; The P term is <code>Kp &times; e</code>. Think of steering a bicycle toward a gap between two cones: if you are far to the left you turn the handlebar a lot, if you are slightly left you turn a little. P alone is simple and fast, but it has two weaknesses. With a small gain it never quite reaches the setpoint (to keep pushing it <em>needs</em> some leftover error), and with a large gain it overshoots and wobbles.</p>
+<h3>I: integral, the past</h3>
+<p>&ldquo;I have been a little short for a while, so push a little more.&rdquo; The I term adds up the error over time: <code>Ki &times; (sum of e &times; dt)</code>. Imagine a robot that drives slightly uphill. P alone settles a bit under the target speed. The integral keeps growing as long as any error remains, so it slowly adds just enough extra push to remove it. The price is that it reacts slowly and, because it remembers, it can overshoot.</p>
+<h3>D: derivative, the trend</h3>
+<p>&ldquo;I am approaching the goal quickly, so ease off before I arrive.&rdquo; The D term is <code>Kd &times; (change of e per second)</code>. It is like a driver who brakes early because the stop line is coming up fast. D acts against fast changes, so it <strong>damps</strong> overshoot and wobble. It also amplifies noise, because noise is a lot of tiny fast changes.</p>
+<figure><img src="/study-materials/stage-2/content/img/6-3.svg" alt="Three graphs of simulated step responses showing the effect of raising Kp, adding Ki and adding Kd" loading="lazy"><figcaption>Simulated step responses of one example system (a smooth, slightly lagging motor model, computed with a short Python script). Left: higher Kp is faster but leaves a steady error and starts to overshoot. Middle: Ki removes the steady error. Right: Kd calms the overshoot.</figcaption></figure>
+<h3>What each term does to a step response</h3>
+<p>Test a controller by suddenly changing the setpoint (a <em>step</em>) and watching the response. Four numbers describe it: <strong>rise time</strong> (how fast it first gets there), <strong>overshoot</strong> (how far it goes past), <strong>settling time</strong> (how long until it stays near the target) and <strong>steady-state error</strong> (what is left at the end).</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Raise this gain</th><th>Rise time</th><th>Overshoot</th><th>Settling time</th><th>Steady-state error</th></tr></thead>
+<tbody>
+<tr><td><strong>Kp</strong></td><td>shorter</td><td>larger</td><td>little change</td><td>smaller (not zero)</td></tr>
+<tr><td><strong>Ki</strong></td><td>a bit shorter</td><td>larger</td><td>longer</td><td>removed</td></tr>
+<tr><td><strong>Kd</strong></td><td>little change</td><td>smaller</td><td>shorter</td><td>no effect</td></tr>
+</tbody></table></div>
+<p>These are general trends. They are not exact laws, and they hold only for moderate changes: push any gain far enough and the response gets worse.</p>
+</section>
+
+<section id="pid-equation">
+<h2>The PID equation</h2>
+<p>Put the three terms together and you get the command <code>u</code> that goes to the motors:</p>
+<pre><code class="language-text">u(t) = Kp &middot; e(t)  +  Ki &middot; &int; e(t) dt  +  Kd &middot; de(t)/dt</code></pre>
+<p>The &int; sign means &ldquo;the running total of the error over time&rdquo; and <code>de/dt</code> means &ldquo;how fast the error is changing&rdquo;. That is the continuous version. Your microcontroller works in steps, one every <code>dt</code> seconds, so the version you actually code is:</p>
+<pre><code class="language-text">integral   = integral + e &middot; dt
+derivative = (e &minus; lastError) / dt
+u = Kp &middot; e + Ki &middot; integral + Kd &middot; derivative
+lastError = e</code></pre>
+<p>An integral becomes a running sum and a derivative becomes &ldquo;this error minus last error, divided by the time between them&rdquo;. Here is the whole thing in C++, using the names that the rest of the course uses:</p>
+<pre><code class="language-cpp">struct PidGains { float kp, ki, kd; };
+struct PidState { float integral = 0; float lastError = 0; };
+
+// One PID step. Call it at a steady rate.
+// integralLimit: the integral is clamped to +/- this value (use a value &gt; 0).
+float pidCompute(const PidGains&amp; g, PidState&amp; s, float error,
+                 float dtSeconds, float integralLimit) {
+  if (dtSeconds &lt;= 0) return g.kp * error;            // guard against dt = 0
+
+  // I: accumulate, then clamp (anti-windup)
+  s.integral += error * dtSeconds;
+  s.integral = constrain(s.integral, -integralLimit, integralLimit);
+
+  // D: slope of the error since the last call
+  float derivative = (error - s.lastError) / dtSeconds;
+  s.lastError = error;
+
+  return g.kp * error + g.ki * s.integral + g.kd * derivative;
+}
+
+// Forget the past: call when the controller starts, stops or restarts.
+void pidReset(PidState&amp; s) {
+  s.integral = 0;
+  s.lastError = 0;
+}</code></pre>
+<p>Notes on this function:</p>
+<ul>
+<li>It does <strong>not</strong> clamp the final output, because only you know the limits (for example &plusmn;255 for PWM). The caller does that.</li>
+<li><code>integralLimit</code> limits the stored integral (units: error &times; seconds). The most the I term can ever contribute is <code>Ki &times; integralLimit</code>, so choose it from the output range you are willing to give the I term.</li>
+<li><code>pidReset()</code> is a small extra helper. Without it, the first call after a pause computes a huge derivative from a stale <code>lastError</code>.</li>
+<li>Gains depend on the <strong>units</strong> of error and output. A <code>Kp</code> that works when the error is in encoder counts per second will be wrong when the error is in line-position units. Gains are never universal.</li>
+</ul>
+<div class="callout callout-tip"><div class="callout-title">Printing the three terms</div><p>When something misbehaves, print the P, I and D parts separately instead of only the total. You can then see <em>which</em> term is doing the damage. A quick way is to compute them with the same formulas in a temporary copy of the function.</p></div>
+</section>
+
+<section id="overshoot-stability">
+<h2>Overshoot, oscillation and stability</h2>
+<p>Real robots do not respond instantly: a motor needs time to speed up, wheels slip, sensors are read a few milliseconds late. Because of this lag, the controller keeps pushing for a moment after the goal has been reached, and the robot goes <strong>past</strong> it. That is <strong>overshoot</strong>. The error now has the opposite sign, so the controller pushes back, overshoots again, and you get <strong>oscillation</strong>: a repeating wobble around the target.</p>
+<figure><img src="/study-materials/stage-2/content/img/6-2.svg" alt="Step response curves: under-damped overshoots by about 37 percent and rings, critically damped reaches the setpoint without overshoot, over-damped is slow" loading="lazy"><figcaption>Three kinds of behaviour for the same step. The numbers come from a simulated second-order system (damping ratio 0.3, 1 and 2). Overshoot is how far the first peak goes past the setpoint; settling time is when the curve stays inside a narrow band (here &plusmn;2%) for good.</figcaption></figure>
+<ul>
+<li><strong>Under-damped</strong>: fast, but overshoots and rings. A line follower in this state snakes across the line.</li>
+<li><strong>Critically damped</strong>: the fastest response that does not overshoot. A good target for a controlled speed.</li>
+<li><strong>Over-damped</strong>: no overshoot, but sluggish. A robot like this reacts too slowly in a sharp turn.</li>
+</ul>
+<p>For robots a little overshoot is often acceptable if the response is much faster. Aiming for slightly under-damped is common for line followers; zero overshoot matters more for something like stopping at a wall.</p>
+<h3>Stability</h3>
+<p>A system is <strong>stable</strong> if the wobble dies away (or never starts) and the output stays bounded. It is <strong>unstable</strong> if the wobble <em>grows</em> until something saturates: the motors hit full power in both directions, and the robot shakes itself off the line. In between there is a boundary where the wobble neither grows nor shrinks: a steady oscillation. You will use exactly that boundary in the tuning method below.</p>
+<div class="callout callout-key"><div class="callout-title">Why too-high gains cause trouble</div><p>Because of delay and lag, a correction arrives <em>late</em>. A mild correction arriving late is harmless. A strong correction arriving late pushes the robot past the target by more than the original error, so each swing is bigger than the last. High <code>Kp</code> and high <code>Ki</code> make strong, late corrections. Slow loop rates and sensor delay make the corrections later. That is why a loop that is stable at 100 Hz can become unstable at 20 Hz with the same gains.</p></div>
+</section>
+
+<section id="tuning">
+<h2>Tuning: finding Kp, Ki and Kd</h2>
+<p>Tuning means finding gains that give a response you like. There is no formula that knows your robot's weight, motors and floor, so you tune by experiment. Change <strong>one gain at a time</strong>, and write down what you tried.</p>
+<h3>Manual tuning, step by step</h3>
+<ol>
+<li><strong>Set <code>Ki = 0</code> and <code>Kd = 0</code>.</strong> Start with a small <code>Kp</code>. Keep the robot lifted or the wheels off the ground for the first tests if you are tuning a speed loop.</li>
+<li><strong>Raise <code>Kp</code></strong> (for example double it each try) until the system starts to oscillate steadily. Then back off to roughly <strong>half</strong> of that value. This gives a quick but not-yet-calm response.</li>
+<li><strong>Add <code>Kd</code></strong> from a small value upward until the overshoot and wobble are damped. Too much <code>Kd</code> makes the output jittery or noisy, and you will hear the motors buzz.</li>
+<li><strong>Add a small <code>Ki</code> only if there is a steady error</strong> that you care about (a speed loop usually needs it; a line follower often needs little or none). Raise it slowly. If the response gets slower to settle or starts to swing, reduce it.</li>
+<li><strong>Test on the real thing</strong>: different battery levels, the actual floor, a sharp turn. Re-tune a little if needed.</li>
+</ol>
+<h3>Ziegler-Nichols closed-loop method</h3>
+<p>This classic method gives you a first guess from two measurements:</p>
+<ol>
+<li>Set <code>Ki = 0</code> and <code>Kd = 0</code>.</li>
+<li>Raise <code>Kp</code> until the output oscillates with a steady, constant amplitude. That gain is the <strong>ultimate gain, <code>Ku</code></strong>.</li>
+<li>Measure the time of one full oscillation (peak to peak). That is the <strong>ultimate period, <code>Tu</code></strong>, in seconds.</li>
+</ol>
+<p>Then the table below gives gains. The original table is written with an integral time <code>Ti</code> and derivative time <code>Td</code>; the last two columns convert to the <code>Ki</code> and <code>Kd</code> used in our code (<code>Ki = Kp / Ti</code>, <code>Kd = Kp &times; Td</code>).</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Controller</th><th>Kp</th><th>Ti</th><th>Td</th><th>Ki (code)</th><th>Kd (code)</th></tr></thead>
+<tbody>
+<tr><td>P</td><td>0.5 &middot; Ku</td><td>&ndash;</td><td>&ndash;</td><td>0</td><td>0</td></tr>
+<tr><td>PI</td><td>0.45 &middot; Ku</td><td>Tu / 1.2</td><td>&ndash;</td><td>0.54 &middot; Ku / Tu</td><td>0</td></tr>
+<tr><td>PID</td><td>0.6 &middot; Ku</td><td>Tu / 2</td><td>Tu / 8</td><td>1.2 &middot; Ku / Tu</td><td>0.075 &middot; Ku &middot; Tu</td></tr>
+</tbody></table></div>
+<p>Example with made-up numbers: suppose the loop oscillates steadily at <code>Ku = 40</code> with a period <code>Tu = 0.4 s</code>. The PID row gives <code>Kp = 24</code>, <code>Ki = 1.2 &times; 40 / 0.4 = 120</code> and <code>Kd = 0.075 &times; 40 &times; 0.4 = 1.2</code>.</p>
+<div class="callout callout-caution"><div class="callout-title">Treat Ziegler-Nichols as a starting point</div><p>The method is designed for a quarter-amplitude decay, which means noticeable overshoot. On a small fast robot it usually gives <strong>aggressive</strong> gains: lots of overshoot and twitchy motors. Use the numbers as a first guess, then reduce them (often <code>Kp</code> to about half, and <code>Ki</code> and <code>Kd</code> to match) and finish by hand. Also be careful while finding <code>Ku</code>: a robot oscillating at full strength can jump off the bench.</p></div>
+<h3>Watch your tuning with the Serial Plotter</h3>
+<p>Numbers scrolling in the Serial Monitor are almost useless for tuning. The Arduino IDE's <strong>Serial Plotter</strong> (Tools menu) draws live graphs. Print values separated by spaces or commas, one line per sample, and the plotter draws one curve for each:</p>
+<pre><code class="language-cpp">// Inside the control loop, at most every 20-50 ms
+Serial.print(setpoint);  Serial.print(' ');
+Serial.print(measured);  Serial.print(' ');
+Serial.println(output);</code></pre>
+<ul>
+<li>Close the Serial Monitor first, and use the same baud rate as in <code>Serial.begin()</code> (for example 115200).</li>
+<li>Printing is slow. Do not print on every pass of a fast loop; it will disturb the very timing you are tuning.</li>
+<li>A neat trick: make the setpoint toggle between two values every couple of seconds, so you get a repeating step to look at.</li>
+</ul>
+</section>
+
+<section id="practical-pid">
+<h2>Practical PID: what the textbook leaves out</h2>
+<p>The equation works on paper. On a robot, a handful of practical details decide whether it works for real.</p>
+<h3>1. Use a fixed sample time</h3>
+<p>The integral and derivative both depend on <code>dt</code>. If the loop runs at uneven intervals, the terms are wrong. Run the controller on a timer as in Lesson 02 and compute the real elapsed time every pass:</p>
+<pre><code class="language-cpp">const unsigned long LOOP_US = 10000;          // 10 ms = 100 Hz (example)
+unsigned long lastLoopUs = 0;
+
+void loop() {
+  unsigned long now = micros();
+  if (now - lastLoopUs &lt; LOOP_US) return;     // not yet
+  float dt = (now - lastLoopUs) / 1000000.0f; // actual elapsed seconds
+  lastLoopUs = now;
+  // ... measure, pidCompute(..., dt, ...), drive ...
+}</code></pre>
+<h3>2. Integral windup and anti-windup</h3>
+<p>If the motors are already at full power and still not there (a big step, a blocked wheel), the error stays large, and the integral keeps adding it up. It becomes huge. Even after the robot reaches the target, that stored sum keeps pushing it past: this is <strong>integral windup</strong>.</p>
+<figure><img src="/study-materials/stage-2/content/img/6-4.svg" alt="Integral windup: without anti-windup the integral term grows large and the output overshoots; with clamping the integral stays small and overshoot is small" loading="lazy"><figcaption>Windup in a simulation with a limited actuator (output limited to &plusmn;1). The red curve has no protection and overshoots by about 29%. The green one clamps the integral and overshoots by about 2%.</figcaption></figure>
+<p>The simplest fix is <strong>clamping</strong>: limit how big the integral may get. That is the <code>integralLimit</code> parameter of <code>pidCompute()</code>. Choose it so that <code>Ki &times; integralLimit</code> is a modest part of your output range, for example no more than the full PWM range of 255. A second common method is to stop integrating while the final output is saturated; it needs the saturated output, so it is done in the loop that calls the controller. Also call <code>pidReset()</code> whenever the robot stops or the controller is switched on, so old history is forgotten.</p>
+<h3>3. Limit the output</h3>
+<p>The motors accept <code>-255..255</code>. Clamp the result of <code>pidCompute()</code> to that range before calling <code>drive()</code> (<code>constrain()</code> does it). The robot must never send a number the hardware cannot use.</p>
+<h3>4. Derivative kick</h3>
+<p>Imagine the setpoint jumps suddenly. The error jumps with it, and <code>(e &minus; lastError) / dt</code> becomes enormous for one sample: a violent spike in the output called <strong>derivative kick</strong>. The cure is to take the derivative of the <em>measurement</em> instead of the error. When the setpoint is constant, the two are the same except for a sign (<code>de/dt = &minus;dy/dt</code>), but the measurement does not jump when you change the setpoint.</p>
+<pre><code class="language-cpp">// Variant: derivative on measurement. s.lastError is reused to hold the
+// previous MEASUREMENT here, so use a separate PidState for this variant.
+float pidComputeOnMeasurement(const PidGains&amp; g, PidState&amp; s, float setpoint,
+                              float measurement, float dtSeconds,
+                              float integralLimit) {
+  if (dtSeconds &lt;= 0) return 0;
+  float error = setpoint - measurement;
+  s.integral += error * dtSeconds;
+  s.integral = constrain(s.integral, -integralLimit, integralLimit);
+  float dMeas = (measurement - s.lastError) / dtSeconds;   // rate of the measurement
+  s.lastError = measurement;
+  return g.kp * error + g.ki * s.integral - g.kd * dMeas;  // minus sign
+}</code></pre>
+<p>For a line follower the setpoint is always 0 (&ldquo;line in the middle&rdquo;) and never jumps, so derivative on error is fine. For a speed controller whose target changes, derivative on measurement is the better choice. Also remember to call <code>pidReset()</code> before the very first sample so that the first derivative is not computed from an old value.</p>
+<h3>5. Derivative noise and a simple filter</h3>
+<p>Differentiating amplifies noise. A reading that wiggles by &plusmn;5 counts turns into a huge, jumpy derivative when <code>dt</code> is small. Two cheap remedies: keep <code>Kd</code> modest, and smooth the derivative with a <strong>low-pass filter</strong> (an exponential moving average):</p>
+<pre><code class="language-cpp">float dFiltered = 0;
+const float D_ALPHA = 0.3f;     // 0..1: smaller = smoother but slower
+
+// each loop, after computing 'derivative':
+dFiltered = D_ALPHA * derivative + (1.0f - D_ALPHA) * dFiltered;
+// then use dFiltered in place of 'derivative'</code></pre>
+<p>A filter adds a little delay, which works against the damping you wanted, so use as little as will do. Sometimes it is simpler to average the sensor readings first.</p>
+<h3>6. Units and scaling</h3>
+<p>Choose the units of the error and the output on purpose. A speed error in counts per second is a number in the thousands, while a PWM output only goes up to 255, so <code>Kp</code> will be small (like 0.02). A line position error is up to &plusmn;3500, so its <code>Kp</code> is small too. It is easy to be a factor of 100 off in your first guess; if the robot does almost nothing or shakes violently at the first try, check the scale first.</p>
+<h3>7. Deadband and stiction in motors</h3>
+<p>Small DC motors do not move at all below a minimum PWM (static friction plus the gearbox). A PID output of 10 might do nothing, then suddenly 40 makes the wheel jump. For a speed loop you can add a small constant push in the direction of the command:</p>
+<pre><code class="language-cpp">const int MIN_PWM = 35;          // example: find yours by slowly raising PWM until the wheel just turns
+
+int applyDeadband(float u) {
+  if (u &gt; 0.5f)  return constrain((int)u + MIN_PWM, 0, 255);
+  if (u &lt; -0.5f) return constrain((int)u - MIN_PWM, -255, 0);
+  return 0;                      // really zero: stay still
+}</code></pre>
+<p>The integral term also helps: it keeps growing until the wheel finally moves. If you see the wheel &ldquo;sticking, then jumping&rdquo; at low speed, stiction is the reason.</p>
+</section>
+
+<section id="usage-examples">
+<h2>Using it: two short examples</h2>
+<h3>(a) Motor speed control from the encoders</h3>
+<p>Lesson 05 showed how to measure speed: count encoder ticks during a fixed interval. Here that measurement is the <code>measured</code> value, and a PID loop decides the PWM. The loop below (both wheels, 20 ms period) assumes <code>encodersBegin()</code> and <code>motorsBegin()</code> were called in <code>setup()</code>. The speed unit is <strong>encoder counts per second</strong>; with the assumed 1400 counts per wheel turn and 34 mm wheels, 3000 counts/s is about 2.1 wheel turns per second, or roughly 230 mm/s (a mid-range, achievable value; yours will differ).</p>
+<pre><code class="language-cpp">PidGains speedGains = {0.02f, 0.15f, 0.0f};         // example values only
+const float I_LIMIT = 255.0f / 0.15f;               // Ki * I_LIMIT = 255 at most
+PidState leftPid, rightPid;
+
+float targetCps = 3000;                             // wanted speed, counts per second
+long lastL = 0, lastR = 0;
+unsigned long lastUs = 0;
+
+void setup() {
+  motorsBegin();
+  encodersBegin();
+  lastUs = micros();
+}
+
+void loop() {
+  unsigned long now = micros();
+  if (now - lastUs &lt; 20000UL) return;               // 20 ms period
+  float dt = (now - lastUs) / 1000000.0f;
+  lastUs = now;
+
+  long l = leftTicks(), r = rightTicks();
+  float speedL = (l - lastL) / dt;                  // counts per second
+  float speedR = (r - lastR) / dt;
+  lastL = l;  lastR = r;
+
+  float uL = pidCompute(speedGains, leftPid,  targetCps - speedL, dt, I_LIMIT);
+  float uR = pidCompute(speedGains, rightPid, targetCps - speedR, dt, I_LIMIT);
+
+  drive(constrain((int)uL, -255, 255), constrain((int)uR, -255, 255));
+}</code></pre>
+<ul>
+<li>With a 20 ms interval, one encoder count equals 50 counts/s of speed. That coarse step is normal; do not use <code>Kd</code> here, or smooth the speed first.</li>
+<li>If a wheel direction is reversed (counts go negative when driving forward), fix the sign in the encoder code, not in the PID.</li>
+<li>Stand the robot on a box so the wheels spin freely for the first tests.</li>
+</ul>
+<h3>(b) Steering from the line error</h3>
+<p>For a line follower the <em>measurement</em> is the line position from <code>readLinePosition()</code> (&minus;3500 to +3500, 0 = centred) and the goal is 0. The PID output becomes a <strong>steering correction</strong> added to one wheel and subtracted from the other. Lesson 08 builds the complete line follower, so here is only the loop:</p>
+<pre><code class="language-cpp">PidGains steerGains = {0.03f, 0.0f, 0.002f};        // example values only
+PidState steerPid;
+const int BASE_SPEED = 120;
+
+void followStep(float dt) {
+  bool lineSeen;
+  int position = readLinePosition(lineSeen);
+  if (!lineSeen) { pidReset(steerPid); return; }    // handled elsewhere (Lesson 07/08)
+
+  // Convention: positive error = line is to the right = steer right.
+  float correction = pidCompute(steerGains, steerPid, (float)position, dt, 1000.0f);
+  int c = constrain((int)correction, -BASE_SPEED, BASE_SPEED);
+
+  drive(BASE_SPEED + c, BASE_SPEED - c);            // left faster = turn right
+}</code></pre>
+<p>If the robot runs <em>away</em> from the line instead of towards it, the sign is wrong: swap the sign of the error (or of <code>c</code>). Start with only <code>Kp</code>, as in the tuning steps, then add <code>Kd</code>.</p>
+</section>
+
+<section id="troubleshooting">
+<h2>Symptom, likely cause, what to change</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Symptom</th><th>Likely cause</th><th>What to change</th></tr></thead>
+<tbody>
+<tr><td>Slow, never quite reaches the target</td><td>Kp too low, or no integral</td><td>Raise Kp; add a small Ki</td></tr>
+<tr><td>Fast but overshoots and swings</td><td>Kp too high, or too little damping</td><td>Lower Kp; raise Kd</td></tr>
+<tr><td>Steady wobble that never dies down</td><td>Kp (or Ki) at the stability limit, loop too slow</td><td>Lower Kp and Ki; speed up the loop</td></tr>
+<tr><td>Large overshoot after a long push or a blocked wheel</td><td>Integral windup</td><td>Clamp the integral; call <code>pidReset()</code> on restart</td></tr>
+<tr><td>Slow swing that grows over several seconds</td><td>Ki too high</td><td>Lower Ki</td></tr>
+<tr><td>Jittery or buzzing motors</td><td>Kd too high or noisy measurement</td><td>Lower Kd; filter the derivative or the sensor</td></tr>
+<tr><td>Spike when the setpoint changes</td><td>Derivative kick</td><td>Use derivative on measurement</td></tr>
+<tr><td>Does nothing at low speed, then jumps</td><td>Motor deadband / stiction</td><td>Add a minimum PWM; allow some Ki</td></tr>
+<tr><td>Robot gets worse as the battery drains</td><td>Less voltage, so the same PWM gives less speed; gains tuned on a full battery</td><td>Tune with a mid-charge battery; add Ki; leave some output headroom</td></tr>
+<tr><td>Behaviour changes randomly between runs</td><td>Uneven loop timing, or <code>dt</code> not used correctly</td><td>Use a fixed period and the measured <code>dt</code></td></tr>
+<tr><td>Robot runs away from the target</td><td>Sign of the error or output reversed</td><td>Flip the sign</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="practice-tasks">
+<h2>Practice tasks</h2>
+<ol>
+<li><strong>Print the terms:</strong> run the speed loop with the wheel in the air and plot the setpoint and measured speed in the Serial Plotter. Change only <code>Kp</code> and sketch what happens.</li>
+<li><strong>Find Ku and Tu:</strong> with <code>Ki = Kd = 0</code>, find the steady oscillation, measure the period from the plot, and calculate the Ziegler-Nichols PID gains. Then try half of them.</li>
+<li><strong>Windup experiment:</strong> briefly hold a wheel still while the speed loop runs with a very large <code>I_LIMIT</code>, then let go. Repeat with a small limit and compare.</li>
+<li><strong>Stiction:</strong> find the lowest PWM at which each wheel turns, and use it as <code>MIN_PWM</code>.</li>
+<li><strong>Dry run for Lesson 08:</strong> put the steering loop on your line follower and get it to follow a gentle curve with <code>Kp</code> only.</li>
+</ol>
+</section>
+
+<section id="key-takeaways">
+<h2>Key takeaways</h2>
+<ul>
+<li>Feedback compares what you <strong>want</strong> (setpoint) with what you <strong>measure</strong>; the <strong>error</strong> <code>e = r &minus; y</code> is what the controller works on.</li>
+<li><strong>P</strong> reacts to the present error, <strong>I</strong> removes the leftover error built up from the past, and <strong>D</strong> damps by reacting to the trend.</li>
+<li>Code form: <code>u = Kp&middot;e + Ki&middot;&sum;e&middot;dt + Kd&middot;(e &minus; lastE)/dt</code>, with a steady, measured <code>dt</code>.</li>
+<li>Too-high gains plus delay cause overshoot, oscillation and finally instability.</li>
+<li>Tune by hand: Ki = Kd = 0, raise Kp to oscillation and back off, add Kd, then a little Ki if needed. Ziegler-Nichols (PID: <code>Kp = 0.6 Ku</code>, <code>Ki = 1.2 Ku/Tu</code>, <code>Kd = 0.075 Ku Tu</code>) is only an aggressive starting point.</li>
+<li>Practical PID needs: fixed sample time, integral clamping, output limits, derivative on measurement when the setpoint changes, a filtered derivative, sensible units and a minimum PWM for stiction.</li>
+<li>Lesson 07 builds a basic line follower; Lesson 08 turns it into a full PID line follower.</li>
+</ul>
+</section>

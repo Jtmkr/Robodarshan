@@ -1,0 +1,686 @@
+<section id="two-kinds-of-maze">
+<h2>Two kinds of maze</h2>
+<p>A maze solver has to do two jobs. First it <strong>explores</strong>: it drives through the maze, finds the finish and remembers what it saw. Then it <strong>runs fast</strong>: it uses that memory to drive straight to the finish by the shortest route, skipping every dead end. This lesson teaches both jobs for the two kinds of maze the club uses.</p>
+<div class="card-grid">
+<div class="info-card"><h4>Part A: the &ldquo;2D maze&rdquo;</h4><p>A maze drawn as a <strong>line on the floor</strong>. The robot uses the QTR-8A line array and the encoders, and finds the shortest path with <strong>Dijkstra's algorithm</strong>.</p></div>
+<div class="info-card"><h4>Part B: the &ldquo;3D maze&rdquo;</h4><p>The club's name for a maze with <strong>physical walls</strong>, like a micromouse maze. The robot cannot see a line, so it measures distances to the walls with <strong>ultrasonic sensors</strong>, then reuses the same Dijkstra function.</p></div>
+</div>
+<p>The five ideas from the syllabus appear in both parts: <strong>junction detection</strong>, <strong>decision making</strong>, <strong>dead ends</strong>, <strong>path recording</strong> and an introduction to <strong>shortest path</strong>. Part A teaches them in detail on the line maze; Part B shows what changes when the maze has walls.</p>
+<div class="callout callout-note"><div class="callout-title">Assumptions in this lesson</div><ul>
+<li>Robot as in the other Stage 2 lessons: ESP32, TB6612FNG, N20 motors with encoders. Assumed <code>TICKS_PER_REV = 1400</code>, wheel diameter 34 mm, wheel base 85 mm. Replace them with your own values.</li>
+<li>Line maze: black line about 20 mm wide on a white floor, and the sensor bar sits about 40 mm in front of the wheel axle (<code>SENSOR_AHEAD_MM</code>). Measure your own robot.</li>
+<li>Wall maze: cells 300 mm wide (clear space between walls), flat hard walls, a robot about 100 mm wide and 120 mm long. These numbers are only examples.</li>
+<li>Maths uses the compass headings 0 = north, 1 = east, 2 = south, 3 = west. Forward wheel motion counts encoder ticks up.</li>
+</ul></div>
+<div class="callout callout-note"><div class="callout-title">This is starter code</div><p>The code in this lesson was written without access to the hardware. Pins, wheel directions, thresholds and speeds must be tested and tuned on your robot. The Dijkstra function and the turn conversion are plain C++ and were also checked on a computer against the worked example, but the robot parts were not run.</p></div>
+</section>
+
+<section id="junction-detection">
+<h2>Part A: the line maze and junction detection</h2>
+<p>A line maze is a set of black lines that split, join and end. Each place where something interesting happens is a <strong>node</strong>: a junction, a dead end or the finish. The stretch of line between two nodes is an <strong>edge</strong>. Everything in this lesson is built from those two words.</p>
+<h3>The junction types</h3>
+<figure><img src="/study-materials/stage-2/content/img/9-1.svg" alt="Six line-maze junction types (left turn, right turn, T, cross, dead end, finish patch) with the sensor pattern seen, what is seen after rolling forward, and the action" loading="lazy"><figcaption>The six cases. The pattern is the QTR-8A array, sensor 0 on the left, 1 = dark (calibrated value above the threshold).</figcaption></figure>
+<p>Look at the patterns for <em>T</em> and <em>cross</em>: at the moment the robot first sees them they are identical (every sensor dark). The array only sees a thin slice of the maze, so one look is not enough. The fix is simple: <strong>roll a short distance forward with the encoders and look again</strong>. While rolling, remember whether the outer sensors saw a branch on the left or right. At the end of the roll, check whether the line continues straight ahead.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Left branch</th><th>Straight ahead</th><th>Right branch</th><th>What it is</th><th>Left-hand rule</th></tr></thead>
+<tbody>
+<tr><td>yes</td><td>no</td><td>no</td><td>Left turn</td><td>Turn left</td></tr>
+<tr><td>no</td><td>no</td><td>yes</td><td>Right turn</td><td>Turn right</td></tr>
+<tr><td>yes</td><td>no</td><td>yes</td><td>T junction</td><td>Turn left</td></tr>
+<tr><td>yes</td><td>yes</td><td>yes</td><td>Cross</td><td>Turn left</td></tr>
+<tr><td>yes</td><td>yes</td><td>no</td><td>Side branch on the left</td><td>Turn left</td></tr>
+<tr><td>no</td><td>yes</td><td>yes</td><td>Side branch on the right</td><td>Go straight</td></tr>
+<tr><td>no</td><td>no</td><td>no</td><td>Dead end</td><td>U-turn</td></tr>
+<tr><td colspan="3">all eight sensors still dark after rolling</td><td>Finish patch</td><td>Stop</td></tr>
+</tbody></table></div>
+<h3>The code</h3>
+<p>First some helpers that turn encoder ticks into millimetres. With the assumed numbers one tick is about 0.076 mm, so 1 mm is about 13 ticks.</p>
+<pre><code class="language-cpp">const float MM_PER_TICK = (PI * WHEEL_DIAMETER_MM) / TICKS_PER_REV;   // about 0.0763 mm
+
+long  mmToTicks(float mm) { return (long)(mm / MM_PER_TICK); }
+float avgMm() { return (leftTicks() + rightTicks()) / 2.0f * MM_PER_TICK; }  // distance since resetEncoders()
+
+const uint16_t DARK            = 600;    // calibrated value (0..1000) that counts as "on the line"
+const float SENSOR_AHEAD_MM    = 40.0;   // ASSUMPTION: bar is this far in front of the axle
+const float JUNCTION_ROLL_MM   = 50.0;   // roll until the axle is over the junction centre
+const int   ROLL_SPEED = 90, TURN_SPEED = 100, BASE_SPEED = 130, FAST_SPEED = 200;  // tune these</code></pre>
+<p>The line follower from Lessons 05 and 06 is used as it is. Here it is wrapped in a loop that stops as soon as something other than a plain line appears under the array:</p>
+<pre><code class="language-cpp">void followStep(int baseSpeed);   // ONE step of your PID line follower (Lessons 05 and 06)
+
+// Follow the line until an outer sensor sees a branch, or the line disappears.
+void followUntilEvent(int baseSpeed) {
+  uint16_t cal[NUM_SENSORS];
+  while (true) {
+    followStep(baseSpeed);
+    readCalibrated(cal);        // reads the sensors a second time; merge the two reads in your own code
+    bool leftSeen  = cal[0] &gt; DARK || cal[1] &gt; DARK;
+    bool rightSeen = cal[6] &gt; DARK || cal[7] &gt; DARK;
+    bool anyDark = false;
+    for (int i = 0; i &lt; NUM_SENSORS; i++) if (cal[i] &gt; DARK) anyDark = true;
+    if (leftSeen || rightSeen || !anyDark) return;
+  }
+}
+
+struct Seen { bool left, right, ahead, allDark; };
+
+// Roll forward so the axle sits over the junction, and note what the array saw on the way.
+Seen rollAndLook() {
+  Seen s = {false, false, false, false};
+  uint16_t cal[NUM_SENSORS];
+  resetEncoders();
+  drive(ROLL_SPEED, ROLL_SPEED);
+  while (avgMm() &lt; JUNCTION_ROLL_MM) {
+    readCalibrated(cal);
+    if (cal[0] &gt; DARK || cal[1] &gt; DARK) s.left  = true;
+    if (cal[6] &gt; DARK || cal[7] &gt; DARK) s.right = true;
+  }
+  drive(0, 0);
+  readCalibrated(cal);                          // look at what is under the array now
+  s.ahead = (cal[3] &gt; DARK || cal[4] &gt; DARK);
+  s.allDark = true;
+  for (int i = 0; i &lt; NUM_SENSORS; i++) if (cal[i] &lt;= DARK) s.allDark = false;
+  return s;
+}</code></pre>
+<div class="callout callout-tip"><div class="callout-title">Why the roll distance matters</div><p>The robot turns around its axle, not around the sensor bar. If you turn while the bar is still 40 mm before the junction, the robot swings off the line. The roll puts the axle over the middle of the junction. Take <code>SENSOR_AHEAD_MM</code> plus half the line width as a starting value and adjust until your turns land on the line.</p></div>
+<div class="callout callout-caution"><div class="callout-title">False junctions</div><p>A wobbling robot can touch the outer sensors on a sharp curve or a thick line patch. If you get ghost junctions, require the outer sensors to stay dark for two or three loops in a row, or check that the line is a different width from your normal tape.</p></div>
+</section>
+
+<section id="decision-making">
+<h2>Decision making: the left-hand rule</h2>
+<p>At each junction the robot must pick a direction. During the <strong>exploration run</strong> it uses the simplest strategy there is, the <strong>left-hand rule</strong>: always take the leftmost option. In order of priority: turn left if possible, otherwise go straight, otherwise turn right, otherwise turn around.</p>
+<pre><code class="language-cpp">char decideLeftHand(const Seen&amp; s) {
+  if (s.allDark) return 'F';    // finish
+  if (s.left)    return 'L';
+  if (s.ahead)   return 'S';
+  if (s.right)   return 'R';
+  return 'U';                   // nothing at all: dead end, turn around
+}
+
+// Heading after a turn: 0 = north, 1 = east, 2 = south, 3 = west. Right = +1, left = +3, U = +2.
+int headingAfter(int heading, char t) {
+  int quarter = (t == 'L') ? 3 : (t == 'R') ? 1 : (t == 'U') ? 2 : 0;
+  return (heading + quarter) % 4;
+}
+
+// Compare two headings and say which turn gets you from one to the other.
+char turnChar(int from, int to) {
+  switch ((to - from + 4) % 4) {
+    case 0:  return 'S';
+    case 1:  return 'R';
+    case 2:  return 'U';
+    default: return 'L';
+  }
+}</code></pre>
+<h3>Turning with the encoders</h3>
+<p>For a spin on the spot, each wheel moves along an arc. The ticks per wheel for an angle &theta; are (wheel base &divide; wheel diameter) &times; (&theta; &divide; 360) &times; ticks per revolution. With the assumed numbers 90&deg; is (85 &divide; 34) &times; 0.25 &times; 1400 = 875 ticks per wheel. Wheel slip makes the real angle a little different, so be ready to multiply by a correction factor.</p>
+<pre><code class="language-cpp">// Spin on the spot by 'deg' degrees (positive = clockwise = right). Blocking, uses the encoders.
+void spinDegrees(int deg) {
+  long target = (long)(fabsf((float)deg) / 360.0f * (WHEEL_BASE_MM / WHEEL_DIAMETER_MM) * TICKS_PER_REV);
+  int sgn = (deg &gt; 0) ? 1 : -1;
+  resetEncoders();
+  drive(TURN_SPEED * sgn, -TURN_SPEED * sgn);   // right turn: left wheel forward, right wheel back
+  while (labs(leftTicks()) &lt; target) delay(1);
+  drive(0, 0);
+}
+
+// On a line maze: spin most of the way by encoders, then creep until the line is under the middle.
+void turnOnLine(char t) {
+  if (t == 'S') return;
+  int deg = (t == 'L') ? -90 : (t == 'R') ? 90 : 180;
+  spinDegrees(deg &gt; 0 ? deg - 30 : deg + 30);
+  int sgn = (deg &gt; 0) ? 1 : -1;
+  uint16_t cal[NUM_SENSORS];
+  unsigned long t0 = millis();
+  drive(TURN_SPEED * sgn, -TURN_SPEED * sgn);
+  do { readCalibrated(cal); }
+  while (cal[3] &lt; DARK &amp;&amp; cal[4] &lt; DARK &amp;&amp; millis() - t0 &lt; 1500);   // timeout so we never spin forever
+  drive(0, 0);
+}</code></pre>
+<h3>Why it works, and when it does not</h3>
+<p>If the maze has <strong>no loops</strong>, then it is one big tree of corridors, and every wall belongs to one connected piece. Keeping your left hand on the wall, you walk along that piece all the way round and see every corridor, so you must also reach the finish. Nothing needs to be remembered.</p>
+<ul>
+<li><strong>Loops break the guarantee.</strong> If a loop surrounds an island, the robot can circle the island forever. A finish that sits on such an island is never reached.</li>
+<li><strong>The route it finds is not the shortest.</strong> It includes every dead end it enters.</li>
+<li><strong>It must be told where to stop.</strong> The rule does not know what a finish is; the finish patch does.</li>
+</ul>
+<p>That is why the robot does not only act: it <em>records</em> what it sees, as the next sections show.</p>
+</section>
+
+<section id="dead-ends">
+<h2>Dead ends</h2>
+<p>A dead end is a line that stops. For the array it looks like <strong>no line under any sensor</strong> and no branch on either side, even after the short roll. The left-hand rule has a built-in answer: nothing to the left, nothing ahead, nothing to the right, so turn around.</p>
+<ol>
+<li><strong>Detect</strong>: <code>followUntilEvent()</code> returns because the line vanished, and <code>rollAndLook()</code> finds nothing.</li>
+<li><strong>Mark</strong>: create a node of kind <code>N_DEAD_END</code> at the current position and store the edge that led here. Later, Dijkstra will never choose a path that ends in a dead-end node, because it is not the finish.</li>
+<li><strong>U-turn</strong>: <code>turnOnLine('U')</code> spins about 150&deg; by the encoders and then creeps until the line is back under the middle sensors.</li>
+<li><strong>Continue</strong>: drive back along the same edge. The next node it reaches is the junction it came from.</li>
+</ol>
+<div class="callout callout-key"><div class="callout-title">A dead end is information</div><p>Walking into a dead end is not a failure. It costs time during exploration, but because it is recorded, the fast run knows never to go there.</p></div>
+</section>
+
+<section id="path-recording">
+<h2>Path recording</h2>
+<h3>Idea 1: record the turns</h3>
+<p>The easiest memory is a list of the turn made at each junction: <code>L, L, U, S, R, ...</code> (<code>U</code> = U-turn at a dead end). Every time you see a pattern like <em>turn, U-turn, turn</em>, you went into a dead end and came back, so the three letters can be replaced by one. Add the angles (L = &minus;90&deg;, R = +90&deg;, S = 0&deg;, U = 180&deg;) and convert the total back to a letter:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Recorded</th><th>Angle sum</th><th>Becomes</th></tr></thead>
+<tbody>
+<tr><td>L U L</td><td>&minus;360&deg;</td><td>S</td></tr>
+<tr><td>L U S</td><td>+90&deg;</td><td>R</td></tr>
+<tr><td>S U L</td><td>+90&deg;</td><td>R</td></tr>
+<tr><td>L U R</td><td>+180&deg;</td><td>U</td></tr>
+<tr><td>S U S</td><td>+180&deg;</td><td>U</td></tr>
+</tbody></table></div>
+<p>Repeating the replacement removes all the dead ends and leaves the shortest route as a short string such as <code>L S R R</code>. It is a lovely, tiny algorithm, and it uses almost no memory.</p>
+<h3>Why it is not enough</h3>
+<p>That trick only works for a maze <strong>without loops</strong>, where there is exactly one clean route between two points once the dead ends are gone. With loops:</p>
+<ul>
+<li>The turn string alone cannot tell the robot it has come back to a junction it already knows, so a trip round a loop looks like a normal part of the route.</li>
+<li>Removing dead ends does not choose between two different routes to the same place. You need to compare the lengths of the alternatives.</li>
+</ul>
+<p>So for mazes with loops we record a <strong>graph</strong>: a list of nodes and a list of edges, each edge carrying its <strong>length</strong> measured by the encoders.</p>
+<figure><img src="/study-materials/stage-2/content/img/9-2.svg" alt="A route from start through a T junction into a dead end, back to the same junction and on to the finish, with the node and edge tables stored in memory" loading="lazy"><figcaption>One small run, and the data it leaves in memory: four nodes, three edges.</figcaption></figure>
+<h3>Idea 2: nodes, edges and odometry</h3>
+<p>To say &ldquo;this is a junction I have seen before&rdquo; the robot needs to know where it is. It keeps a position (x, y) in millimetres and a heading, updated with the encoders. In a maze whose lines run along a grid the heading is always one of four directions, so <strong>no gyro integration is needed</strong>: just keep the heading as a number and add the travelled distance along the right axis. After a turn, the heading changes by &plusmn;1 (or 2 for a U-turn).</p>
+<p>When the robot reaches a node it asks: is there already a node within a small <strong>tolerance</strong> of this position? If yes, it is the same node, and the robot also <strong>snaps</strong> its position to the stored one. This removes all the accumulated error each time a known node is reached.</p>
+<pre><code class="language-cpp">const int MAX_NODES = 64;              // 6x6 cell maze = 36 cells; a line maze rarely needs more than 32
+enum NodeKind : uint8_t { N_START, N_JUNCTION, N_DEAD_END, N_FINISH };
+
+struct Node { float x, y; uint8_t kind; };            // mm from the start, kind of node
+Node     nodes[MAX_NODES];  int nodeCount = 0;
+uint16_t edgeLen[MAX_NODES][MAX_NODES];                // mm, 0 = no edge        (8 KB)
+int8_t   edgeDir[MAX_NODES][MAX_NODES];                // heading when leaving a toward b (4 KB)
+
+const int   DX[4] = {0, 1, 0, -1};                     // heading 0..3 = N, E, S, W
+const int   DY[4] = {1, 0, -1, 0};
+const float MATCH_TOL_MM = 60;                         // must be smaller than half the shortest edge
+
+float posX = 0, posY = 0;                              // odometry, mm
+int   heading = 0, lastNode = 0;
+
+void clearMap() {
+  memset(edgeLen, 0, sizeof(edgeLen));
+  nodeCount = 0;
+  posX = posY = 0; heading = 0;
+}
+
+int findOrAddNode(uint8_t kind) {
+  for (int i = 0; i &lt; nodeCount; i++) {
+    if (fabsf(nodes[i].x - posX) &lt; MATCH_TOL_MM &amp;&amp; fabsf(nodes[i].y - posY) &lt; MATCH_TOL_MM) {
+      posX = nodes[i].x;  posY = nodes[i].y;           // known node: snap, forget the drift
+      return i;
+    }
+  }
+  if (nodeCount &gt;= MAX_NODES) return nodeCount - 1;    // out of space: keep going, but check the size
+  nodes[nodeCount] = {posX, posY, kind};
+  return nodeCount++;
+}
+
+void addEdge(int a, int b, uint16_t lenMm, int dirAB) {
+  if (a == b || edgeLen[a][b] != 0) return;            // ignore loops onto itself and known edges
+  edgeLen[a][b] = edgeLen[b][a] = lenMm;
+  edgeDir[a][b] = dirAB;
+  edgeDir[b][a] = (dirAB + 2) % 4;                     // going back is the opposite heading
+}</code></pre>
+<div class="callout callout-note"><div class="callout-title">An explicit grid is the other option</div><p>If the maze is built from tiles of a known size (for example every junction is a multiple of 200 mm apart), skip the tolerance test. Round the odometry to the nearest tile and use the tile number as the node number. It is simpler and safer, but only when the tile size is really known.</p></div>
+<h3>The exploration run</h3>
+<p>Now the whole exploration run is a short loop. The edge length is the distance driven since the last turn plus <code>JUNCTION_ROLL_MM</code>; using the same rule for every edge keeps the lengths consistent, which matters more than being exact to the millimetre.</p>
+<pre><code class="language-cpp">char turnLog[100];  int turnLogLen = 0;                // the plain turn sequence, for debugging
+
+void exploreLeftHand() {
+  clearMap();
+  lastNode = findOrAddNode(N_START);
+  resetEncoders();
+  while (true) {
+    followUntilEvent(BASE_SPEED);
+    float run = avgMm() + JUNCTION_ROLL_MM;            // length of this edge
+    Seen s = rollAndLook();
+    char t = decideLeftHand(s);
+
+    posX += run * DX[heading];                         // odometry along the current heading
+    posY += run * DY[heading];
+    uint8_t kind = (t == 'F') ? N_FINISH : (t == 'U') ? N_DEAD_END : N_JUNCTION;
+    int node = findOrAddNode(kind);                    // may snap posX/posY
+    addEdge(lastNode, node, (uint16_t)run, heading);
+
+    if (turnLogLen &lt; 99) turnLog[turnLogLen++] = t;
+    if (t == 'F') { drive(0, 0); return; }             // finish: stop exploring
+
+    turnOnLine(t);
+    heading = headingAfter(heading, t);
+    lastNode = node;
+    resetEncoders();
+  }
+}</code></pre>
+<h3>Show the map on the Serial Monitor</h3>
+<p>A map you cannot see is a map you cannot debug. Print it after every run. Tools &rarr; Serial Monitor at 115200 baud, as in Lesson 01.</p>
+<pre><code class="language-cpp">void printMap() {
+  const char* KIND_NAME[] = {"START", "JUNCTION", "DEAD_END", "FINISH"};
+  const char  DIR_NAME[]  = "NESW";
+  Serial.println("--- nodes: id  x(mm)  y(mm)  kind ---");
+  for (int i = 0; i &lt; nodeCount; i++)
+    Serial.printf("%2d  %6.0f  %6.0f  %s\n", i, nodes[i].x, nodes[i].y, KIND_NAME[nodes[i].kind]);
+  Serial.println("--- edges: a  b  length(mm)  heading a-&gt;b ---");
+  for (int a = 0; a &lt; nodeCount; a++)
+    for (int b = a + 1; b &lt; nodeCount; b++)
+      if (edgeLen[a][b]) Serial.printf("%2d %2d  %5u  %c\n", a, b, edgeLen[a][b], DIR_NAME[edgeDir[a][b]]);
+  Serial.print("turns: "); Serial.write((const uint8_t*)turnLog, turnLogLen); Serial.println();
+}</code></pre>
+<p>For the maze in the figure this should list four nodes and three edges (compare with the picture, and check the lengths against a tape measure). If the same junction appears twice with slightly different coordinates, your <code>MATCH_TOL_MM</code> is too small or the odometry is drifting: check the wheel diameter and wheel base.</p>
+</section>
+
+<section id="shortest-path">
+<h2>Shortest path: Dijkstra's algorithm</h2>
+<p>After exploration we have a graph with weights (the edge lengths) and want the <strong>cheapest route from the start node to the finish node</strong>. <strong>Dijkstra's algorithm</strong> does exactly this. The idea is a careful kind of greed:</p>
+<ol>
+<li>Give every node a <strong>distance</strong>: 0 for the start, &infin; (unknown) for all the others.</li>
+<li>Among the nodes not yet finished, take the one with the smallest distance. Its distance is now <strong>final</strong>: every other route to it must start with an edge from a node at least as far away.</li>
+<li><strong>Relax</strong> its neighbours: if reaching a neighbour <em>through this node</em> is shorter than its current distance, update the neighbour's distance and remember this node as its <strong>previous</strong> node.</li>
+<li>Repeat until the finish is picked. Follow the <em>previous</em> links backwards from the finish to read the path.</li>
+</ol>
+<div class="callout callout-caution"><div class="callout-title">Weights must not be negative</div><p>The &ldquo;final&rdquo; claim in step 2 only holds when no edge has a negative weight. Distances are never negative, so that is fine here.</p></div>
+<h3>A worked example</h3>
+<figure><img src="/study-materials/stage-2/content/img/9-3.svg" alt="A graph with seven nodes S, A, B, C, D, E, F and edge lengths in cm; the shortest path S to B to D to F of length 95 is highlighted" loading="lazy"><figcaption>An explored maze as a graph. E is a dead end. Orange numbers are the final distances from S.</figcaption></figure>
+<p>The edges (in cm) are: S&ndash;A 40, S&ndash;B 25, A&ndash;B 15, A&ndash;C 30, B&ndash;D 45, C&ndash;D 20, C&ndash;F 50, D&ndash;F 25, D&ndash;E 10. I ran Dijkstra on this graph in Python (code below). The table shows each node's distance after every round; <code>prev</code> is the node it was reached from.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Round</th><th>Picked</th><th>S</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th></tr></thead>
+<tbody>
+<tr><td>start</td><td>&ndash;</td><td>0</td><td>&infin;</td><td>&infin;</td><td>&infin;</td><td>&infin;</td><td>&infin;</td><td>&infin;</td></tr>
+<tr><td>1</td><td>S (0)</td><td>0</td><td>40</td><td>25</td><td>&infin;</td><td>&infin;</td><td>&infin;</td><td>&infin;</td></tr>
+<tr><td>2</td><td>B (25)</td><td>0</td><td>40</td><td>25</td><td>&infin;</td><td>70</td><td>&infin;</td><td>&infin;</td></tr>
+<tr><td>3</td><td>A (40)</td><td>0</td><td>40</td><td>25</td><td>70</td><td>70</td><td>&infin;</td><td>&infin;</td></tr>
+<tr><td>4</td><td>C (70)</td><td>0</td><td>40</td><td>25</td><td>70</td><td>70</td><td>&infin;</td><td>120</td></tr>
+<tr><td>5</td><td>D (70)</td><td>0</td><td>40</td><td>25</td><td>70</td><td>70</td><td>80</td><td>95</td></tr>
+<tr><td>6</td><td>E (80)</td><td>0</td><td>40</td><td>25</td><td>70</td><td>70</td><td>80</td><td>95</td></tr>
+<tr><td>7</td><td>F (95)</td><td>0</td><td>40</td><td>25</td><td>70</td><td>70</td><td>80</td><td>95</td></tr>
+</tbody></table></div>
+<p>Final <code>prev</code> links: A &larr; S, B &larr; S, C &larr; A, D &larr; B, E &larr; D, F &larr; D. Read backwards from F: F &larr; D &larr; B &larr; S, so the path is <strong>S &rarr; B &rarr; D &rarr; F with length 25 + 45 + 25 = 95 cm</strong>.</p>
+<p>Three things are worth seeing in the table:</p>
+<ul>
+<li>In round 2, B gives D a distance of 70. In round 4, C could reach D with 70 + 20 = 90, which is worse, so D stays at 70.</li>
+<li>In round 4, C gives F a distance of 120. In round 5, D finds the better way, 70 + 25 = 95, and <strong>replaces</strong> it. That replacement is what &ldquo;relax&rdquo; means.</li>
+<li>C and D are tied at 70. The code takes the lower index first (C); the answer does not depend on the tie.</li>
+</ul>
+<p>Here is the same thing in Python, if you want to experiment on your computer before touching the robot:</p>
+<pre><code class="language-python">names = "SABCDEF"
+edges = [("S","A",40),("S","B",25),("A","B",15),("A","C",30),("B","D",45),
+         ("C","D",20),("C","F",50),("D","F",25),("D","E",10)]
+n = len(names); idx = {c: i for i, c in enumerate(names)}
+w = [[0] * n for _ in range(n)]
+for a, b, c in edges:
+    w[idx[a]][idx[b]] = w[idx[b]][idx[a]] = c
+
+INF = 10**9
+dist = [INF] * n; prev = [-1] * n; done = [False] * n; dist[0] = 0
+for _ in range(n):
+    u = min((i for i in range(n) if not done[i]), key=lambda i: dist[i])
+    done[u] = True
+    for v in range(n):
+        if w[u][v] and not done[v] and dist[u] + w[u][v] &lt; dist[v]:
+            dist[v] = dist[u] + w[u][v]; prev[v] = u
+
+path = []; v = idx["F"]
+while v != -1: path.append(names[v]); v = prev[v]
+print(dist, path[::-1])        # [0, 40, 25, 70, 70, 80, 95]  ['S', 'B', 'D', 'F']</code></pre>
+<h3>Dijkstra in C++ for the robot</h3>
+<p>On a microcontroller we avoid dynamic memory. With at most <code>MAX_NODES</code> nodes, an array of distances and a simple search for the smallest one is fast enough: the cost is about V&sup2; steps, that is a few thousand operations for 36 to 64 nodes, well under a millisecond. The function does not care where the graph is stored: it asks a small <strong>cost function</strong> for the weight of an edge (0 means no edge). That lets Part B reuse the exact same code.</p>
+<pre><code class="language-cpp">const long INF_DIST = 1000000L;
+typedef uint16_t (*EdgeCostFn)(int from, int to);      // returns the edge length, or 0 if there is no edge
+
+// Returns the shortest distance, or -1 if the goal cannot be reached.
+// path[] gets the node numbers from start to goal, pathLen how many.
+long dijkstra(int start, int goal, int nodeCount, EdgeCostFn cost, int path[], int &amp;pathLen) {
+  long dist[MAX_NODES];  int prev[MAX_NODES];  bool done[MAX_NODES];
+  for (int i = 0; i &lt; nodeCount; i++) { dist[i] = INF_DIST; prev[i] = -1; done[i] = false; }
+  dist[start] = 0;
+
+  for (int round = 0; round &lt; nodeCount; round++) {
+    int u = -1;                                        // the closest unfinished node
+    for (int i = 0; i &lt; nodeCount; i++)
+      if (!done[i] &amp;&amp; dist[i] &lt; INF_DIST &amp;&amp; (u &lt; 0 || dist[i] &lt; dist[u])) u = i;
+    if (u &lt; 0) break;                                  // the rest cannot be reached
+    done[u] = true;
+    if (u == goal) break;
+    for (int v = 0; v &lt; nodeCount; v++) {              // relax every edge out of u
+      uint16_t w = cost(u, v);
+      if (w == 0 || done[v]) continue;
+      if (dist[u] + w &lt; dist[v]) { dist[v] = dist[u] + w; prev[v] = u; }
+    }
+  }
+  if (dist[goal] &gt;= INF_DIST) { pathLen = 0; return -1; }
+
+  int tmp[MAX_NODES], n = 0;                           // walk back from the goal, then reverse
+  for (int v = goal; v != -1; v = prev[v]) tmp[n++] = v;
+  pathLen = n;
+  for (int i = 0; i &lt; n; i++) path[i] = tmp[n - 1 - i];
+  return dist[goal];
+}
+
+uint16_t lineCost(int a, int b) { return edgeLen[a][b]; }   // cost function for the line-maze graph</code></pre>
+<p>For the example above (S = 0, A = 1, B = 2, C = 3, D = 4, E = 5, F = 6) a call <code>dijkstra(0, 6, 7, lineCost, path, len)</code> returns 95 and the path <code>0, 2, 4, 6</code>.</p>
+<h3>From a node path to turn instructions</h3>
+<p>The robot cannot follow &ldquo;nodes 0, 2, 4, 6&rdquo;; it needs to know whether to turn left or right at each junction. We stored the heading of every edge, so a turn is just the difference between two headings. The function reuses <code>turnChar()</code> from the decision section.</p>
+<pre><code class="language-cpp">// turns[k] = the turn to make at path[k] (k = 0 is the start). Returns how many turns.
+int pathToTurns(const int path[], int len, int startHeading, char turns[]) {
+  int h = startHeading, n = 0;
+  for (int i = 0; i + 1 &lt; len; i++) {
+    int d = edgeDir[path[i]][path[i + 1]];             // heading we must have to leave path[i]
+    turns[n++] = turnChar(h, d);
+    h = d;
+  }
+  turns[n] = 0;
+  return n;
+}</code></pre>
+<p>Suppose the stored headings are S&rarr;B north, B&rarr;D east and D&rarr;F north, and the robot starts facing north. Then the turns are: at S, north to north = <code>S</code>; at B, north to east = <code>R</code>; at D, east to north = <code>L</code>. The instruction string is <code>SRL</code>.</p>
+<h3>The fast run</h3>
+<p>For the second run, the robot follows the line as before but ignores the left-hand rule: at every junction it simply carries out the next instruction. Dead ends are never visited, because no instruction leads there.</p>
+<pre><code class="language-cpp">void runFast(const int path[], int len) {
+  char turns[MAX_NODES];
+  pathToTurns(path, len, 0, turns);                    // placed at the start, facing north like in the exploration
+  resetEncoders();
+  for (int i = 1; i &lt; len; i++) {                      // i = the node we are driving towards
+    followUntilEvent(FAST_SPEED);
+    rollAndLook();                                     // centre the axle on the node
+    if (i == len - 1) { drive(0, 0); return; }         // the finish
+    turnOnLine(turns[i]);                              // turn for the node path[i]
+    resetEncoders();
+  }
+}
+
+void soloRun() {
+  exploreLeftHand();
+  printMap();
+  int path[MAX_NODES], len;
+  long d = dijkstra(0, nodeCount - 1, nodeCount, lineCost, path, len);   // the finish was added last
+  Serial.printf("shortest = %ld mm over %d nodes\n", d, len);
+  // wait for a button press, put the robot back on the start, then:
+  runFast(path, len);
+}</code></pre>
+<div class="callout callout-tip"><div class="callout-title">Going faster</div><p>The map also stores the <strong>length</strong> of every edge, so on a long straight edge the robot can run at full speed and start braking a little before the edge ends. That is the real benefit of keeping lengths. Use a high speed on long edges and a lower speed on short ones or before a turn.</p></div>
+</section>
+
+<section id="ultrasonic-sensing">
+<h2>Part B: the wall maze and ultrasonic sensors</h2>
+<p>The club calls this the &ldquo;3D maze&rdquo;: a maze with <strong>physical walls</strong>, like a micromouse maze, instead of a line painted on the floor. The robot has no line to follow, so it must sense the walls. The usual sensor is <strong>ultrasonic</strong>, and here we use the common <strong>HC-SR04</strong>-style module, with three of them: front, left and right.</p>
+<h3>How the sensor measures</h3>
+<figure><img src="/study-materials/stage-2/content/img/9-4.svg" alt="Left: an ultrasonic sensor sends a ping to a wall and measures the echo time; distance equals speed times time divided by two. Right: a robot with front, left and right sensors fired one after another" loading="lazy"><figcaption>Time of flight, and the three-sensor layout on the robot.</figcaption></figure>
+<p>The module sends a short burst of 40 kHz sound (inaudible to us). The sound travels to a wall, bounces back, and the module's second transducer hears it. The module sets the <code>ECHO</code> pin HIGH from the moment it sends the burst until the echo comes back, so the <strong>HIGH time is the round-trip time</strong>.</p>
+<p>The sound goes there <em>and</em> back, so the distance is half of speed &times; time:</p>
+<p><code>d = v &times; t / 2</code>, with <code>v &asymp; 343 m/s</code> at 20 &deg;C. In practical units, <code>d (cm) &asymp; t (&micro;s) / 58</code>.</p>
+<p>Sound is a little faster in warm air (about 0.6 m/s more per &deg;C), which changes the answer by about 2% for a 10 &deg;C difference. For a maze that is small enough to ignore.</p>
+<h3>What can go wrong</h3>
+<ul>
+<li><strong>Range.</strong> Typical datasheets for the HC-SR04 give about 2 cm to 400 cm. Check your own module. In a maze you only care about the first metre.</li>
+<li><strong>Blind zone.</strong> Closer than about 2 cm the readings are wrong. Mount the sensors so a wall is never that close.</li>
+<li><strong>Beam width.</strong> The beam is a cone of roughly 15&deg;, not a thin line. A wall corner or a side wall can return an echo that you did not expect.</li>
+<li><strong>Angled walls.</strong> A smooth wall at a steep angle reflects the ping away from the sensor like a mirror, so you get a long distance or no echo at all.</li>
+<li><strong>Soft surfaces</strong> such as foam, cloth or thin card absorb or scatter the sound and give weak or missing echoes. Use hard, flat walls.</li>
+<li><strong>Cross-talk.</strong> One sensor's ping can reach another sensor. Fire them one at a time.</li>
+</ul>
+<div class="callout callout-caution"><div class="callout-title">Hardware warning: 5 V ECHO into a 3.3 V ESP32</div><p>A standard HC-SR04 is a <strong>5 V module</strong>, and its <code>ECHO</code> output swings to <strong>5 V</strong>. ESP32 pins are <strong>3.3 V only</strong>, so connecting ECHO directly can damage the pin over time. Do one of these:</p><ul>
+<li>Put a <strong>voltage divider</strong> on each ECHO wire: 1 k&Omega; from ECHO to the ESP32 pin and 2 k&Omega; from that pin to GND. That gives about 3.3 V.</li>
+<li>Or use a <strong>level-shifter</strong> board.</li>
+<li>Or buy a <strong>3.3 V-compatible variant</strong> (sold as HC-SR04P or similar). Read the seller's datasheet; names are not always reliable.</li></ul>
+<p>The TRIG input normally accepts the 3.3 V signal from the ESP32, but check yours. Power the module from a clean 5 V supply and connect all grounds together.</p></div>
+<h3>Non-blocking measurement</h3>
+<p>The simple Arduino way to read an HC-SR04 is <code>pulseIn()</code>. It <strong>waits</strong> until the echo is finished, up to its timeout. For a wall 1 m away that is about 6 ms, and with three sensors the robot would be blind to everything else for tens of milliseconds. Instead, we let a pin <strong>interrupt</strong> note the time of the rising and falling edge of ECHO with <code>micros()</code>, and a small function, called from <code>loop()</code>, fires the sensors one after another.</p>
+<p>Suggested pins for the wall robot (the line robot does not need them): TRIG 18, 19, 23 and ECHO 16, 17, 14 (through the dividers) for front, left and right. Note that these ECHO pins are the same ones the line-follower build uses for buttons.</p>
+<pre><code class="language-cpp">enum { FRONT = 0, LEFT = 1, RIGHT = 2 };
+const float    MAX_CM     = 130.0;     // report this when there is no echo (about the 8 ms timeout)
+const uint32_t TIMEOUT_US = 8000;      // give up on an echo after 8 ms
+const uint32_t GAP_US     = 12000;     // quiet time between two sensors
+
+struct Sonar {
+  uint8_t trigPin, echoPin;
+  volatile uint32_t riseUs, widthUs;
+  volatile bool armed, done;
+};
+Sonar sonar[3] = {
+  {18, 16, 0, 0, false, false},        // front
+  {19, 17, 0, 0, false, false},        // left
+  {23, 14, 0, 0, false, false},        // right
+};
+float sonarCm[3] = {MAX_CM, MAX_CM, MAX_CM};          // newest filtered distance in cm
+float hist[3][3];                                      // last three raw readings per sensor
+
+// Runs on every rising and falling edge of an ECHO pin.
+void IRAM_ATTR echoIsr(void* arg) {
+  Sonar* s = (Sonar*)arg;
+  if (!s-&gt;armed) return;                               // ignore late echoes of an old ping
+  if (digitalRead(s-&gt;echoPin)) {
+    s-&gt;riseUs = micros();
+  } else {
+    s-&gt;widthUs = micros() - s-&gt;riseUs;
+    s-&gt;done = true;
+    s-&gt;armed = false;
+  }
+}
+
+void sonarBegin() {
+  for (int i = 0; i &lt; 3; i++) {
+    pinMode(sonar[i].trigPin, OUTPUT);
+    digitalWrite(sonar[i].trigPin, LOW);
+    pinMode(sonar[i].echoPin, INPUT);
+    attachInterruptArg(digitalPinToInterrupt(sonar[i].echoPin), echoIsr, &amp;sonar[i], CHANGE);
+    for (int k = 0; k &lt; 3; k++) hist[i][k] = MAX_CM;
+  }
+}
+
+float median3(float a, float b, float c) {             // median of three: throws away one wild reading
+  if (a &gt; b) { float t = a; a = b; b = t; }            // now a &lt;= b
+  if (b &gt; c) b = c;                                    // b = min(b, c)
+  return (a &gt; b) ? a : b;                              // median = max(a, min(b, c))
+}
+
+void pushReading(int i, float cm) {
+  hist[i][2] = hist[i][1];  hist[i][1] = hist[i][0];  hist[i][0] = cm;
+  sonarCm[i] = median3(hist[i][0], hist[i][1], hist[i][2]);
+}
+
+// Call this as often as you can from loop(). It never waits.
+void sonarUpdate() {
+  static uint8_t cur = 0;                              // which sensor is next
+  static bool waiting = false;
+  static uint32_t t0 = 0;
+  uint32_t now = micros();
+  Sonar&amp; s = sonar[cur];
+
+  if (!waiting) {
+    if (now - t0 &lt; GAP_US) return;                     // let the old echoes die away
+    s.done = false;  s.armed = true;
+    digitalWrite(s.trigPin, HIGH);
+    delayMicroseconds(10);                             // the 10 us trigger pulse
+    digitalWrite(s.trigPin, LOW);
+    t0 = micros();
+    waiting = true;
+    return;
+  }
+  if (s.done || now - t0 &gt; TIMEOUT_US) {
+    float cm = MAX_CM;                                 // no echo means "nothing near"
+    if (s.done) { cm = s.widthUs / 58.3f; if (cm &gt; MAX_CM) cm = MAX_CM; }
+    s.armed = false;
+    pushReading(cur, cm);
+    waiting = false;
+    cur = (cur + 1) % 3;
+    t0 = micros();
+  }
+}</code></pre>
+<p>With these settings a full round of the three sensors takes roughly 40 to 60 ms (an estimate; measure it with <code>micros()</code>), so each sensor gives a new reading about 15 to 25 times a second. The median of three adds about one reading of delay, which is fine at maze speeds.</p>
+<div class="callout callout-tip"><div class="callout-title">Print before you trust</div><p>Before any driving, print <code>sonarCm[FRONT]</code>, <code>sonarCm[LEFT]</code> and <code>sonarCm[RIGHT]</code> and hold a book in front of each. Check a few distances with a ruler. Check what happens at a very angled wall.</p></div>
+</section>
+
+<section id="wall-following">
+<h2>Wall following, openings and turns</h2>
+<h3>Keeping a distance from the wall</h3>
+<figure><img src="/study-materials/stage-2/content/img/9-5.svg" alt="Left-wall following: a robot too far steers toward the wall, a robot on target drives straight, a robot too close steers away" loading="lazy"><figcaption>The error is the measured distance minus the target distance.</figcaption></figure>
+<p>This is the same idea as the line follower in Lessons 05 and 06. There the error was the line position; here it is the distance to the wall. The proportional controller turns it into a steering correction: <code>correction = Kp &times; error</code>, added to one wheel and subtracted from the other.</p>
+<pre><code class="language-cpp">const float TARGET_CM = 10.0;     // ASSUMPTION: centred in a 300 mm corridor with a 100 mm wide robot
+const float KP_WALL   = 8.0;      // PWM counts per cm of error: tune it
+const int   WALL_SPEED = 120;
+
+// errCm &gt; 0 means "steer left". For the left wall that is (distance - target); for the right wall (target - distance).
+void steer(float errCm) {
+  errCm = constrain(errCm, -6.0f, 6.0f);                 // clamp, so a sudden gap never causes a big swerve
+  int corr = (int)(KP_WALL * errCm);
+  drive(WALL_SPEED - corr, WALL_SPEED + corr);
+}</code></pre>
+<p>If the robot wobbles from side to side, lower <code>Kp</code>, or add a derivative term with <code>pidCompute()</code> from Lesson 06.</p>
+<h3>Openings are junctions</h3>
+<p>A wall maze is full of junctions, but there is no pattern to detect: a junction is simply a place where a wall <strong>stops existing</strong>. In the sensor data it looks like a jump:</p>
+<ul>
+<li>The side distance jumps from about 10 cm to 40 cm or more: <strong>an opening</strong> on that side.</li>
+<li>The front distance falls below about 18 cm: <strong>a wall ahead</strong>.</li>
+</ul>
+<p>Use fixed thresholds, one for a &ldquo;wall present&rdquo; test, in the middle between the two cases:</p>
+<pre><code class="language-cpp">const float SIDE_WALL_CM  = 20.0;   // a side reading below this = wall present
+const float FRONT_WALL_CM = 18.0;   // a front reading below this = wall ahead (about 9 cm at cell centre)
+const float CELL_MM       = 300.0;  // ASSUMPTION: centre of one cell to the centre of the next
+
+// Move forward one cell using the encoders for distance and the walls for steering.
+void moveOneCell() {
+  resetEncoders();
+  long target = mmToTicks(CELL_MM);
+  while ((leftTicks() + rightTicks()) / 2 &lt; target) {
+    sonarUpdate();
+    if (sonarCm[FRONT] &lt; 7.0) break;                                  // wall much closer than expected: stop
+    if      (sonarCm[LEFT]  &lt; SIDE_WALL_CM) steer(sonarCm[LEFT] - TARGET_CM);       // follow the left wall
+    else if (sonarCm[RIGHT] &lt; SIDE_WALL_CM) steer(TARGET_CM - sonarCm[RIGHT]);     // otherwise the right wall
+    else drive(WALL_SPEED, WALL_SPEED);                                // no wall at all: go straight
+  }
+  drive(0, 0);
+}
+
+// After a spin the sensors point somewhere new, so let the filters refill.
+void settleSonar(unsigned long ms) {
+  unsigned long t0 = millis();
+  while (millis() - t0 &lt; ms) sonarUpdate();
+}</code></pre>
+<p>This uses <code>mmToTicks()</code> from Part A and the same encoder idea as the line maze: <strong>the encoders decide how far to go, the walls decide how to steer</strong>. The distance of one cell is not measured by the walls, so a robot that slips a little still ends in about the right place.</p>
+<h3>Front walls and turns</h3>
+<p>At the middle of each cell the robot stops and looks. <code>spinDegrees()</code> from Part A turns it by the encoders. You can improve the angle accuracy with the gyro in the MPU6050, but encoders are enough to start with.</p>
+<h3>The wall-follower rule</h3>
+<p>The exploration rule is the same left-hand rule as Part A, now in terms of walls: <strong>left open &rarr; turn left; otherwise front open &rarr; go straight; otherwise right open &rarr; turn right; otherwise turn around.</strong> The robot keeps its map as it goes, so it can plan the second run.</p>
+</section>
+
+<section id="wall-maze-map">
+<h2>Mapping the wall maze and running fast</h2>
+<h3>A grid of cells with walls</h3>
+<p>A micromouse-style maze is a grid. Each cell has up to four walls. A single byte per cell is enough: bit 0 = north wall, bit 1 = east, bit 2 = south, bit 3 = west, which is <code>1 &lt;&lt; heading</code> with the same heading numbers as before. We also need a <code>visited</code> flag, so the planner never trusts a cell the robot has not seen.</p>
+<pre><code class="language-cpp">const int W = 6, H = 6;                                // 36 cells (fits in MAX_NODES = 64)
+uint8_t wallsOf[H][W];                                 // bit (1 &lt;&lt; direction) set = wall on that side
+bool    visited[H][W];
+int row = H - 1, col = 0, wallHeading = 0;             // start in the bottom-left cell, facing north (row 0 = north edge)
+
+// Remember a wall on side 'dir' of cell (r, c), and the matching side of the neighbour.
+void setWall(int r, int c, int dir) {
+  wallsOf[r][c] |= 1 &lt;&lt; dir;
+  int nr = r + (dir == 2) - (dir == 0);
+  int nc = c + (dir == 1) - (dir == 3);
+  if (nr &gt;= 0 &amp;&amp; nr &lt; H &amp;&amp; nc &gt;= 0 &amp;&amp; nc &lt; W) wallsOf[nr][nc] |= 1 &lt;&lt; ((dir + 2) % 4);
+}
+
+void exploreWallMaze(int goalRow, int goalCol) {
+  memset(wallsOf, 0, sizeof(wallsOf));  memset(visited, 0, sizeof(visited));
+  while (true) {
+    settleSonar(250);
+    bool f = sonarCm[FRONT] &lt; FRONT_WALL_CM;
+    bool l = sonarCm[LEFT]  &lt; SIDE_WALL_CM;
+    bool r = sonarCm[RIGHT] &lt; SIDE_WALL_CM;
+    visited[row][col] = true;
+    if (f) setWall(row, col, wallHeading);                // sensors give walls relative to the robot,
+    if (l) setWall(row, col, (wallHeading + 3) % 4);      // so convert to compass directions
+    if (r) setWall(row, col, (wallHeading + 1) % 4);
+    if (row == goalRow &amp;&amp; col == goalCol) break;
+
+    char t = !l ? 'L' : !f ? 'S' : !r ? 'R' : 'U';        // the left-wall rule
+    if      (t == 'L') spinDegrees(-90);
+    else if (t == 'R') spinDegrees(90);
+    else if (t == 'U') spinDegrees(180);
+    wallHeading = headingAfter(wallHeading, t);
+    moveOneCell();
+    row += (wallHeading == 2) - (wallHeading == 0);
+    col += (wallHeading == 1) - (wallHeading == 3);
+  }
+  drive(0, 0);
+}</code></pre>
+<p>Here we assume the goal cell is known (for example an exit cell given in the rules). Remember the limits from Part A: a wall follower is not guaranteed to reach a goal that sits in the middle of the maze, because that goal may be on an island of walls.</p>
+<h3>Reusing Dijkstra on the cell graph</h3>
+<p>The cells form a graph: every cell is a node, and two neighbouring cells are connected by an edge if there is <strong>no wall between them</strong>. Every move costs 1 (or <code>CELL_MM</code> if you prefer distances; for equal cells the answer is the same path). We do not write a new algorithm. We write a different <strong>cost function</strong> and call the same <code>dijkstra()</code> from Part A.</p>
+<pre><code class="language-cpp">// Cost 1 between two neighbouring, visited cells without a wall between them, otherwise 0 (no edge).
+uint16_t cellCost(int a, int b) {
+  int ar = a / W, ac = a % W, br = b / W, bc = b % W;
+  if (!visited[ar][ac] || !visited[br][bc]) return 0;
+  int dir;
+  if      (br == ar - 1 &amp;&amp; bc == ac) dir = 0;          // north
+  else if (br == ar &amp;&amp; bc == ac + 1) dir = 1;          // east
+  else if (br == ar + 1 &amp;&amp; bc == ac) dir = 2;          // south
+  else if (br == ar &amp;&amp; bc == ac - 1) dir = 3;          // west
+  else return 0;                                       // not neighbours
+  return (wallsOf[ar][ac] &amp; (1 &lt;&lt; dir)) ? 0 : 1;
+}
+
+int headingBetween(int a, int b) {                     // compass heading for a move between neighbouring cells
+  int d = b - a;
+  return (d == -W) ? 0 : (d == 1) ? 1 : (d == W) ? 2 : 3;
+}
+
+void runWallMazeFast(int startRow, int startCol, int goalRow, int goalCol) {
+  int path[MAX_NODES], len;
+  long steps = dijkstra(startRow * W + startCol, goalRow * W + goalCol, W * H, cellCost, path, len);
+  if (steps &lt; 0) { Serial.println("no route in the map"); return; }
+  Serial.printf("shortest route: %ld cells\n", steps);
+
+  int h = 0;                                           // robot is back at the start, facing north
+  for (int i = 0; i + 1 &lt; len; i++) {
+    int d = headingBetween(path[i], path[i + 1]);
+    char t = turnChar(h, d);                           // same helper as the line maze
+    if      (t == 'L') spinDegrees(-90);
+    else if (t == 'R') spinDegrees(90);
+    else if (t == 'U') spinDegrees(180);
+    h = d;
+    moveOneCell();
+  }
+}</code></pre>
+<p>Notice that Dijkstra, <code>turnChar()</code> and <code>headingAfter()</code> are the same functions in both kinds of maze. Only the map and the way it is filled are different. For speed, merge consecutive straight moves into one long move, so the robot does not stop in every cell.</p>
+<div class="callout callout-note"><div class="callout-title">The next step: flood-fill</div><p>Flood-fill is the algorithm micromouse robots use. Each cell stores its distance to the goal, and when the robot discovers a new wall it updates the distances and re-plans on the spot, so it explores only what it needs and heads for the goal from the start. It uses ideas you have already met (a grid, a distance, a plan). Look it up once you can run the wall maze reliably.</p></div>
+</section>
+
+<section id="comparison-and-practice">
+<h2>Comparison and practice</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>&nbsp;</th><th>Line maze (Part A)</th><th>Wall maze (Part B)</th></tr></thead>
+<tbody>
+<tr><td>Main sensors</td><td>QTR-8A line array, encoders</td><td>Three HC-SR04-style ultrasonic sensors, encoders</td></tr>
+<tr><td>How a junction is found</td><td>Pattern on the outer sensors, then a short roll to confirm</td><td>A side wall disappears, or a front wall appears</td></tr>
+<tr><td>Position</td><td>Odometry from the encoders, snapped to known nodes</td><td>Counted cells; the walls keep the robot centred</td></tr>
+<tr><td>What limits speed</td><td>Sensor scan time (ADS1115 is slow), turning on the line, grip</td><td>Ultrasonic update rate (about 15 to 25 readings per second per sensor), echo reliability</td></tr>
+<tr><td>Typical problems</td><td>Uneven lighting, ghost junctions, turns that miss the line, wheel slip</td><td>Angled or soft walls, cross-talk, 5 V echo wiring, drifting while turning</td></tr>
+<tr><td>Map</td><td>Graph with node coordinates and edge lengths</td><td>Grid of cells with walls, or a graph on it</td></tr>
+<tr><td>Shortest path</td><td>Dijkstra on the graph</td><td>The same Dijkstra on the cell graph</td></tr>
+</tbody></table></div>
+<h3>Practice tasks</h3>
+<ol>
+<li><strong>Dijkstra on paper.</strong> Change the weight of C&ndash;F in the worked example from 50 to 40, and the weight of D&ndash;F to 60. Redo the table by hand. Which path wins now? Check with the Python code.</li>
+<li><strong>Print the map.</strong> Without driving, fill the arrays by hand with <code>addEdge()</code> for a small maze and call <code>printMap()</code>.</li>
+<li><strong>Turn calibration.</strong> Command <code>spinDegrees(90)</code> four times. Measure how far off 360&deg; the robot is, and correct the formula with a factor.</li>
+<li><strong>Junction logger.</strong> Drive a line maze by hand and print the <code>Seen</code> flags at every junction. Are T and cross separated correctly?</li>
+<li><strong>Sensor test.</strong> Check that <code>sonarCm[]</code> tracks a flat book at 5, 10, 20 and 40 cm. Then tilt the book 45&deg; and see what happens.</li>
+<li><strong>Loop challenge.</strong> Make a line maze with a loop. Does the left-hand rule still finish? Add a way to stop if the robot has visited the same node more than three times.</li>
+</ol>
+</section>
+
+<section id="key-takeaways">
+<h2>Key takeaways</h2>
+<ul>
+<li>A maze solver <strong>explores</strong> first and <strong>runs fast</strong> second. The map is what makes the fast run possible.</li>
+<li>A line maze has <strong>nodes</strong> (junctions, dead ends, finish) and <strong>edges</strong>. Confirm a junction by rolling a short distance forward with the encoders, because T and cross look the same at first.</li>
+<li>The <strong>left-hand rule</strong> works for mazes without loops, but it is not guaranteed with loops, and it does not find the shortest route.</li>
+<li>Turn-sequence simplification (such as L U L becomes S) only works without loops. With loops, record a <strong>graph</strong>: node positions from odometry, edge lengths from the encoders, and snap to a known node when the position matches within a tolerance.</li>
+<li><strong>Dijkstra's algorithm</strong> picks the closest unfinished node, relaxes its neighbours and repeats; with arrays it costs about V&sup2; steps and needs no dynamic memory.</li>
+<li>Convert the node path to turns by comparing the stored headings, then follow the instructions on the fast run.</li>
+<li>An ultrasonic sensor measures time of flight: <code>d = v &times; t / 2</code>. It has a blind zone, a wide beam, and problems with soft and angled walls.</li>
+<li>An HC-SR04's ECHO pin is <strong>5 V</strong>: divide it down or use a 3.3 V variant for the ESP32. Read sensors without blocking, one at a time, and filter with a median of three.</li>
+<li>Wall following is the line follower again, with the wall distance as the error. A vanishing side wall is a junction.</li>
+<li>The wall maze reuses the <strong>same Dijkstra</strong> with a different cost function. Flood-fill is the natural next step.</li>
+</ul>
+</section>

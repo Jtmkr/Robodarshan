@@ -1,0 +1,329 @@
+<section id="open-loop-control">
+<h2>Open-loop control: command and hope</h2>
+<p>In Lesson 01 you made the robot move with <code>drive(150, 150)</code>. That is <strong>open-loop control</strong>: you choose a PWM value, send it to the motor driver and <em>hope</em> the wheels turn at the speed you wanted. Nothing in the program checks what really happened.</p>
+<figure><img src="/study-materials/stage-2/content/img/5-1.svg" alt="Block diagrams of open-loop control (PWM to motor, no check) and closed-loop control (encoder measurement fed back and compared with the target)" loading="lazy"><figcaption>Open loop sends a command and stops there. Closed loop measures the result and corrects it.</figcaption></figure>
+<p>Open loop is simple, and for a short test it is fine. For a robot that must drive straight, turn exactly 90&deg; or follow a line at a steady speed, it is unreliable, for four reasons:</p>
+<ul>
+<li><strong>Battery voltage:</strong> a 3S LiPo is 12.6 V when full and sags as you use it (and sags more when the motors pull current). The same PWM value gives a lower speed on a tired battery.</li>
+<li><strong>Load:</strong> a heavier robot, a carpet, a slope or a wheel rubbing on the chassis slows the wheel down for the same PWM.</li>
+<li><strong>Dead zone and stiction:</strong> below a certain PWM the motor produces too little torque to overcome friction, so it does not move at all. Past that point it suddenly starts. The relationship between PWM and speed is not a clean straight line.</li>
+<li><strong>Motor differences:</strong> two motors of the same model are never identical. Given the same PWM, the left wheel is a little faster than the right, and the robot curves.</li>
+</ul>
+<figure><img src="/study-materials/stage-2/content/img/5-2.svg" alt="Illustrative graph of wheel speed against PWM showing a dead zone at low PWM and lower speed for the same PWM with a low battery" loading="lazy"><figcaption>An illustrative PWM-to-speed curve. The real shape depends on your motor, so measure yours.</figcaption></figure>
+<div class="callout callout-note"><div class="callout-title">Assumptions in this lesson</div>
+<ul>
+<li>Motors: N20 12 V, 300 RPM gearmotors with magnetic quadrature encoders. <strong>Assumed</strong> 1400 encoder counts per wheel revolution (x4 decoding, 7 pulses per channel, 50:1 gearbox), wheel diameter <strong>34 mm</strong>, wheel base <strong>85 mm</strong>. These are the numbers from Lesson 03; replace them with the values for your own robot.</li>
+<li>Pins and functions are the same as before: the TB6612FNG wiring and <code>drive(left, right)</code> from Lessons 01 and 02, and <code>encodersBegin()</code>, <code>leftTicks()</code>, <code>rightTicks()</code> and <code>resetEncoders()</code> from Lesson 03. Every code block here assumes those are already in your sketch.</li>
+<li>Numbers such as <code>MIN_PWM = 45</code> or gains like <code>KP_POS</code> are <strong>example values</strong> to start from, not measured facts.</li>
+<li>All the code in this lesson is starter code, written without access to your hardware. Test it carefully on your own robot (wheels lifted first) and tune the numbers.</li>
+</ul></div>
+<h3>An experiment you can run: same PWM, different result</h3>
+<p>See the problem yourself. This function runs both motors at the same PWM for a fixed time and prints how far each wheel turned, in encoder ticks.</p>
+<pre><code class="language-cpp">void openLoopTest(int pwm, unsigned long runMs) {
+  resetEncoders();
+  drive(pwm, pwm);
+  delay(runMs);                      // fine for a test; never do this in a real control loop
+  drive(0, 0);
+  delay(300);                        // let the wheels coast to a stop
+  Serial.print("PWM ");   Serial.print(pwm);
+  Serial.print("  left ticks: ");  Serial.print(leftTicks());
+  Serial.print("  right ticks: "); Serial.println(rightTicks());
+}
+
+void setup() {
+  Serial.begin(115200);
+  motorsBegin();
+  encodersBegin();
+  delay(2000);                       // time to put the robot on the floor
+  openLoopTest(100, 2000);
+  openLoopTest(150, 2000);
+  openLoopTest(200, 2000);
+}
+
+void loop() {}</code></pre>
+<p>Write down the results, then repeat under different conditions: a fully charged battery and a half-used one (a LiPo voltage checker is useful), the robot on the floor and held in the air, a smooth floor and a carpet. What to look for:</p>
+<ul>
+<li>Do the left and right counts match? They almost never do.</li>
+<li>Does the same PWM give different ticks later in the day or with a different battery?</li>
+<li>Try a very low PWM such as 30 or 40. Does the wheel move at all? The lowest value where it reliably moves is your <strong>dead zone</strong> limit. Write it down; you will use it as <code>MIN_PWM</code> below.</li>
+</ul>
+<div class="callout callout-caution"><div class="callout-title">Lift the wheels, and mind the battery</div><p>Test with the robot on a stand or held up the first time, in case a wheel turns the wrong way or the code drives away. Use fully charged, undamaged LiPo packs, keep the leads from touching, and never leave a charging or connected pack unattended.</p></div>
+</section>
+
+<section id="closed-loop-control">
+<h2>Closed-loop control: measure, compare, correct</h2>
+<p>Closed-loop control adds the missing piece: <strong>feedback</strong>. The robot measures what actually happened and uses it to correct the command. Look at the bottom half of the diagram above. There are four ideas:</p>
+<div class="card-grid">
+<div class="info-card"><h4>Setpoint</h4><p>What you want, for example "the left wheel should turn at 300 mm/s".</p></div>
+<div class="info-card"><h4>Measurement</h4><p>What you actually have, from a sensor. For a wheel that is the encoder.</p></div>
+<div class="info-card"><h4>Error</h4><p>setpoint &minus; measurement. If it is positive the wheel is too slow, if negative too fast.</p></div>
+<div class="info-card"><h4>Actuator command</h4><p>What the controller does about the error: here, the PWM sent to the motor driver.</p></div>
+</div>
+<p>The loop runs again and again, fast (every 10 to 20 ms). If the battery sags, the measured speed drops, the error grows, the controller raises the PWM and the speed comes back. You do not need to know why the speed changed; you only need to notice it.</p>
+<p>The same idea appears everywhere: a car's cruise control, an oven's thermostat, and your own hand reaching for a cup, where your eyes provide the feedback. In this lesson the signal being controlled is <strong>wheel speed</strong> (and later the wheel <strong>position</strong>), and the sensor is the encoder.</p>
+<div class="callout callout-key"><div class="callout-title">What is coming in Lesson 06</div><p>The simplest correction is "push harder the bigger the error is", called <strong>proportional (P)</strong> control. Adding terms that look at the history of the error (<strong>I</strong>) and its rate of change (<strong>D</strong>) gives the full <strong>PID</strong> controller. Lesson 06 builds and tunes that. In this lesson we use only P, plus a helpful guess called feedforward, so that you see the idea without the extra maths.</p></div>
+</section>
+
+<section id="encoder-feedback">
+<h2>Encoder feedback: reading the wheel speed</h2>
+<p>You built the encoder code in Lesson 03, so here is just a reminder of what we need. With the assumed 1400 ticks per wheel revolution and a 34 mm wheel, one tick is <code>MM_PER_TICK = PI * 34 / 1400</code>, about 0.0763 mm. The speed over a short, fixed interval is:</p>
+<ul>
+<li>ticks per second = &Delta;ticks &times; 1000 / interval(ms)</li>
+<li>speed in mm/s = ticks per second &times; <code>MM_PER_TICK</code></li>
+</ul>
+<p>For control it is convenient to work in <strong>ticks per second</strong> directly (no conversion needed), and convert only when you talk to humans. At 20 ms, one tick is 50 ticks per second, so the measurement jumps in steps of 50 (about 3.8 mm/s). Smooth it with a simple low-pass filter, as in Lesson 03.</p>
+<pre><code class="language-cpp">const float MM_PER_TICK = PI * WHEEL_DIAMETER_MM / TICKS_PER_REV;   // already defined in Lesson 03: define it only once
+
+const unsigned long LOOP_MS = 20;       // speed loop period
+unsigned long lastLoopMs = 0;
+long speedPrevL = 0, speedPrevR = 0;   // (not prevL/prevR: those names are used by the encoder code)
+float measTpsL = 0, measTpsR = 0;       // measured speed, ticks per second (smoothed)
+const float SMOOTH = 0.3f;              // 0..1, smaller = smoother but slower
+
+// Call every LOOP_MS. Returns false if it is not time yet.
+bool measureSpeeds() {
+  unsigned long now = millis();
+  if (now - lastLoopMs &lt; LOOP_MS) return false;
+  lastLoopMs += LOOP_MS;
+
+  long l = leftTicks(), r = rightTicks();
+  float tpsL = (l - speedPrevL) * 1000.0f / LOOP_MS;
+  float tpsR = (r - speedPrevR) * 1000.0f / LOOP_MS;
+  speedPrevL = l; speedPrevR = r;
+
+  measTpsL += SMOOTH * (tpsL - measTpsL);
+  measTpsR += SMOOTH * (tpsR - measTpsR);
+  return true;
+}</code></pre>
+<p>Print <code>measTpsL</code> and <code>measTpsR</code> while driving open loop at, say, PWM 150. Divide by 1400 and multiply by 60 to see RPM, or multiply by <code>MM_PER_TICK</code> for mm/s. You will also find your motor's real maximum: run <code>drive(255, 255)</code> for a second and read the printed ticks per second. Call that value <code>MAX_TPS</code>. (With 300 RPM at the wheel and 1400 ticks per revolution it would be at most 7000 ticks per second, and in practice lower.)</p>
+</section>
+
+<section id="speed-controller">
+<h2>A simple speed controller: feedforward plus proportional</h2>
+<p>Our controller has two parts that add up to the PWM:</p>
+<ul>
+<li><strong>Feedforward:</strong> a good first guess from your measurements, "to reach this speed I normally need about this much PWM". It does most of the work and responds instantly.</li>
+<li><strong>Proportional correction:</strong> <code>KP &times; error</code>. It fixes what the guess got wrong because of battery, load and motor differences.</li>
+</ul>
+<p>The feedforward uses a straight line between the dead-zone PWM (<code>MIN_PWM</code>) and full PWM (255), matching <code>MAX_TPS</code> at the top. It is only an approximation of the curve in the earlier figure; the P part tidies up the rest.</p>
+<pre><code class="language-cpp">const float MAX_TPS = 6000.0f;    // ASSUMPTION: ticks/s at PWM 255. Measure yours!
+const int   MIN_PWM = 45;         // ASSUMPTION: lowest PWM that reliably moves the wheel. Measure yours!
+const float KP_SPEED = 0.02f;     // PWM added per (tick/s) of speed error. Tune.
+
+float targetTpsL = 0, targetTpsR = 0;   // the setpoints
+
+// Rough PWM needed for a given speed (signed, ticks per second).
+int feedforwardPwm(float tps) {
+  if (fabsf(tps) &lt; 1.0f) return 0;
+  float mag = MIN_PWM + (fabsf(tps) / MAX_TPS) * (255 - MIN_PWM);
+  return (tps &gt; 0) ? (int)mag : -(int)mag;
+}
+
+void setSpeedMmps(float leftMmps, float rightMmps) {
+  targetTpsL = leftMmps  / MM_PER_TICK;
+  targetTpsR = rightMmps / MM_PER_TICK;
+}
+
+// Call from loop() as often as you like; it acts every LOOP_MS.
+void speedControlStep() {
+  if (!measureSpeeds()) return;
+
+  int pwmL = 0, pwmR = 0;
+  if (targetTpsL != 0) pwmL = feedforwardPwm(targetTpsL) + (int)(KP_SPEED * (targetTpsL - measTpsL));
+  if (targetTpsR != 0) pwmR = feedforwardPwm(targetTpsR) + (int)(KP_SPEED * (targetTpsR - measTpsR));
+
+  drive(constrain(pwmL, -255, 255), constrain(pwmR, -255, 255));
+}
+
+void setup() {
+  Serial.begin(115200);
+  motorsBegin();
+  encodersBegin();
+  delay(2000);
+  setSpeedMmps(200, 200);          // 200 mm/s on both wheels
+}
+
+void loop() {
+  speedControlStep();
+}</code></pre>
+<p>How to tune: start with <code>KP_SPEED = 0</code> and see how close the feedforward alone gets. Then raise <code>KP_SPEED</code> in small steps. Too small and the speed recovers slowly when you load the wheel (try pressing a finger on the tyre, carefully); too large and the speed starts to oscillate or buzz. The P part alone leaves a small steady error that Lesson 06 removes with the I term. Feedforward is what makes P alone good enough here.</p>
+<div class="callout callout-tip"><div class="callout-title">Speed in mm/s, not PWM</div><p>Once the wheels follow a speed setpoint, a call like <code>setSpeedMmps(300, 300)</code> means the same thing on a full battery and a tired one. That makes every later behaviour (line following, turning, mazes) much easier to tune and repeat.</p></div>
+</section>
+
+<section id="speed-matching">
+<h2>Speed matching: driving straight</h2>
+<p>Even with identical speed setpoints, tiny differences add up: after a few metres one wheel can be centimetres ahead. <strong>Speed matching</strong> means making the two wheels cover the same distance. There are two ways, and they work well together.</p>
+<ul>
+<li><strong>Control each wheel to the same speed</strong> with the controller above. If both targets are equal and both loops work, the wheels match closely.</li>
+<li><strong>Compare the two encoders directly</strong> and nudge the PWMs when one wheel gets ahead. This also fixes errors that built up earlier, because it looks at the total distance difference (ticks), not just the speed.</li>
+</ul>
+<figure><img src="/study-materials/stage-2/content/img/5-3.svg" alt="Top view: without correction the robot veers right; with speed matching it is pulled back to the target line" loading="lazy"><figcaption>If the left wheel gets ahead, slow the left side and speed up the right.</figcaption></figure>
+<p>The rule: <code>error = leftTicks() - rightTicks()</code>. If it is positive, the left wheel is ahead (and the robot is curving to the right), so reduce the left PWM and increase the right PWM by the same amount.</p>
+<pre><code class="language-cpp">const float KP_STRAIGHT = 0.5f;     // PWM per tick of difference. Tune.
+const int   MAX_CORRECTION = 60;    // never let the correction take over completely
+
+// Call every 10 ms or so. basePwm: -255..255 (negative drives backward).
+void driveStraightStep(int basePwm) {
+  long diff = leftTicks() - rightTicks();            // positive: left wheel is ahead
+  int corr = (int)(KP_STRAIGHT * diff);
+  corr = constrain(corr, -MAX_CORRECTION, MAX_CORRECTION);
+  drive(constrain(basePwm - corr, -255, 255),
+        constrain(basePwm + corr, -255, 255));
+}
+
+void driveStraightFor(int basePwm, unsigned long ms) {
+  resetEncoders();
+  unsigned long start = millis(), last = start;
+  while (millis() - start &lt; ms) {
+    if (millis() - last &gt;= 10) {
+      last += 10;
+      driveStraightStep(basePwm);
+    }
+  }
+  drive(0, 0);
+}</code></pre>
+<p>The numbers: with <code>KP_STRAIGHT = 0.5</code>, a difference of 10 ticks (about 0.76 mm) changes each side by 5 PWM units. It works for backward driving too: if <code>basePwm</code> is negative and the left wheel is ahead (more negative), the same formula still slows the left wheel and speeds up the right. Try <code>driveStraightFor(150, 3000)</code> on the floor next to a long ruler and see how far it ends up off the line, with and without the correction. If it wiggles from side to side, lower <code>KP_STRAIGHT</code>; if it still curves, raise it.</p>
+<div class="callout callout-note"><div class="callout-title">Heading from the gyro</div><p>Instead of comparing the encoders, you can also compare the gyro heading from Lesson 03 with the straight-ahead heading. That corrects for wheel slip too. The structure of the code is the same: measure the error, then adjust left and right in opposite directions.</p></div>
+</section>
+
+<section id="position-control">
+<h2>Introduction to position control</h2>
+<p>Now use the encoders as a <strong>ruler</strong>. Position control means "go exactly this far" or "turn exactly this much", then stop. The target is a number of ticks:</p>
+<ul>
+<li><strong>Distance:</strong> ticks = distance in mm / <code>MM_PER_TICK</code>. Moving 300 mm is 300 / 0.0763 &asymp; <strong>3932 ticks</strong>.</li>
+<li><strong>Turn on the spot:</strong> each wheel moves in the opposite direction by an arc of (wheel base / 2) &times; angle in radians. For 90&deg;: 42.5 &times; 1.571 &asymp; 66.8 mm &asymp; <strong>875 ticks</strong> per wheel. (This uses the assumed 85 mm wheel base; measure your own.)</li>
+</ul>
+<p>The simplest approach, "run the motors until the count reaches the target, then stop", usually overshoots, because the robot cannot stop at once. Faster means more overshoot. So the function below <strong>shapes the speed</strong> as in the diagram:</p>
+<figure><img src="/study-materials/stage-2/content/img/5-4.svg" alt="PWM profile for moveDistance: ramp up, cruise, slow down in proportion to remaining distance, creep at minimum PWM and stop in a tolerance band" loading="lazy"><figcaption>The speed profile: ramp up, cruise, slow down in proportion to the distance left, creep and stop in a small tolerance band.</figcaption></figure>
+<ol>
+<li><strong>Ramp up:</strong> increase the PWM a little each cycle instead of jumping, so the wheels do not slip.</li>
+<li><strong>Cruise</strong> at <code>maxPwm</code>.</li>
+<li><strong>Slow down:</strong> the PWM is <code>KP_POS</code> &times; ticks remaining, so it falls as the target gets close.</li>
+<li><strong>Creep:</strong> never go below <code>MIN_PWM</code>, or the motor would stall in the dead zone before reaching the target.</li>
+<li><strong>Stop</strong> once the remaining distance is inside a <strong>tolerance</strong> of a few ticks. Do not demand exactly zero; the wheels would hunt back and forth around it.</li>
+</ol>
+<pre><code class="language-cpp">const float KP_POS = 0.25f;            // PWM per tick remaining. Tune.
+const int   RAMP_STEP = 4;             // max PWM increase per 10 ms
+const long  STOP_TOL_TICKS = 12;       // about 0.9 mm
+// MIN_PWM and KP_STRAIGHT are defined in the earlier sections
+
+// Shared by moveDistance() and turnDegrees().
+// turning = false: both wheels go the same way, target = ticks of travel.
+// turning = true : wheels go opposite ways, target = ticks each wheel travels (positive = turn left).
+bool goTicks(long target, bool turning, int maxPwm, unsigned long timeoutMs) {
+  resetEncoders();
+  int cmdMag = MIN_PWM;
+  unsigned long start = millis(), lastStep = start, settledSince = 0;
+
+  while (millis() - start &lt; timeoutMs) {
+    if (millis() - lastStep &lt; 10) continue;      // run once every 10 ms
+    lastStep += 10;
+
+    long l = leftTicks(), r = rightTicks();
+    long progress  = turning ? (r - l) / 2 : (l + r) / 2;
+    long remaining = target - progress;
+
+    if (labs(remaining) &lt;= STOP_TOL_TICKS) {       // inside the tolerance: stop and wait
+      drive(0, 0);
+      cmdMag = MIN_PWM;
+      if (settledSince == 0) settledSince = millis();
+      if (millis() - settledSince &gt;= 150) return true;   // stayed there for 150 ms
+      continue;
+    }
+    settledSince = 0;
+
+    int dir  = (remaining &gt; 0) ? 1 : -1;
+    int want = (int)(KP_POS * labs(remaining));    // slows down near the target
+    want = constrain(want, MIN_PWM, maxPwm);
+    if (want &gt; cmdMag) cmdMag = min(want, cmdMag + RAMP_STEP);   // ramp up gently
+    else                cmdMag = want;                            // slow down at once
+
+    int leftCmd, rightCmd;
+    if (turning) {
+      int corr = (int)(KP_STRAIGHT * (l + r));     // keep both wheels turning equally
+      leftCmd  = -dir * cmdMag - corr;
+      rightCmd =  dir * cmdMag - corr;
+    } else {
+      int corr = (int)(KP_STRAIGHT * (l - r));     // speed matching from the last section
+      leftCmd  = dir * cmdMag - corr;
+      rightCmd = dir * cmdMag + corr;
+    }
+    drive(constrain(leftCmd, -255, 255), constrain(rightCmd, -255, 255));
+  }
+
+  drive(0, 0);                                     // timeout: give up safely
+  return false;
+}
+
+// Move forward (positive) or backward (negative) by mm.
+bool moveDistance(float mm, int maxPwm = 150) {
+  return goTicks(lroundf(mm / MM_PER_TICK), false, maxPwm, 5000);
+}
+
+// Turn on the spot. Positive = anticlockwise (left), negative = clockwise (right).
+bool turnDegrees(float degrees, int maxPwm = 120) {
+  float arcMm = degrees * PI / 180.0f * WHEEL_BASE_MM / 2.0f;
+  return goTicks(lroundf(arcMm / MM_PER_TICK), true, maxPwm, 4000);
+}
+
+// (a loop() that uses the functions above)
+void loop() {
+  moveDistance(300);               // 300 mm forward
+  delay(500);
+  turnDegrees(90);                 // quarter turn left
+  delay(500);
+  moveDistance(300);
+  delay(500);
+  turnDegrees(-90);                // back to the first heading
+  while (true) delay(1000);        // do it once
+}</code></pre>
+<p>Some things to notice. With these starting numbers the slow-down begins when 600 ticks remain (150 / 0.25, about 46 mm) and the robot reaches the creep speed about 180 ticks (14 mm) before the target. The function has a <strong>timeout</strong>, so a stuck wheel cannot keep the robot driving forever, and it returns <code>false</code> in that case. It also blocks while it runs; it is fine for tests and simple routines. Later you can turn it into a state in a state machine (Lesson 02) to keep the rest of the program responsive.</p>
+<h3>The overshoot problem</h3>
+<p>Even with this shaping the robot may roll past the target. The motors and the robot's mass carry momentum; the driver's stop mode lets the wheels coast; and the encoder shows the position only after the move happened. Things to try:</p>
+<ul>
+<li>Lower <code>maxPwm</code>, or raise <code>KP_POS</code> so the slow-down starts earlier.</li>
+<li>Lower <code>MIN_PWM</code> slightly if the creep speed is too high (but not below the dead zone).</li>
+<li>Use the driver's brake mode (both inputs HIGH, see the truth table in Lesson 01) for a moment at the end, instead of letting the wheels coast.</li>
+<li>Accept a small tolerance: 12 ticks is about 1 mm, far better than most robots need.</li>
+</ul>
+<p>Controlling the position properly, with a stable stop and no hunting, is a job for the <strong>PID controller</strong> in Lesson 06. What you built here is the position loop in its simplest form, and Lesson 06 replaces the hand-made shaping with a better controller.</p>
+<div class="callout callout-caution"><div class="callout-title">Turning accuracy depends on your wheel base</div><p>The 875 ticks for 90&deg; come from the assumed 85 mm wheel base. If your robot turns, say, 85&deg; when you asked for 90&deg;, multiply <code>WHEEL_BASE_MM</code> by 90 / 85 (the code then asks for more ticks). If it turns too far, multiply by a ratio below 1. Wheel slip on a dusty floor also makes turns inconsistent. The gyro from Lesson 03 gives a second opinion on the real angle.</p></div>
+</section>
+
+<section id="troubleshooting">
+<h2>Troubleshooting</h2>
+<ul>
+<li><strong>Counts do not change:</strong> check the encoder power (3.3 V), the A and B pins and that <code>encodersBegin()</code> is called. Rotate a wheel by hand and print <code>leftTicks()</code>.</li>
+<li><strong>A count goes the wrong way:</strong> forward must give positive ticks for both wheels. Swap that encoder's A and B pins (or its table signs), and swap the motor wires if the wheel runs the wrong direction.</li>
+<li><strong>The robot spins in a circle when driving straight:</strong> one side's direction or encoder sign is reversed. Check each wheel alone with <code>drive(150, 0)</code> and <code>drive(0, 150)</code>.</li>
+<li><strong>The speed controller buzzes or oscillates:</strong> <code>KP_SPEED</code> is too high, or <code>SMOOTH</code> is too small, so the measured speed lags behind the real speed. Lower the gain first.</li>
+<li><strong>The speed never reaches the target:</strong> <code>MAX_TPS</code> is set too high, or the battery is low. Re-measure <code>MAX_TPS</code> and check the battery voltage.</li>
+<li><strong>The robot creeps and never finishes a move:</strong> <code>MIN_PWM</code> is too low (the wheels stall in the dead zone), or the stop tolerance is too small. Raise one of them.</li>
+<li><strong>It always overshoots:</strong> see the list above. Also check that <code>MIN_PWM</code> is not much higher than needed.</li>
+<li><strong>Everything worked yesterday:</strong> a different battery charge, a different floor or a loose wheel changes the numbers. Re-measure <code>MIN_PWM</code> and <code>MAX_TPS</code> when conditions change, and prefer a fully charged battery for tuning.</li>
+<li><strong>Odd jumps in the counts:</strong> noisy encoder wires. Keep them short and away from the motor wires, and check the common ground. If the problem persists, consider the PCNT hardware counter from Lesson 03.</li>
+</ul>
+</section>
+
+<section id="practice-tasks">
+<h2>Practice tasks</h2>
+<ol>
+<li><strong>Open-loop experiment:</strong> run <code>openLoopTest()</code> at four PWM values and plot ticks against PWM for each wheel. Find the dead zone of each motor.</li>
+<li><strong>Measure the maximum:</strong> run <code>drive(255, 255)</code> for one second on a stand, read the speed from <code>measureSpeeds()</code>, and use it as <code>MAX_TPS</code>.</li>
+<li><strong>Cruise control:</strong> hold <code>setSpeedMmps(200, 200)</code>, then press a finger gently on a tyre. Does the controller recover? Compare with the controller disabled (<code>KP_SPEED = 0</code>).</li>
+<li><strong>Straight line test:</strong> drive 2 m with and without <code>driveStraightStep()</code> and measure how far you end up from the straight line.</li>
+<li><strong>Square:</strong> use <code>moveDistance(300)</code> and <code>turnDegrees(90)</code> four times to drive a square. Measure how close you end up to the start, then adjust <code>WHEEL_BASE_MM</code> and <code>WHEEL_DIAMETER_MM</code> to improve it.</li>
+</ol>
+</section>
+
+<section id="key-takeaways">
+<h2>Key takeaways</h2>
+<ul>
+<li><strong>Open loop</strong> (just setting a PWM) depends on battery voltage, load, the dead zone and motor differences, so the result is unpredictable. Test it with the same PWM and compare encoder counts.</li>
+<li><strong>Closed loop</strong> measures the result, computes the <strong>error</strong> (setpoint &minus; measurement) and corrects the command, again and again.</li>
+<li>Encoders give <strong>speed</strong> (ticks per fixed interval, filtered) and <strong>position</strong> (total ticks). 1400 ticks per wheel revolution and 34 mm wheels give about 0.0763 mm per tick (assumed values; use your own).</li>
+<li>A simple speed controller adds <strong>feedforward</strong> (a good first guess with a dead-zone offset) and a <strong>proportional correction</strong>. Full PID comes in Lesson 06.</li>
+<li><strong>Speed matching</strong> compares the left and right tick counts and adjusts the PWM of the two sides in opposite directions so the robot drives straight.</li>
+<li><strong>Position control</strong> turns a distance or angle into a tick target. Ramp up, slow down near the target, never go below the dead-zone PWM, stop inside a tolerance, add a timeout, and expect some overshoot to tune away.</li>
+</ul>
+</section>

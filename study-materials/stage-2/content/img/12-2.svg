@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 360" role="img" aria-label="Encoder waveforms: a clean pair of quadrature signals, a noisy channel B with extra spikes that cause false counts, and a channel B that goes flat so counts are lost">
+  <rect width="680" height="360" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">
+    <!-- panel 1 -->
+    <text x="20" y="24" font-weight="700" font-size="14" fill="#16a34a">Clean: B follows A by a quarter of a cycle</text>
+    <text x="100" y="56" text-anchor="end" fill="#2563eb" font-weight="700">A</text>
+    <text x="100" y="91" text-anchor="end" fill="#16a34a" font-weight="700">B</text>
+    <path d="M120 60 L130 60 L130 40 L170 40 L170 60 L210 60 L210 40 L250 40 L250 60 L290 60 L290 40 L330 40 L330 60 L370 60 L370 40 L410 40 L410 60 L450 60 L450 40 L490 40 L490 60 L530 60 L530 40 L570 40 L570 60 L610 60 L610 40 L650 40 L650 60 L660 60" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+    <path d="M120 95 L150 95 L150 75 L190 75 L190 95 L230 95 L230 75 L270 75 L270 95 L310 95 L310 75 L350 75 L350 95 L390 95 L390 75 L430 75 L430 95 L470 95 L470 75 L510 75 L510 95 L550 95 L550 75 L590 75 L590 95 L630 95 L630 75 L660 75" fill="none" stroke="#16a34a" stroke-width="2.5"/>
+
+    <!-- panel 2 -->
+    <text x="20" y="130" font-weight="700" font-size="14" fill="#ea580c">Noisy: short spikes on B are counted as extra edges</text>
+    <text x="100" y="162" text-anchor="end" fill="#2563eb" font-weight="700">A</text>
+    <text x="100" y="197" text-anchor="end" fill="#16a34a" font-weight="700">B</text>
+    <path d="M120 166 L130 166 L130 146 L170 146 L170 166 L210 166 L210 146 L250 146 L250 166 L290 166 L290 146 L330 146 L330 166 L370 166 L370 146 L410 146 L410 166 L450 166 L450 146 L490 146 L490 166 L530 166 L530 146 L570 146 L570 166 L610 166 L610 146 L650 146 L650 166 L660 166" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+    <path d="M120 201 L150 201 L150 181 L190 181 L190 201 L205 201 L205 181 L209 181 L209 201 L230 201 L230 181 L270 181 L270 201 L310 201 L310 181 L350 181 L350 201 L390 201 L390 181 L430 181 L430 201 L470 201 L470 181 L510 181 L510 201 L530 201 L530 181 L534 181 L534 201 L550 201 L550 181 L590 181 L590 201 L630 201 L630 181 L660 181" fill="none" stroke="#16a34a" stroke-width="2.5"/>
+    <circle cx="207" cy="190" r="14" fill="none" stroke="#dc2626" stroke-width="2"/>
+    <circle cx="532" cy="190" r="14" fill="none" stroke="#dc2626" stroke-width="2"/>
+    <text x="207" y="226" text-anchor="middle" fill="#dc2626">spike</text>
+    <text x="532" y="226" text-anchor="middle" fill="#dc2626">spike</text>
+
+    <!-- panel 3 -->
+    <text x="20" y="250" font-weight="700" font-size="14" fill="#dc2626">Lost: a loose wire or floating input, B stops changing</text>
+    <text x="100" y="282" text-anchor="end" fill="#2563eb" font-weight="700">A</text>
+    <text x="100" y="317" text-anchor="end" fill="#16a34a" font-weight="700">B</text>
+    <path d="M120 286 L130 286 L130 266 L170 266 L170 286 L210 286 L210 266 L250 266 L250 286 L290 286 L290 266 L330 266 L330 286 L370 286 L370 266 L410 266 L410 286 L450 286 L450 266 L490 266 L490 286 L530 286 L530 266 L570 266 L570 286 L610 286 L610 266 L650 266 L650 286 L660 286" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+    <path d="M120 321 L150 321 L150 301 L190 301 L190 321 L230 321 L230 301 L270 301 L270 321 L310 321 L310 301 L350 301 L350 321 L660 321" fill="none" stroke="#16a34a" stroke-width="2.5"/>
+    <text x="500" y="344" text-anchor="middle" fill="#dc2626">B flat: direction unknown, counts wrong</text>
+  </g>
+</svg>

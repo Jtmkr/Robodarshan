@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" role="img" aria-label="Voltage zones of a 3S LiPo pack: 12.6 volts full, 11.4 volts storage, 11.1 volts nominal, 10.5 volts low battery alarm, and 9.0 volts as the absolute floor, with a green normal use zone, an orange stop and recharge zone and a red damage zone">
+  <rect width="680" height="400" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">
+    <text x="30" y="26" font-weight="700" font-size="14">3S LiPo pack voltage (resting, no load)</text>
+    <!-- zones: y = 40 + (12.6 - V) * 72.2 -->
+    <rect x="60" y="40" width="80" height="152" fill="#bbf7d0" stroke="#16a34a" stroke-width="2"/>
+    <rect x="60" y="192" width="80" height="108" fill="#fed7aa" stroke="#ea580c" stroke-width="2"/>
+    <rect x="60" y="300" width="80" height="43" fill="#fecaca" stroke="#dc2626" stroke-width="2"/>
+
+    <!-- ticks -->
+    <g stroke="#334155" stroke-width="2">
+      <line x1="140" y1="40" x2="152" y2="40"/>
+      <line x1="140" y1="127" x2="152" y2="127"/>
+      <line x1="140" y1="148" x2="152" y2="148"/>
+      <line x1="140" y1="192" x2="152" y2="192"/>
+      <line x1="140" y1="300" x2="152" y2="300"/>
+    </g>
+    <g>
+      <text x="158" y="45"><tspan font-weight="700">12.6 V</tspan>  full (4.20 V per cell)</text>
+      <text x="158" y="123"><tspan font-weight="700">11.4 V</tspan>  storage (3.80 V per cell)</text>
+      <text x="158" y="153"><tspan font-weight="700">11.1 V</tspan>  nominal (3.70 V per cell)</text>
+      <text x="158" y="197"><tspan font-weight="700">10.5 V</tspan>  low alarm (3.50 V per cell)</text>
+      <text x="158" y="305"><tspan font-weight="700">9.0 V</tspan>  absolute floor (3.00 V per cell)</text>
+    </g>
+
+    <!-- zone brackets -->
+    <g stroke-width="3" fill="none">
+      <line x1="500" y1="42" x2="500" y2="190" stroke="#16a34a"/>
+      <line x1="500" y1="194" x2="500" y2="298" stroke="#ea580c"/>
+      <line x1="500" y1="302" x2="500" y2="341" stroke="#dc2626"/>
+    </g>
+    <text x="512" y="112" font-weight="700" fill="#16a34a">Normal use</text>
+    <text x="512" y="130" font-size="12">fly, drive, test</text>
+    <text x="512" y="240" font-weight="700" fill="#ea580c">Stop and</text>
+    <text x="512" y="258" font-weight="700" fill="#ea580c">recharge</text>
+    <text x="512" y="322" font-weight="700" fill="#dc2626">Damage</text>
+
+    <text x="30" y="372" font-size="12" fill="#475569">Pack voltage = 3 × cell voltage. Under load the voltage sags below these resting values.</text>
+    <text x="30" y="390" font-size="12" fill="#475569">Typical figures for LiPo cells; always follow the label and datasheet of your own pack.</text>
+  </g>
+</svg>

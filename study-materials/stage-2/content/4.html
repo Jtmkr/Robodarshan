@@ -1,0 +1,229 @@
+<section id="differential-drive">
+<h2>Differential drive: steering with two wheels</h2>
+<p>Almost every line follower and maze robot you will build uses <strong>differential drive</strong>: two driven wheels, one on each side, each with its own motor, plus a third point (a caster ball or a skid) to hold the body up. There is no steering wheel. You steer purely by making the two wheels turn at <em>different speeds</em>. This is exactly what your <code>drive(left, right)</code> function from Lesson 01 does.</p>
+<div class="callout callout-note"><div class="callout-title">Assumptions in this lesson</div>
+<p>The club decision for the larger robot in this lesson is <strong>any Johnson-type 12 V geared DC motor rated 500 RPM, with a 65 mm wheel</strong>. Every number below that is not given by that sentence is an <strong>ASSUMPTION</strong> used only to make the worked examples concrete. Replace each one with a value from <em>your own motor datasheet</em> and your own robot:</p>
+<ul>
+<li>Robot mass: <strong>1.2 kg</strong> (assumption). Weigh your robot on a kitchen scale.</li>
+<li>Wheel base (distance between the two wheel contact patches): <strong>140 mm</strong> (assumption).</li>
+<li>Usable (continuous) torque per motor at the wheel: <strong>1.0 kg&middot;cm</strong> (assumption). Stall torque: <strong>3.0 kg&middot;cm</strong> (assumption). Johnson motors vary a lot between makers.</li>
+<li>Rubber tyre on a clean, smooth track: friction coefficient <strong>&mu; = 0.7</strong> (assumption; you will measure yours later in this lesson).</li>
+<li>About <strong>60 %</strong> of the weight sits on the driven wheels (assumption).</li>
+</ul></div>
+<figure><img src="/study-materials/stage-2/content/img/4-1.svg" alt="Top view of a differential drive robot in three cases: equal wheel speeds drive straight, a faster right wheel curves left around the instantaneous centre, and opposite speeds spin the robot on the spot" loading="lazy"><figcaption>Three cases of differential drive. The purple dashed line is the path of the robot's centre.</figcaption></figure>
+<h3>The three cases</h3>
+<ul>
+<li><strong>Equal speeds</strong> (<code>vR = vL</code>): the robot drives straight. Both forward means forward, both backward means reverse.</li>
+<li><strong>Unequal speeds</strong>: the robot drives along a curve, turning towards the slower wheel. If the right wheel is faster, the robot curves left.</li>
+<li><strong>Opposite speeds</strong> (<code>vR = &minus;vL</code>): the robot spins on the spot around the middle of the axle.</li>
+</ul>
+<h3>The formulas</h3>
+<p>Let <code>L</code> be the wheel base and <code>vL</code>, <code>vR</code> the speeds of the two wheels at the ground (in m/s). Then:</p>
+<ul>
+<li>Forward speed of the robot centre: <code>v = (vR + vL) / 2</code></li>
+<li>Turning rate: <code>&omega; = (vR &minus; vL) / L</code> in radians per second (positive means turning left, counter-clockwise)</li>
+<li>Turning radius of the centre: <code>R = v / &omega; = (L / 2) &times; (vR + vL) / (vR &minus; vL)</code></li>
+</ul>
+<p>The robot is always turning around one point, the <strong>instantaneous centre of rotation (ICC)</strong>. It lies on the line through both wheel axles, on the side of the slower wheel. When <code>vR = vL</code> the ICC is infinitely far away (a straight line). When <code>vR = &minus;vL</code> the ICC is exactly at the robot centre (a spin).</p>
+<p>Example with the assumed 140 mm wheel base: <code>vR = 1.0 m/s</code>, <code>vL = 0.6 m/s</code>.</p>
+<ul>
+<li><code>v = (1.0 + 0.6) / 2 = 0.8 m/s</code></li>
+<li><code>&omega; = (1.0 &minus; 0.6) / 0.14 = 2.86 rad/s</code>, which is about 164&deg; per second</li>
+<li><code>R = 0.8 / 2.86 = 0.28 m</code>, a gentle curve of 28 cm radius</li>
+</ul>
+<p>Spinning with <code>vR = +0.5</code> and <code>vL = &minus;0.5 m/s</code> gives <code>v = 0</code> and <code>&omega; = 1.0 / 0.14 = 7.14 rad/s</code> (about 409&deg; per second).</p>
+<div class="callout callout-key"><div class="callout-title">Why the wheel base matters</div><p>A wider wheel base turns more slowly for the same speed difference (<code>&omega;</code> is divided by <code>L</code>) and is more stable, while a narrow one turns sharply and fits into tight mazes. The same <code>L</code> shows up in the odometry formulas of the encoder lessons (<code>WHEEL_BASE_MM</code>). Measure it between the middle of the two tyre contact patches, not between the outer edges of the wheels.</p></div>
+<p>Remember that a line follower produces a steering command (from the PID in Lesson 06) and then converts it into <code>vL = base &minus; correction</code> and <code>vR = base + correction</code>. That is differential drive in one line.</p>
+</section>
+
+<section id="wheel-selection">
+<h2>Wheel selection</h2>
+<p>The wheel is the last part of the drive chain and the only part that touches the track, so it deserves as much thought as the motor. You choose five things: diameter, width, material, tread and how it fixes to the shaft.</p>
+<div class="card-grid">
+<div class="info-card"><h4>Diameter</h4><p>Bigger wheels give a higher top speed at the same RPM (<code>v = RPM &times; &pi; &times; D / 60</code>) but need more torque from the motor, and the robot sits higher. Smaller wheels give more force and finer control but less speed.</p></div>
+<div class="info-card"><h4>Width</h4><p>A wider tyre gives a larger contact patch and often more grip on a smooth floor. Too wide and the robot scrubs sideways when it turns, which wastes energy and makes spins inaccurate.</p></div>
+<div class="info-card"><h4>Material</h4><p>Soft rubber or silicone gives the best grip on clean tracks. Hard plastic wheels slip easily. A soft tyre can also wear and pick up dust, so keep it clean.</p></div>
+<div class="info-card"><h4>Tread</h4><p>Smooth or lightly grooved tyres are normally best on a flat indoor mat. Deep treads are for rough ground and can reduce the contact area on a smooth surface.</p></div>
+</div>
+<h3>Wheels also change your encoder resolution</h3>
+<p>An encoder counts shaft rotations, not millimetres. The distance covered per count depends on the wheel diameter, so a bigger wheel gives <em>coarser</em> distance measurement. Using the number of counts per wheel revolution from the encoder lessons (1400) as an example:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Wheel</th><th>Distance per revolution (&pi; &times; D)</th><th>Counts per mm</th><th>Distance per count</th></tr></thead>
+<tbody>
+<tr><td>34 mm (small N20 robot)</td><td>106.8 mm</td><td>13.1</td><td>0.076 mm</td></tr>
+<tr><td>65 mm (this lesson)</td><td>204.2 mm</td><td>6.86</td><td>0.146 mm</td></tr>
+</tbody></table></div>
+<p>Your real encoder will have its own counts-per-revolution; the point is the trend. If you change the wheel, you must also change the constant in your code that converts counts to millimetres.</p>
+<div class="callout callout-tip"><div class="callout-title">A simple choice for a competition robot</div><p>Start with a rubber or silicone-tyred wheel that is as small as your speed target allows, with a reasonably wide tyre and almost no tread. Check that the wheel is perfectly round and sits on the shaft without wobble. A wobbly wheel makes the robot waver even when the code is perfect.</p></div>
+</section>
+
+<section id="rpm-and-speed">
+<h2>RPM and speed</h2>
+<p><strong>RPM</strong> means revolutions per minute: how fast the wheel shaft turns. To know how fast the <em>robot</em> moves you need the wheel size. In one revolution the wheel rolls forward by its circumference, <code>&pi; &times; D</code>. So:</p>
+<pre><code class="language-text">v (m/s) = RPM &times; &pi; &times; D (m) / 60</code></pre>
+<p>Equivalently, with angular speed <code>&omega; = 2&pi; &times; RPM / 60</code> in rad/s, the speed is <code>v = &omega; &times; r</code>.</p>
+<h3>The 500 RPM, 65 mm example</h3>
+<ul>
+<li>Circumference: <code>&pi; &times; 0.065 = 0.2042 m</code></li>
+<li>Revolutions per second: <code>500 / 60 = 8.33</code></li>
+<li>Speed: <code>0.2042 &times; 8.33 = 1.70 m/s</code></li>
+</ul>
+<p>Going the other way, to drive at <strong>1.0 m/s</strong> with this wheel you need <code>60 / 0.2042 = 294 RPM</code> at the wheel.</p>
+<div class="callout callout-caution"><div class="callout-title">No-load RPM is the best case</div><p>The 500 RPM on the label is the speed with <strong>no load</strong> and at the rated voltage. Under load (the weight of the robot, friction, the wheel on the floor) the motor runs slower, and with a battery that has dropped below 12 V it runs slower again. In the examples below we assume about 80 % of the label speed in real use, so 1.70 m/s becomes roughly <strong>1.36 m/s</strong>. Measure it on your robot: drive a marked 2 m distance and time it.</p></div>
+<p>A DC motor's speed is roughly proportional to the voltage across it. That is why PWM duty cycle works as a speed control, and why speed changes as the battery drains. Closed-loop speed control with encoders (a later lesson) removes this drift.</p>
+</section>
+
+<section id="torque">
+<h2>Torque and force</h2>
+<p><strong>Torque</strong> is the twisting effort of a motor shaft. A wheel turns that twist into a push on the ground. At the edge of a wheel with radius <code>r</code>:</p>
+<pre><code class="language-text">F = T / r        (force at the ground, in newtons, torque in N&middot;m, radius in m)</code></pre>
+<p>A small wheel turns the same torque into a bigger force, which is why small wheels accelerate and climb better, while large wheels go faster.</p>
+<h3>Units: N&middot;m and kg&middot;cm</h3>
+<p>Hobby motor datasheets quote torque in <strong>kg&middot;cm</strong>: the force of a mass in kilograms at a lever arm of 1 cm. The SI unit is the newton-metre.</p>
+<pre><code class="language-text">1 kg&middot;cm = 0.0981 N&middot;m        1 N&middot;m = 10.2 kg&middot;cm</code></pre>
+<h3>How much force does the robot need?</h3>
+<p>Newton's second law gives the force to accelerate a mass <code>m</code>: <code>F = m &times; a</code>. To climb a slope of angle <code>&theta;</code> you also need <code>F = m &times; g &times; sin(&theta;)</code> (with <code>g = 9.81 m/s&sup2;</code>). Add rolling friction and a safety margin on top; start with 1.5 to 2 times the number you calculate.</p>
+<p>Using the assumed robot (1.2 kg, 65 mm wheels, two motors each giving 1.0 kg&middot;cm usable):</p>
+<ul>
+<li>Total torque: <code>2 &times; 1.0 kg&middot;cm = 2 &times; 0.0981 = 0.196 N&middot;m</code></li>
+<li>Push at the ground: <code>F = 0.196 / 0.0325 = 6.03 N</code></li>
+<li>Acceleration the motors could give: <code>a = 6.03 / 1.2 = 5.0 m/s&sup2;</code> (but see the traction limit below)</li>
+</ul>
+<div class="callout callout-key"><div class="callout-title">Stall torque is not working torque</div><p>The stall torque on a datasheet is what the motor makes when the shaft is held still, and it comes with the maximum (stall) current. You cannot run there: the motor and the driver would overheat. Choose the motor so that your normal needs sit at a modest fraction of the continuous rating, and use the stall figure only to check that your driver and battery survive the worst case (Lesson 11 covers the current side).</p></div>
+</section>
+
+<section id="gear-ratio">
+<h2>Gear ratio</h2>
+<p>A DC motor by itself spins fast with little torque. A gearbox trades speed for torque. The <strong>gear ratio</strong> is the number of teeth on the output gear divided by the teeth on the input gear. With a ratio of <code>n : 1</code>:</p>
+<pre><code class="language-text">speed out  = speed in / n
+torque out = torque in &times; n &times; efficiency</code></pre>
+<p>Efficiency is below 1 because gears lose energy to friction. A single spur-gear stage may be around 90 % and a long cheap gearbox much less; the exact number is not given on most hobby datasheets, so treat it as an estimate.</p>
+<figure><img src="/study-materials/stage-2/content/img/4-4.svg" alt="A 12-tooth gear driving a 24-tooth gear, and bars showing output speed halving and torque roughly doubling as the ratio increases from 1:1 to 2:1 to 4:1" loading="lazy"><figcaption>A gear ratio trades speed for torque. Power is not created: speed goes down by about the same factor that torque goes up.</figcaption></figure>
+<h3>The trade-off</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Higher ratio</th><th>Lower ratio</th></tr></thead>
+<tbody>
+<tr><td>Slower robot</td><td>Faster robot</td></tr>
+<tr><td>More pushing force, easier slopes</td><td>Weaker acceleration, may stall on slopes</td></tr>
+<tr><td>Motor works easier, less current for the same load</td><td>Motor must work harder (more current) for the same load</td></tr>
+<tr><td>Finer speed control at low speeds</td><td>Needs bigger tyres or higher RPM for speed</td></tr>
+</tbody></table></div>
+<h3>Example: external gears</h3>
+<p>Say you want to drive at about 1.0 m/s but the motor/wheel combination gives 1.70 m/s with too little acceleration. A 2 : 1 external reduction gives:</p>
+<ul>
+<li>Wheel speed: <code>500 / 2 = 250 RPM</code>, so <code>v = 250 &times; &pi; &times; 0.065 / 60 = 0.85 m/s</code> (no load)</li>
+<li>Torque at the wheel: <code>1.0 &times; 2 &times; 0.9 = 1.8 kg&middot;cm</code> per motor (assuming 90 % efficiency)</li>
+</ul>
+<p>Speed fell to half, force nearly doubled. For a different target, choose the ratio from <code>n = RPM<sub>motor</sub> / RPM<sub>wheel needed</sub></code>.</p>
+<h3>Backlash and where to put the gears</h3>
+<ul>
+<li><strong>Backlash</strong> is the small free play between meshing gear teeth. It is why a geared wheel can wiggle a little before the motor shaft moves. It hurts precise turns and encoder-based position control; in a drive wheel with a continuous controller it is usually tolerable.</li>
+<li><strong>Motor gearbox (built-in)</strong>: Johnson-type motors already include one. It is compact, sealed and simple, but the ratio is fixed.</li>
+<li><strong>External gears, chain or belt</strong>: let you fine-tune speed and torque, and move the motor away from the wheel. They add parts, alignment work, noise and more backlash. Use them only if the built-in ratio really does not fit.</li>
+</ul>
+<div class="callout callout-tip"><div class="callout-title">Encoder placement</div><p>If your encoder sits on the motor shaft (before the gearbox), it gives many counts per wheel revolution (its counts multiply by the gear ratio), but it cannot see backlash in the gearbox. An encoder on the wheel side measures the wheel itself. Know which one you have before you set <code>TICKS_PER_REV</code>.</p></div>
+</section>
+
+<section id="friction-and-traction">
+<h2>Friction and traction</h2>
+<p>Motor force only moves the robot if the tyres can push on the ground. <strong>Traction</strong> is the grip between tyre and floor, and it comes from friction.</p>
+<figure><img src="/study-materials/stage-2/content/img/4-2.svg" alt="Forces on a driven wheel: weight pushes down, the floor pushes up with force N, and friction pushes the robot forward; the graph shows the floor force growing with motor force until it reaches mu times N, then the wheel slips" loading="lazy"><figcaption>The floor can only push back up to &mu; &times; N. Ask for more than that and the wheel slips.</figcaption></figure>
+<ul>
+<li><strong>Normal force N</strong>: how hard the floor pushes up on the wheel, equal to the weight resting on it. Only the weight on the <em>driven</em> wheels counts for driving.</li>
+<li><strong>Friction coefficient &mu;</strong>: a number that describes the pair of surfaces. Clean soft rubber on a smooth dry surface might be around 0.5 to 1; dust or oil can drop it a lot. Never trust a table, measure it.</li>
+<li><strong>Maximum traction force</strong>: <code>F<sub>max</sub> = &mu; &times; N</code>.</li>
+<li><strong>Static vs kinetic</strong>: while the tyre does not slip, the grip is <em>static</em> friction, which is the larger one. Once it slides, <em>kinetic</em> friction takes over and it is somewhat lower (the orange step in the diagram). So after a wheel starts to slip it is hard to recover.</li>
+</ul>
+<h3>Measure &mu; with a ramp</h3>
+<p>Put the robot (or a spare tyre pressed on a block) on a board of the same material as the track. Slowly raise one end. The angle <code>&theta;</code> at which it just starts to slide gives <code>&mu; = tan(&theta;)</code>. For example, sliding at 35&deg; gives <code>&mu; = tan 35&deg; = 0.70</code>. It is rough, but it uses your real tyres and your real track.</p>
+<h3>Traction limits acceleration</h3>
+<p>For the assumed robot: <code>N = 0.6 &times; 1.2 &times; 9.81 = 7.06 N</code> on the driven wheels, so <code>F<sub>max</sub> = 0.7 &times; 7.06 = 4.94 N</code> and the best acceleration is <code>a<sub>max</sub> = 4.94 / 1.2 = 4.12 m/s&sup2;</code>. The motors could give 5.0 m/s&sup2;, so traction is the limit: pushing harder would only spin the wheels. The same limit applies to braking with the motors.</p>
+<div class="callout callout-caution"><div class="callout-title">Slip ruins odometry</div><p>Encoders count wheel rotation, not distance travelled. When a wheel slips, the encoder reports movement that did not happen and your position estimate drifts. Keep acceleration inside the traction limit (use a ramp in your speed command, not a sudden jump to full PWM), and in turns avoid more speed than the tyres can hold.</p></div>
+<h3>Keep the tyres clean</h3>
+<ul>
+<li>Dust on the track and tyres is the usual reason a robot suddenly loses grip at a competition.</li>
+<li>Wipe the tyres with a clean damp cloth or press a strip of sticky tape on them and peel it off. Let them dry before running.</li>
+<li>Test any cleaning liquid on a spare tyre first; some chemicals can dry out or damage rubber.</li>
+</ul>
+</section>
+
+<section id="centre-of-gravity">
+<h2>Centre of gravity</h2>
+<p>The <strong>centre of gravity (CoG)</strong> is the point where the whole weight of the robot can be considered to act. Where it sits decides how the weight is shared between the wheels and whether the robot can tip.</p>
+<figure><img src="/study-materials/stage-2/content/img/4-3.svg" alt="Side view of a robot with the driven wheels near the middle and a caster at the front; the heavy battery puts the centre of gravity low, 60 mm ahead of the driven axle and 90 mm behind the caster, so the driven wheels carry 60 percent of the weight" loading="lazy"><figcaption>Weight sharing: the closer the CoG is to the driven wheels, the more of the weight they carry.</figcaption></figure>
+<h3>The third contact point</h3>
+<p>With two driven wheels the robot needs a third point on the ground. A <strong>ball caster</strong> rolls in any direction and adds little friction, but it can catch on gaps; a <strong>skid</strong> (a smooth plastic or Teflon-like pad, or a smooth screw head) is simple and light but adds drag. Keep it at the same height as the contact patches so that the body stays level.</p>
+<h3>Where to put the heavy parts</h3>
+<ul>
+<li><strong>Battery and motors low</strong>: low weight means a low CoG (small <code>h</code>), which is harder to tip.</li>
+<li><strong>Over the driven wheels</strong>: weight on the drive wheels increases the normal force and therefore traction. With the split <code>b / (a + b)</code> in the diagram, <code>a = 60 mm</code> and <code>b = 90 mm</code> put <code>90 / 150 = 60 %</code> of the weight on the driven wheels.</li>
+<li><strong>Not too far back</strong>: if the CoG is behind the driven axle the robot becomes unstable and tends to sit on the skid.</li>
+<li><strong>Keep it centred left to right</strong>, so that both wheels carry the same load. Otherwise one wheel slips first and the robot pulls to one side.</li>
+</ul>
+<h3>Tipping, accelerating and braking</h3>
+<p>A robot tips when its acceleration is large compared with how low and how central its CoG is. With the CoG a distance <code>a</code> ahead of the driven axle and at height <code>h</code>, it starts to tip backwards when accelerating at more than <code>a<sub>tip</sub> = g &times; a / h</code>. For <code>a = 60 mm</code>, <code>h = 65 mm</code>: <code>a<sub>tip</sub> = 9.81 &times; 60 / 65 = 9.1 m/s&sup2;</code>, well above the 4.1 m/s&sup2; traction limit, so the wheels slip long before it tips. If the heavy parts were mounted twice as high (<code>h = 130 mm</code>) the tipping limit would drop to 4.5 m/s&sup2;, close to the traction limit.</p>
+<p>Weight also <em>moves</em> when speed changes: braking pushes weight forward onto the caster and takes load away from the driven wheels, so they have less grip exactly when you need it. A low CoG reduces this weight transfer. This is one more reason to brake gradually before a tight corner.</p>
+<div class="callout callout-tip"><div class="callout-title">Find your CoG</div><p>Balance the robot (with battery) on a ruler edge or a pencil in each direction. The balance point along the length gives your <code>a</code> and <code>b</code>. Move the battery by a few millimetres and see how it changes.</p></div>
+</section>
+
+<section id="worked-examples-and-checklist">
+<h2>Worked examples and design checklist</h2>
+<p>All the numbers below use the assumptions from the first section. Replace them with your own and recompute; the method stays the same.</p>
+<h3>Example 1: speed</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Step</th><th>Calculation</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Circumference</td><td>&pi; &times; 0.065 m</td><td>0.204 m</td></tr>
+<tr><td>No-load speed</td><td>500 &times; 0.204 / 60</td><td>1.70 m/s</td></tr>
+<tr><td>Loaded speed (80 %, assumption)</td><td>1.70 &times; 0.8</td><td>1.36 m/s</td></tr>
+<tr><td>Braking distance at 1.36 m/s with a = 4.12 m/s&sup2;</td><td>v&sup2; / (2a) = 1.85 / 8.24</td><td>0.22 m (best case)</td></tr>
+</tbody></table></div>
+<h3>Example 2: can the robot accelerate quickly?</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Step</th><th>Calculation</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Torque from both motors</td><td>2 &times; 1.0 kg&middot;cm &times; 0.0981</td><td>0.196 N&middot;m</td></tr>
+<tr><td>Force at the ground</td><td>0.196 / 0.0325</td><td>6.03 N</td></tr>
+<tr><td>Motor-limited acceleration</td><td>6.03 / 1.2</td><td>5.03 m/s&sup2;</td></tr>
+<tr><td>Weight on driven wheels</td><td>0.6 &times; 1.2 &times; 9.81</td><td>7.06 N</td></tr>
+<tr><td>Maximum traction (&mu; = 0.7)</td><td>0.7 &times; 7.06</td><td>4.94 N</td></tr>
+<tr><td>Traction-limited acceleration</td><td>4.94 / 1.2</td><td>4.12 m/s&sup2;</td></tr>
+<tr><td>Usable acceleration</td><td>the smaller of the two</td><td><strong>4.12 m/s&sup2;</strong> (wheels slip first)</td></tr>
+</tbody></table></div>
+<h3>Example 3: climbing a 10&deg; ramp</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Step</th><th>Calculation</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Force along the slope</td><td>1.2 &times; 9.81 &times; sin 10&deg;</td><td>2.04 N</td></tr>
+<tr><td>Total torque needed at the wheels</td><td>2.04 &times; 0.0325</td><td>0.0664 N&middot;m = 0.68 kg&middot;cm</td></tr>
+<tr><td>Per motor</td><td>0.68 / 2</td><td>0.34 kg&middot;cm</td></tr>
+<tr><td>Compare to the usable 1.0 kg&middot;cm</td><td>0.34 / 1.0</td><td>about 34 % of it: comfortable</td></tr>
+</tbody></table></div>
+<p>This ignores rolling resistance, which is why we keep a safety margin of 1.5 to 2 times.</p>
+<h3>Design checklist for a line follower or maze robot</h3>
+<ul>
+<li>Decide the target speed first. Compute the wheel RPM needed (<code>RPM = 60 &times; v / (&pi; &times; D)</code>) and pick the motor ratio for that.</li>
+<li>Check the force: does the motor deliver at least 1.5 to 2 times the torque for your acceleration and slope, without running near stall?</li>
+<li>Keep the acceleration below the traction limit <code>&mu; &times; N / m</code>. Add speed ramps in code.</li>
+<li>Use soft rubber or silicone tyres on the driven wheels, clean them before every run and measure &mu; on the real track.</li>
+<li>Put the battery and motors low and put 55 to 65 % of the weight on the driven wheels (adjust to your own tests). Keep left and right balanced.</li>
+<li>Wheel base: wide enough for stability, narrow enough for tight corners and the sensor array.</li>
+<li>Check wheels are round, mounted without wobble, and that the caster or skid does not drag or catch.</li>
+<li>Update <code>WHEEL_DIAMETER_MM</code>, <code>WHEEL_BASE_MM</code> and <code>TICKS_PER_REV</code> in your code to match the real robot.</li>
+<li>Test speed with a stopwatch on a measured distance and compare to your calculation.</li>
+</ul>
+</section>
+
+<section id="key-takeaways">
+<h2>Key takeaways</h2>
+<ul>
+<li><strong>Differential drive</strong> steers with two wheel speeds: <code>v = (vR + vL) / 2</code>, <code>&omega; = (vR &minus; vL) / L</code>. Equal speeds go straight, unequal speeds curve, opposite speeds spin.</li>
+<li><strong>Wheels</strong>: diameter trades speed against force, soft rubber gives grip, and the diameter also changes distance per encoder count.</li>
+<li><strong>Speed</strong> is <code>v = RPM &times; &pi; &times; D / 60</code>. Label RPM is no-load; real speed is lower.</li>
+<li><strong>Force</strong> at the ground is <code>F = T / r</code>. 1 kg&middot;cm is about 0.098 N&middot;m. Do not design near the stall torque.</li>
+<li><strong>Gear ratio</strong> divides speed and multiplies torque (less friction losses). Backlash is the cost.</li>
+<li><strong>Traction</strong> is limited to <code>&mu; &times; N</code>. Past that the wheels slip and odometry becomes wrong.</li>
+<li><strong>Centre of gravity</strong>: keep it low and over the driven wheels, and watch weight transfer when braking.</li>
+<li>Every motor figure in this lesson was an example assumption. Use your own datasheet and measurements.</li>
+</ul>
+</section>

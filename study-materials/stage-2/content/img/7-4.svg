@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 330" role="img" aria-label="State diagram of a line follower: IDLE to FOLLOW on button, FOLLOW to LOST when the line is not seen, LOST back to FOLLOW when found or to STOP after a timeout, FOLLOW to STOP at the finish box">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#334155"/></marker></defs>
+<rect width="680" height="330" rx="12" fill="#f8fafc"/>
+<g font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#1e293b">
+<g fill="#e0ecff" stroke="#2563eb" stroke-width="2">
+<rect x="40" y="60" width="130" height="64" rx="10"/><rect x="275" y="60" width="130" height="64" rx="10"/><rect x="510" y="60" width="130" height="64" rx="10"/><rect x="275" y="210" width="130" height="64" rx="10"/></g>
+<g text-anchor="middle">
+<text x="105" y="88" font-weight="700" font-size="16">IDLE</text><text x="105" y="108" font-size="12" fill="#475569">motors off</text>
+<text x="340" y="88" font-weight="700" font-size="16">FOLLOW</text><text x="340" y="108" font-size="12" fill="#475569">proportional steering</text>
+<text x="575" y="88" font-weight="700" font-size="16">LOST</text><text x="575" y="108" font-size="12" fill="#475569">spin to last side seen</text>
+<text x="340" y="238" font-weight="700" font-size="16">STOP</text><text x="340" y="258" font-size="12" fill="#475569">motors off</text></g>
+<circle cx="20" cy="92" r="5" fill="#334155"/><line x1="25" y1="92" x2="38" y2="92" stroke="#334155" stroke-width="2.5" marker-end="url(#a)"/>
+<g stroke="#334155" stroke-width="2.5" fill="none" marker-end="url(#a)">
+<path d="M170 92 H273"/><path d="M405 76 H508"/><path d="M510 110 H407"/><path d="M340 124 V208"/><path d="M575 124 V242 H407"/></g>
+<g font-size="12" fill="#334155" text-anchor="middle">
+<text x="222" y="82">button</text><text x="457" y="66">lineSeen false</text><text x="457" y="130">line found</text>
+<text x="352" y="170" text-anchor="start">all sensors dark (finish box)</text>
+<text x="500" y="262">timeout (say 1 s)</text></g>
+<text x="20" y="310" font-size="13" fill="#475569">Remember the last side the line was seen on while in FOLLOW, and spin that way in LOST.</text>
+</g>
+</svg>

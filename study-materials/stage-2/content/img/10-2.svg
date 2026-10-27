@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 430" role="img" aria-label="Block diagram of the carrier board: battery, switch and buck module feed the ESP32 DevKit, which connects to the motor driver, motor and encoder connectors, I2C devices, QTR-8A sensor and buttons">
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+    <marker id="r" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+    <marker id="g" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+    <marker id="p" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9333ea"/></marker>
+    <marker id="ps" markerWidth="10" markerHeight="10" refX="2" refY="5" orient="auto"><path d="M10,0 L0,5 L10,10 z" fill="#9333ea"/></marker>
+  </defs>
+  <rect width="680" height="430" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#1e293b" text-anchor="middle">
+    <g fill="#fff" stroke="#dc2626" stroke-width="2">
+      <rect x="20" y="20" width="140" height="90" rx="9"/>
+      <rect x="20" y="150" width="140" height="60" rx="9"/>
+    </g>
+    <g fill="#e0ecff" stroke="#2563eb" stroke-width="2">
+      <rect x="270" y="100" width="130" height="230" rx="10"/>
+      <rect x="500" y="60" width="150" height="60" rx="9"/>
+      <rect x="270" y="360" width="130" height="46" rx="9"/>
+    </g>
+    <g fill="#fff" stroke="#334155" stroke-width="2">
+      <rect x="500" y="150" width="150" height="60" rx="9"/>
+      <rect x="500" y="240" width="150" height="70" rx="9"/>
+      <rect x="500" y="340" width="150" height="50" rx="9"/>
+    </g>
+    <g font-weight="700">
+      <text x="90" y="42">Battery 3S</text>
+      <text x="335" y="124">ESP32 DevKit</text>
+      <text x="575" y="82">TB6612FNG</text>
+      <text x="575" y="172">2 x N20 6-pin</text>
+      <text x="575" y="262">I2C devices</text>
+      <text x="575" y="362">QTR-8A header</text>
+      <text x="335" y="380">3 buttons</text>
+      <text x="90" y="172">Buck 12 V to 5 V</text>
+    </g>
+    <g font-size="13" fill="#475569">
+      <text x="90" y="62">XT60, reverse-</text>
+      <text x="90" y="80">polarity protection,</text>
+      <text x="90" y="98">power switch</text>
+      <text x="90" y="194">module footprint</text>
+      <text x="335" y="148">sockets for a</text>
+      <text x="335" y="166">30 or 38 pin board</text>
+      <text x="575" y="102">driver socket</text>
+      <text x="575" y="192">motor + encoder</text>
+      <text x="575" y="282">2 x ADS1115, MPU6050,</text>
+      <text x="575" y="300">OLED headers</text>
+      <text x="575" y="380">8 analog outputs</text>
+      <text x="335" y="398">GPIO 14, 16, 17</text>
+    </g>
+    <text x="335" y="270" font-size="13" fill="#475569">3V3 rail</text>
+    <text x="335" y="288" font-size="13" fill="#475569">comes from here</text>
+    <g stroke-width="2.5" fill="none">
+      <path d="M90 110 L90 148" stroke="#dc2626" marker-end="url(#r)"/>
+      <line x1="160" y1="180" x2="268" y2="180" stroke="#dc2626" marker-end="url(#r)"/>
+      <path d="M160 40 L575 40 L575 58" stroke="#dc2626" marker-end="url(#r)"/>
+      <line x1="400" y1="100" x2="498" y2="100" stroke="#2563eb" marker-end="url(#a)"/>
+      <line x1="575" y1="120" x2="575" y2="148" stroke="#ea580c" marker-end="url(#a)"/>
+      <line x1="498" y1="190" x2="402" y2="190" stroke="#16a34a" marker-end="url(#g)"/>
+      <line x1="402" y1="275" x2="498" y2="275" stroke="#9333ea" marker-start="url(#ps)" marker-end="url(#p)"/>
+      <line x1="575" y1="340" x2="575" y2="312" stroke="#9333ea" marker-end="url(#p)"/>
+      <line x1="335" y1="360" x2="335" y2="332" stroke="#334155" marker-end="url(#a)"/>
+    </g>
+    <g font-size="13">
+      <text x="214" y="172" fill="#dc2626">5 V</text>
+      <text x="360" y="32" fill="#dc2626">VBAT to VM (motor power)</text>
+      <text x="450" y="94" fill="#2563eb">PWM/DIR/STBY</text>
+      <text x="450" y="184" fill="#16a34a">encoders</text>
+      <text x="450" y="269" fill="#9333ea">SDA, SCL</text>
+      <text x="548" y="330" fill="#9333ea" text-anchor="end">8 channels</text>
+    </g>
+    <text x="340" y="424" font-size="13" fill="#475569">Red: power. Blue: motor control. Green: encoders. Purple: I2C. All grounds meet in one ground plane.</text>
+  </g>
+</svg>

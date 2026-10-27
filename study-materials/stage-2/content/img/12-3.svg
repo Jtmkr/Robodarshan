@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" role="img" aria-label="Two stacked time graphs: battery voltage sags when the motors start, then the 3.3 volt rail dips below the brownout threshold, the ESP32 resets, and the cycle repeats">
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/></marker>
+  </defs>
+  <rect width="680" height="400" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">
+    <text x="660" y="24" text-anchor="end" font-weight="700" font-size="14">Battery or VM voltage</text>
+    <text x="20" y="206" font-weight="700" font-size="14">3.3 V rail at the ESP32</text>
+
+    <!-- plot 1 -->
+    <rect x="70" y="50" width="580" height="120" fill="#fff" stroke="#94a3b8"/>
+    <text x="64" y="64" text-anchor="end">12 V</text>
+    <text x="64" y="166" text-anchor="end">9 V</text>
+    <path d="M70 80 L180 80 L186 150 L200 142 L215 100 L226 80 L420 80 L426 150 L440 142 L455 100 L466 80 L650 80" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round"/>
+    <g stroke="#ea580c" stroke-width="2.5" fill="none" marker-end="url(#a)">
+      <line x1="180" y1="44" x2="180" y2="76" transform="translate(0 -10)"/>
+    </g>
+    <text x="180" y="20" text-anchor="middle" fill="#ea580c" font-weight="700">motors start</text>
+    <text x="420" y="20" text-anchor="middle" fill="#ea580c" font-weight="700">motors start again</text>
+    <line x1="420" y1="34" x2="420" y2="76" stroke="#ea580c" stroke-width="2.5" marker-end="url(#a)"/>
+    <text x="300" y="112" text-anchor="middle" fill="#475569">weak pack, long wires or loose</text>
+    <text x="300" y="130" text-anchor="middle" fill="#475569">connector: deep sag under load</text>
+
+    <!-- plot 2 -->
+    <rect x="70" y="214" width="580" height="130" fill="#fff" stroke="#94a3b8"/>
+    <rect x="196" y="214" width="104" height="130" fill="#ffedd5"/>
+    <text x="64" y="228" text-anchor="end">3.3 V</text>
+    <text x="64" y="340" text-anchor="end">2 V</text>
+    <line x1="70" y1="296" x2="650" y2="296" stroke="#dc2626" stroke-width="2" stroke-dasharray="7 5"/>
+    <text x="646" y="290" text-anchor="end" fill="#dc2626">brownout threshold</text>
+    <path d="M70 244 L180 244 L186 246 L196 318 L210 318 L225 244 L420 244 L426 246 L436 318 L450 318 L465 244 L650 244" fill="none" stroke="#16a34a" stroke-width="3" stroke-linejoin="round"/>
+    <text x="266" y="270" text-anchor="middle" fill="#9a3412" font-weight="700">reset and</text>
+    <text x="266" y="288" text-anchor="middle" fill="#9a3412" font-weight="700">reboot</text>
+    <text x="360" y="336" text-anchor="middle" fill="#475569">the cycle repeats</text>
+
+    <text x="360" y="366" text-anchor="middle" fill="#475569">Time (not to scale). The shapes are examples, not measurements.</text>
+    <text x="360" y="386" text-anchor="middle" fill="#475569">Fix the supply, not the code: add bulk capacitance, thicker wires, a stronger buck module.</text>
+  </g>
+</svg>

@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 380" role="img" aria-label="Three push buttons on GPIO14, GPIO16 and GPIO17 acting as Select, Up and Down, and three example OLED screens: the menu list, editing the Kp value, and the running screen with a line position bar.">
+<rect width="680" height="380" rx="12" fill="#f8fafc"/>
+<g font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#1e293b">
+<rect x="20" y="14" width="200" height="56" rx="10" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+<text x="120" y="38" text-anchor="middle" font-weight="700" font-size="16">SELECT</text>
+<text x="120" y="58" text-anchor="middle" font-size="13" fill="#475569">GPIO14, INPUT_PULLUP</text>
+<text x="120" y="94" text-anchor="middle" font-size="13" fill="#334155">Menu: open item</text>
+<text x="120" y="112" text-anchor="middle" font-size="13" fill="#334155">Edit: save and back</text>
+<text x="120" y="130" text-anchor="middle" font-size="13" fill="#334155">Run: emergency stop</text>
+<rect x="240" y="14" width="200" height="56" rx="10" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+<text x="340" y="38" text-anchor="middle" font-weight="700" font-size="16">UP</text>
+<text x="340" y="58" text-anchor="middle" font-size="13" fill="#475569">GPIO16, INPUT_PULLUP</text>
+<text x="340" y="94" text-anchor="middle" font-size="13" fill="#334155">Menu: previous item</text>
+<text x="340" y="112" text-anchor="middle" font-size="13" fill="#334155">Edit: value + step</text>
+<text x="340" y="130" text-anchor="middle" font-size="13" fill="#334155">Hold: auto-repeat</text>
+<rect x="460" y="14" width="200" height="56" rx="10" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+<text x="560" y="38" text-anchor="middle" font-weight="700" font-size="16">DOWN</text>
+<text x="560" y="58" text-anchor="middle" font-size="13" fill="#475569">GPIO17, INPUT_PULLUP</text>
+<text x="560" y="94" text-anchor="middle" font-size="13" fill="#334155">Menu: next item</text>
+<text x="560" y="112" text-anchor="middle" font-size="13" fill="#334155">Edit: value &#8722; step</text>
+<text x="560" y="130" text-anchor="middle" font-size="13" fill="#334155">Hold: auto-repeat</text>
+<rect x="20" y="168" width="192" height="108" rx="6" fill="#0f172a" stroke="#475569" stroke-width="3"/>
+<rect x="28" y="174" width="176" height="16" fill="#e2e8f0"/>
+<text x="32" y="188" xml:space="preserve" font-family="Courier New, Courier, monospace" font-size="13"  fill="#0f172a" font-weight="700">MENU</text>
+<text x="32" y="204" xml:space="preserve" font-family="Courier New, Courier, monospace" font-size="13" fill="#e2e8f0">  Calibrate</text>
+<rect x="28" y="207" width="176" height="16" fill="#2563eb"/>
+<text x="32" y="220" xml:space="preserve" font-family="Courier New, Courier, monospace" font-size="13" fill="#e2e8f0">&gt; Kp     0.0500</text>
+<text x="32" y="236" xml:space="preserve" font-family="Courier New, Courier, monospace" font-size="13" fill="#e2e8f0">  Ki     0.0000</text>
+<text x="32" y="252" xml:space="preserve" font-family="Courier New, Courier, monospace" font-size="13" fill="#e2e8f0">  Kd     0.0040</text>
+<text x="32" y="268" xml:space="preserve" font-family="Courier New, Courier, monospace" font-size="13" fill="#e2e8f0">  Base     120</text>
+<text x="116" y="300" text-anchor="middle" font-weight="700">Menu</text>
+<rect x="240" y="168" width="192" height="108" rx="6" fill="#0f172a" stroke="#475569" stroke-width="3"/>
+<rect x="248" y="174" width="176" height="16" fill="#e2e8f0"/>
+<text x="252" y="187" font-family="Courier New, Courier, monospace" font-size="13" font-weight="700" fill="#0f172a">EDIT Kp</text>
+<text x="336" y="232" text-anchor="middle" font-family="Courier New, Courier, monospace" font-size="30" font-weight="700" fill="#e2e8f0">0.0500</text>
+<text x="252" y="252" xml:space="preserve" font-family="Courier New, Courier, monospace" font-size="13" fill="#e2e8f0">Up/Dn change</text>
+<text x="252" y="267" xml:space="preserve" font-family="Courier New, Courier, monospace" font-size="13" fill="#e2e8f0">Sel  save</text>
+<text x="336" y="300" text-anchor="middle" font-weight="700">Edit a value</text>
+<rect x="460" y="168" width="192" height="108" rx="6" fill="#0f172a" stroke="#475569" stroke-width="3"/>
+<rect x="468" y="174" width="176" height="16" fill="#e2e8f0"/>
+<text x="472" y="187" font-family="Courier New, Courier, monospace" font-size="13" font-weight="700" fill="#0f172a">RUN  FOLLOW</text>
+<text x="472" y="210" xml:space="preserve" font-family="Courier New, Courier, monospace" font-size="13" fill="#e2e8f0">pos -1200</text>
+<rect x="472" y="218" width="168" height="12" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+<line x1="556" y1="216" x2="556" y2="232" stroke="#64748b" stroke-width="1.5"/>
+<rect x="517" y="218" width="10" height="12" fill="#f97316"/>
+<text x="472" y="250" xml:space="preserve" font-family="Courier New, Courier, monospace" font-size="13" fill="#e2e8f0">bat 11.8V</text>
+<text x="472" y="266" xml:space="preserve" font-family="Courier New, Courier, monospace" font-size="13" fill="#e2e8f0">Sel  STOP</text>
+<text x="556" y="300" text-anchor="middle" font-weight="700">Running</text>
+<text x="340" y="344" text-anchor="middle" font-size="13" fill="#475569">Mock-ups of the 128 x 64 screen. The running screen is redrawn rarely, or not at all, so it never stalls the control loop.</text>
+<text x="340" y="364" text-anchor="middle" font-size="13" fill="#475569">Battery voltage is shown only if you have wired a way to measure it.</text>
+</g></svg>

@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 310" role="img" aria-label="Block diagram of the line follower control loop: setpoint 0 and measured position form the error, the PID block outputs a correction, the mixer combines it with the base speed into left and right PWM, the motors move the robot, and the sensor array measures the new position, closing the loop.">
+  <defs>
+    <marker id="s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#334155"/></marker>
+  </defs>
+  <rect width="680" height="310" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#1e293b">
+    <g fill="#e0ecff" stroke="#2563eb" stroke-width="2">
+      <rect x="12" y="70" width="80" height="60" rx="10"/>
+      <rect x="198" y="70" width="100" height="60" rx="10"/>
+      <rect x="380" y="70" width="110" height="60" rx="10"/>
+      <rect x="552" y="70" width="116" height="60" rx="10"/>
+    </g>
+    <rect x="198" y="190" width="220" height="60" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+    <circle cx="140" cy="100" r="16" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+
+    <g text-anchor="middle">
+      <text x="52" y="97" font-weight="700">Setpoint</text>
+      <text x="52" y="117" font-size="13" fill="#475569">0</text>
+      <text x="248" y="97" font-weight="700">PID</text>
+      <text x="248" y="117" font-size="13" fill="#475569">Kp  Ki  Kd</text>
+      <text x="435" y="97" font-weight="700">Mixer</text>
+      <text x="435" y="117" font-size="13" fill="#475569">base &#177; correction</text>
+      <text x="610" y="97" font-weight="700">Motors</text>
+      <text x="610" y="117" font-size="13" fill="#475569">+ robot</text>
+      <text x="308" y="217" font-weight="700">Sensor array</text>
+      <text x="308" y="237" font-size="13" fill="#475569">readLinePosition()</text>
+      <text x="140" y="105" font-size="18" font-weight="700">&#931;</text>
+      <text x="124" y="84" font-size="14" font-weight="700">+</text>
+      <text x="153" y="134" font-size="16" font-weight="700">&#8722;</text>
+    </g>
+
+    <g stroke="#334155" stroke-width="2.5" fill="none" marker-end="url(#s)">
+      <path d="M92 100 H122"/>
+      <path d="M156 100 H196"/>
+      <path d="M298 100 H378"/>
+      <path d="M490 100 H550"/>
+      <path d="M435 46 V68"/>
+      <path d="M610 130 V220 H420"/>
+      <path d="M198 220 H140 V118"/>
+    </g>
+    <g text-anchor="middle" font-size="13" fill="#334155">
+      <text x="176" y="90">error</text>
+      <text x="338" y="90">correction</text>
+      <text x="520" y="90">PWM</text>
+      <text x="435" y="36">base speed</text>
+      <text x="520" y="172" text-anchor="middle">line position changes</text>
+      <text x="168" y="200">position</text>
+    </g>
+    <text x="340" y="290" text-anchor="middle" font-size="13" fill="#475569">One pass every 5 to 10 ms: read, compute the error, run the PID, mix, drive, repeat.</text>
+  </g>
+</svg>

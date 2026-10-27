@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 380" role="img" aria-label="Differential-drive odometry geometry: a robot with a left and right wheel moves from one pose to another, turning by delta theta, with the update formulas listed beside it.">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#334155"/></marker>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#16a34a"/></marker>
+  </defs>
+  <rect width="680" height="380" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">
+    <!-- axes -->
+    <line x1="50" y1="330" x2="400" y2="330" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+    <line x1="50" y1="330" x2="50" y2="50" stroke="#334155" stroke-width="2" marker-end="url(#a)"/>
+    <text x="406" y="335" font-weight="700" font-size="15">x</text>
+    <text x="44" y="42" font-weight="700" font-size="15">y</text>
+
+    <!-- path -->
+    <path d="M130 270 Q 200 262 250 200" fill="none" stroke="#16a34a" stroke-width="3" stroke-dasharray="6 4" marker-end="url(#g)"/>
+    <circle cx="130" cy="270" r="5" fill="#16a34a"/>
+    <text x="130" y="294" text-anchor="middle">start pose (x, y)</text>
+    <text x="168" y="236" fill="#16a34a" font-weight="700">Δs</text>
+
+    <!-- reference horizontal at new pose -->
+    <line x1="250" y1="200" x2="335" y2="200" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <path d="M290 200 A 40 40 0 0 0 284.64 180" fill="none" stroke="#9333ea" stroke-width="2"/>
+    <text x="300" y="192" fill="#9333ea" font-weight="700" font-size="15">θ</text>
+
+    <!-- robot -->
+    <g transform="translate(250 200) rotate(-30)">
+      <rect x="-30" y="-42" width="60" height="84" rx="8" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+      <rect x="-14" y="-50" width="28" height="9" rx="2" fill="#334155"/>
+      <rect x="-14" y="41" width="28" height="9" rx="2" fill="#334155"/>
+      <line x1="0" y1="0" x2="58" y2="0" stroke="#ea580c" stroke-width="2.5" marker-end="url(#a)"/>
+    </g>
+    <circle cx="250" cy="200" r="4" fill="#1e293b"/>
+    <text x="215" y="150" text-anchor="end">left wheel</text>
+    <text x="283" y="262">right wheel</text>
+    <text x="318" y="168" fill="#ea580c" font-weight="700">heading</text>
+    <text x="50" y="358" fill="#475569">Wheel base b (assumed 85 mm) = distance between the two wheel contact points.</text>
+
+    <!-- formulas -->
+    <rect x="425" y="56" width="235" height="214" rx="10" fill="#fff" stroke="#334155" stroke-width="2"/>
+    <text x="442" y="82" font-weight="700" font-size="14">Each update step</text>
+    <g font-size="13">
+      <text x="442" y="108">dL, dR = ticks × mm per tick</text>
+      <text x="442" y="136">Δs = (dL + dR) / 2</text>
+      <text x="442" y="164">Δθ = (dR − dL) / b</text>
+      <text x="442" y="192">x ← x + Δs · cos(θ + Δθ/2)</text>
+      <text x="442" y="220">y ← y + Δs · sin(θ + Δθ/2)</text>
+      <text x="442" y="248">θ ← θ + Δθ</text>
+    </g>
+  </g>
+</svg>

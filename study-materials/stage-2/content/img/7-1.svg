@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 335" role="img" aria-label="Top view of the 8-sensor array over a black line. Three sensors see the line with values 304, 1000 and 1000, giving a positive line position because the line is right of centre">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#334155"/></marker></defs>
+<rect width="680" height="335" rx="12" fill="#f8fafc"/>
+<g font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#1e293b">
+<rect x="20" y="50" width="640" height="150" fill="#ffffff" stroke="#94a3b8"/>
+<rect x="322.0" y="50" width="132.0" height="150" fill="#1e293b"/>
+<text x="30" y="70" font-size="13" fill="#475569">white floor</text>
+<text x="388.0" y="70" font-size="13" fill="#ffffff" text-anchor="middle">black line (22 mm)</text>
+<rect x="127.0" y="115" width="26" height="26" rx="4" fill="#e0ecff" stroke="#2563eb" stroke-width="2.5"/>
+<text x="140.0" y="237" text-anchor="middle" font-size="12" fill="#475569">0</text>
+<text x="140.0" y="262" text-anchor="middle" font-size="14" font-weight="700">0</text>
+<rect x="184.1" y="115" width="26" height="26" rx="4" fill="#e0ecff" stroke="#2563eb" stroke-width="2.5"/>
+<text x="197.1" y="237" text-anchor="middle" font-size="12" fill="#475569">1</text>
+<text x="197.1" y="262" text-anchor="middle" font-size="14" font-weight="700">0</text>
+<rect x="241.3" y="115" width="26" height="26" rx="4" fill="#e0ecff" stroke="#2563eb" stroke-width="2.5"/>
+<text x="254.3" y="237" text-anchor="middle" font-size="12" fill="#475569">2</text>
+<text x="254.3" y="262" text-anchor="middle" font-size="14" font-weight="700">0</text>
+<rect x="298.4" y="115" width="26" height="26" rx="4" fill="#e0ecff" stroke="#dc2626" stroke-width="2.5"/>
+<text x="311.4" y="237" text-anchor="middle" font-size="12" fill="#475569">3</text>
+<text x="311.4" y="262" text-anchor="middle" font-size="14" font-weight="700">304</text>
+<rect x="355.6" y="115" width="26" height="26" rx="4" fill="#e0ecff" stroke="#dc2626" stroke-width="2.5"/>
+<text x="368.6" y="237" text-anchor="middle" font-size="12" fill="#475569">4</text>
+<text x="368.6" y="262" text-anchor="middle" font-size="14" font-weight="700">1000</text>
+<rect x="412.7" y="115" width="26" height="26" rx="4" fill="#e0ecff" stroke="#dc2626" stroke-width="2.5"/>
+<text x="425.7" y="237" text-anchor="middle" font-size="12" fill="#475569">5</text>
+<text x="425.7" y="262" text-anchor="middle" font-size="14" font-weight="700">1000</text>
+<rect x="469.9" y="115" width="26" height="26" rx="4" fill="#e0ecff" stroke="#2563eb" stroke-width="2.5"/>
+<text x="482.9" y="237" text-anchor="middle" font-size="12" fill="#475569">6</text>
+<text x="482.9" y="262" text-anchor="middle" font-size="14" font-weight="700">0</text>
+<rect x="527.0" y="115" width="26" height="26" rx="4" fill="#e0ecff" stroke="#2563eb" stroke-width="2.5"/>
+<text x="540.0" y="237" text-anchor="middle" font-size="12" fill="#475569">7</text>
+<text x="540.0" y="262" text-anchor="middle" font-size="14" font-weight="700">0</text>
+<text x="20" y="237" font-size="12" fill="#475569">sensor</text><text x="20" y="262" font-size="12" fill="#475569">value</text>
+<text x="20" y="40" font-size="14" font-weight="700">Top view: QTR-8A over a line (robot driving up the page)</text>
+<text x="340" y="296" text-anchor="middle" font-size="14">position = (&#931; value &#215; index &#215; 1000) / &#931; value &#8722; 3500 = <tspan font-weight="700" fill="#dc2626">+802</tspan></text>
+<text x="340" y="318" text-anchor="middle" font-size="13" fill="#475569">Three sensors see the line; the line is a little right of centre, so the position is positive. Illustrative numbers.</text>
+</g>
+</svg>

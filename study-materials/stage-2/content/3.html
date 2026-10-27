@@ -1,0 +1,490 @@
+<section id="reflectance-sensors">
+<h2>How a reflectance sensor array works</h2>
+<p>Your Stage 2 robot has to know two things: <strong>where the line is</strong> and <strong>how far and how fast the wheels have turned</strong>. In this lesson you will meet the sensors that answer both questions: an infrared (IR) line array, wheel encoders and an IMU. You will also learn how to calibrate them and how to combine encoder readings into a first estimate of where the robot is (odometry).</p>
+<p>A <strong>reflectance sensor</strong> is a tiny pair of parts: an infrared LED that shines light down at the floor, and a phototransistor that measures how much of that light bounces back. A white floor reflects a lot. A black line absorbs most of it. The phototransistor turns the reflected light into a voltage you can read.</p>
+<p>The <strong>QTR-8A</strong> puts eight of these pairs in a row on one board, about 9.5 mm apart (roughly 67 mm from the first sensor to the last). The "A" means analog: each sensor has its own output pin whose voltage depends on how much light comes back. On this sensor the voltage is <strong>higher over a dark surface</strong> and lower over a bright one, so a black line gives a bigger number than a white floor. Sensor 0 is the leftmost.</p>
+<div class="callout callout-note"><div class="callout-title">Assumptions in this lesson</div>
+<ul>
+<li>Line sensor: Pololu-style QTR-8A, powered from <strong>3.3 V</strong>, black line on a white floor. Check your board's datasheet for its supply range, and keep the sensor 3 to 6 mm above the floor (see the datasheet for the recommended height).</li>
+<li>Motors: N20 12 V, 300 RPM gearmotors with magnetic quadrature encoders. <strong>Assumed</strong> 7 pulses per revolution per channel at the motor shaft and a 50:1 gearbox, giving 350 pulses per channel and <strong>1400 counts per wheel revolution</strong> with x4 decoding. Wheel diameter <strong>34 mm</strong>, wheel base <strong>85 mm</strong>. Replace all of these with the numbers for your own motor and robot.</li>
+<li>Pins (a suggestion, use your own if you prefer): I&sup2;C SDA = GPIO21, SCL = GPIO22; encoders left A = 34, left B = 35, right A = 36, right B = 18 (GPIO39 is kept free for the battery voltage divider in Lesson 11).</li>
+<li>All the code in this lesson is starter code, written without access to your hardware. Test it on your own robot and tune the numbers.</li>
+</ul></div>
+<div class="callout callout-tip"><div class="callout-title">Why not just use <code>analogRead()</code>?</div><p>The ESP32's ADC1 has only six usable pins (GPIO32 to GPIO39), and the ADC2 pins stop working when Wi-Fi is on. Eight sensors do not fit. The next sections show one way around this, and a later section shows when a different controller is the better answer.</p></div>
+</section>
+
+<section id="reading-the-array">
+<h2>IR array: reading all 8 sensors</h2>
+<p>The solution used in this build is to add <strong>two ADS1115 chips</strong>. Each ADS1115 is a 16-bit analog-to-digital converter (ADC) with <strong>four input channels</strong>, and it talks to the ESP32 over the I&sup2;C bus you met in Lesson 01. Two chips give eight channels, one per sensor. Both share the same SDA and SCL wires. They need different addresses, and the <strong>ADDR pin</strong> chooses the address:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>ADDR pin connected to</th><th>I&sup2;C address</th></tr></thead>
+<tbody>
+<tr><td>GND</td><td><code>0x48</code></td></tr>
+<tr><td>VDD (3.3 V)</td><td><code>0x49</code></td></tr>
+<tr><td>SDA</td><td><code>0x4A</code></td></tr>
+<tr><td>SCL</td><td><code>0x4B</code></td></tr>
+</tbody></table></div>
+<p>So the first chip has ADDR tied to GND (0x48) and the second has ADDR tied to 3.3 V (0x49). The first chip reads sensors 0 to 3 (the left half) and the second reads sensors 4 to 7.</p>
+<figure><img src="/study-materials/stage-2/content/img/3-2.svg" alt="ESP32 connected over two I2C wires to two ADS1115 chips with ADDR to ground (0x48) and ADDR to 3.3 volts (0x49), each reading four outputs of the QTR-8A" loading="lazy"><figcaption>Two ADS1115 chips on one I&sup2;C bus. The ADDR pin decides each chip's address.</figcaption></figure>
+<div class="callout callout-caution"><div class="callout-title">Keep the voltages in range</div><p>An ADS1115 input must not go above its supply voltage (plus a small margin, see the datasheet). Power both the ADS1115 chips <strong>and</strong> the QTR-8A from 3.3 V so the sensor outputs can never exceed 3.3 V. Join all the grounds.</p></div>
+<h3>The library and the numbers</h3>
+<p>Install <strong>Adafruit ADS1X15</strong> from <strong>Sketch &rarr; Include Library &rarr; Manage Libraries</strong> (it also installs Adafruit BusIO). The code below uses the 2.x style of the library: <code>begin(address)</code> returns <code>true</code> or <code>false</code>, <code>setGain()</code> sets the input range, <code>setDataRate()</code> sets the speed and <code>readADC_SingleEnded(channel)</code> returns a signed 16-bit number. (Very old 1.x versions create the object with the address instead; if you see compile errors, update the library.)</p>
+<ul>
+<li><strong>Single-ended reading:</strong> each sensor is measured against ground. The result is a 16-bit signed number, but a single-ended reading only uses the positive half, so you get about <strong>0 to 32767</strong>.</li>
+<li><strong>Gain / range:</strong> <code>GAIN_ONE</code> means &plusmn;4.096 V full scale, so one count is 0.125 mV. With a 3.3 V sensor that gives readings up to about 26400. (<code>GAIN_TWOTHIRDS</code> is &plusmn;6.144 V, which wastes range at 3.3 V.)</li>
+<li><strong>Data rate:</strong> <code>RATE_ADS1115_860SPS</code> is the fastest, 860 samples per second per chip. The default is 128 SPS, which is far too slow for a robot.</li>
+</ul>
+<pre><code class="language-cpp">#include &lt;Wire.h&gt;
+#include &lt;Adafruit_ADS1X15.h&gt;
+
+const int NUM_SENSORS = 8;                 // index 0 = leftmost
+const int SDA_PIN = 21, SCL_PIN = 22;
+
+Adafruit_ADS1115 adsLeft;                  // ADDR to GND, sensors 0..3
+Adafruit_ADS1115 adsRight;                 // ADDR to 3V3, sensors 4..7
+
+void sensorsBegin() {
+  Wire.begin(SDA_PIN, SCL_PIN);
+  if (!adsLeft.begin(0x48))  Serial.println("ADS1115 at 0x48 not found");
+  if (!adsRight.begin(0x49)) Serial.println("ADS1115 at 0x49 not found");
+
+  adsLeft.setGain(GAIN_ONE);               // +/-4.096 V, 0.125 mV per count
+  adsRight.setGain(GAIN_ONE);
+  adsLeft.setDataRate(RATE_ADS1115_860SPS);
+  adsRight.setDataRate(RATE_ADS1115_860SPS);
+
+  Wire.setClock(400000);                   // set after begin(), in case begin() reset it
+}
+
+// Raw counts, 0..32767. Higher = darker (more line).
+void readRaw(uint16_t raw[NUM_SENSORS]) {
+  for (int i = 0; i &lt; 4; i++) {
+    int16_t a = adsLeft.readADC_SingleEnded(i);
+    int16_t b = adsRight.readADC_SingleEnded(i);
+    raw[i]     = (a &lt; 0) ? 0 : a;           // noise can give a tiny negative value
+    raw[i + 4] = (b &lt; 0) ? 0 : b;
+  }
+}</code></pre>
+<p>Check that both chips answer with the I&sup2;C scanner from Lesson 01 (you should see <code>0x48</code> and <code>0x49</code>). Then print <code>readRaw()</code> in a loop, slide the array over the line, and watch the numbers change.</p>
+<h3>How fast is it? Measure it</h3>
+<p>Here is the honest part. Every reading needs a conversion, and at 860 samples per second one conversion takes about 1.2 ms. On top of that, each read is a few I&sup2;C messages (start the conversion, wait, fetch the result). A rough <strong>estimate</strong> is about 1.5 to 2.5 ms per channel, so a full scan of 8 channels one after another could take roughly <strong>12 to 20 ms</strong>, or about 50 to 80 scans per second. This is only an estimate: it depends on the library version and your wiring. <strong>Measure it on your robot:</strong></p>
+<pre><code class="language-cpp">void loop() {
+  uint16_t raw[NUM_SENSORS];
+  unsigned long t0 = micros();
+  readRaw(raw);
+  unsigned long dt = micros() - t0;
+  Serial.print("scan time (us): ");
+  Serial.println(dt);
+  delay(500);
+}</code></pre>
+<p>Why does it matter? If your robot drives at 0.5 m/s and a scan takes 15 ms, the robot moves 7.5 mm between two readings, almost the width of one sensor. That is acceptable for a slow line follower, but it limits how fast you can go and how sharp a turn you can handle. Tricks exist (the two chips can convert at the same time, or you can run them in continuous mode; the library header shows the functions), but the basic limit stays: <strong>860 samples per second per chip</strong>, so even the ideal case of 4 channels per chip is about 4.7 ms per scan.</p>
+</section>
+
+<section id="calibration">
+<h2>Calibration: making the sensors agree</h2>
+<p>Raw readings are not comparable. Different sensors in the same array can read different values over the same floor, room light changes the numbers, and a shiny floor differs from a matt one. <strong>Calibration</strong> fixes this by measuring, for each sensor, the <strong>lowest value (floor)</strong> and the <strong>highest value (line)</strong> it ever sees, and then scaling every reading so that the floor becomes 0 and the line becomes 1000.</p>
+<p>The routine: start the calibration, then <strong>sweep the array over the line and the floor</strong> (by hand, or by spinning the robot slowly) so that every sensor sees both. The code keeps a minimum and maximum per sensor.</p>
+<pre><code class="language-cpp">const unsigned long CAL_TIME_MS = 4000;     // how long to sweep
+const int MIN_RANGE = 200;                  // counts; a sensor with less range than this never saw both surfaces
+
+uint16_t calMin[NUM_SENSORS];
+uint16_t calMax[NUM_SENSORS];
+
+void calibrate() {
+  for (int i = 0; i &lt; NUM_SENSORS; i++) { calMin[i] = 32767; calMax[i] = 0; }
+
+  uint16_t raw[NUM_SENSORS];
+  unsigned long start = millis();
+  while (millis() - start &lt; CAL_TIME_MS) {
+    readRaw(raw);
+    for (int i = 0; i &lt; NUM_SENSORS; i++) {
+      if (raw[i] &lt; calMin[i]) calMin[i] = raw[i];
+      if (raw[i] &gt; calMax[i]) calMax[i] = raw[i];
+    }
+  }
+}
+
+// 0..1000, 1000 = darkest (the line)
+void readCalibrated(uint16_t cal[NUM_SENSORS]) {
+  uint16_t raw[NUM_SENSORS];
+  readRaw(raw);
+  for (int i = 0; i &lt; NUM_SENSORS; i++) {
+    long range = (long)calMax[i] - calMin[i];
+    if (range &lt; MIN_RANGE) { cal[i] = 0; continue; }     // never saw both surfaces
+    long v = ((long)raw[i] - calMin[i]) * 1000L / range;
+    cal[i] = constrain(v, 0, 1000);
+  }
+}</code></pre>
+<p>A typical use in <code>setup()</code>: print "Sweep the sensor over the line", call <code>calibrate()</code>, then print <code>calMin</code> and <code>calMax</code> so you can check them. If a sensor shows almost the same minimum and maximum, it never saw both the line and the floor (or it is wired wrongly).</p>
+<div class="callout callout-tip"><div class="callout-title">Save your calibration</div><p>Calibrating at every power-on is slow. The ESP32 <code>Preferences</code> library can store the <code>calMin</code> and <code>calMax</code> arrays in flash (<code>putBytes()</code> and <code>getBytes()</code>), so you can calibrate once per venue and reload the values later. Re-calibrate whenever the lighting or the floor changes, for example at a competition arena.</p></div>
+<h3>The same idea for encoders and the IMU</h3>
+<p>Other sensors also need calibration, but of a different kind:</p>
+<ul>
+<li><strong>Encoders:</strong> check the counts per wheel revolution by turning a wheel by hand exactly 10 turns and dividing the count by 10. Then drive 1000 mm along a tape measure and compare with what the encoders report. If the robot drove 1000 mm but the code says 1020 mm, your real wheel is a little smaller than 34 mm; scale <code>WHEEL_DIAMETER_MM</code> by 1000/1020.</li>
+<li><strong>IMU:</strong> a gyroscope never reads exactly zero when still. That small constant error is called the <strong>bias</strong>. You measure it for a second at start-up with the robot standing still, and subtract it from every reading (code later in this lesson).</li>
+</ul>
+</section>
+
+<section id="line-position">
+<h2>From eight numbers to one: line position</h2>
+<p>A controller needs a single number: how far is the line from the centre of the array? You already saw the idea in Lesson 02 with a 5-sensor array. Here it is for 8 sensors, using calibrated readings.</p>
+<p>Give each sensor a position: sensor 0 is at 0, sensor 1 at 1000, &hellip; sensor 7 at 7000. Take a <strong>weighted average</strong>: multiply each reading by its position, add them up, divide by the sum of the readings. The result is between 0 and 7000. Subtract 3500 so that the centre of the array is 0, and you get <strong>&minus;3500 (line under the leftmost sensor) to +3500 (line under the rightmost)</strong>.</p>
+<figure><img src="/study-materials/stage-2/content/img/3-3.svg" alt="Bar chart of eight calibrated sensor values 0, 0, 0, 100, 800, 500, 0, 0 with a computed line position of about plus 786" loading="lazy"><figcaption>Example: the line is mostly under sensor 4 and partly under sensor 5, so the position is a little to the right of centre.</figcaption></figure>
+<p>Worked example with the readings in the figure (sensors 3, 4, 5 read 100, 800, 500, the rest 0):</p>
+<ul>
+<li>Sum of readings = 100 + 800 + 500 = 1400.</li>
+<li>Weighted sum = 100 &times; 3000 + 800 &times; 4000 + 500 &times; 5000 = 6,000,000.</li>
+<li>Average = 6,000,000 / 1400 &asymp; 4286. Subtract 3500: <strong>position &asymp; +786</strong>, to the right of centre.</li>
+</ul>
+<pre><code class="language-cpp">const int NOISE_FLOOR = 50;         // ignore readings below this (noise)
+const int ON_LINE     = 200;        // a sensor above this counts as "sees the line"
+int lastPosition = 0;
+
+// Returns -3500..+3500, 0 = line centred. Black line on white floor.
+int readLinePosition(bool &amp;lineSeen) {
+  uint16_t cal[NUM_SENSORS];
+  readCalibrated(cal);
+
+  long weighted = 0, sum = 0;
+  bool seen = false;
+  for (int i = 0; i &lt; NUM_SENSORS; i++) {
+    if (cal[i] &gt; ON_LINE) seen = true;
+    if (cal[i] &gt; NOISE_FLOOR) {
+      weighted += (long)cal[i] * i * 1000;
+      sum      += cal[i];
+    }
+  }
+
+  lineSeen = seen;
+  if (!seen) {                                     // line lost: report the side it was last on
+    return (lastPosition &lt; 0) ? -3500 : 3500;
+  }
+  lastPosition = (int)(weighted / sum) - 3500;
+  return lastPosition;
+}</code></pre>
+<p>Two details matter. <code>lineSeen</code> tells your state machine (Lesson 02) when the line is lost, so it can switch to a search state. And when the line is lost, returning the extreme value on the side where it was last seen makes a PID controller (Lesson 06) steer back the right way. For a <strong>white line on a black floor</strong> you would invert the readings first (<code>1000 - cal[i]</code>).</p>
+</section>
+
+<section id="choosing-controller">
+<h2>Choosing the controller: ESP32 or STM32F411?</h2>
+<p>The ESP32 plus two ADS1115 chips works, but it is a compromise. Here is how to decide.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>&nbsp;</th><th>ESP32 + 2 &times; ADS1115</th><th>STM32F411 Black Pill</th></tr></thead>
+<tbody>
+<tr><td>Reading 8 sensors</td><td>I&sup2;C, roughly 12 to 20 ms (estimate, measure it)</td><td>Direct <code>analogRead()</code> on 8 pins, expected well under 1 ms (measure it)</td></tr>
+<tr><td>Resolution</td><td>16-bit chip (we use about 15 bits)</td><td>12-bit built-in ADC (0 to 4095)</td></tr>
+<tr><td>Analog pins</td><td>6 on ADC1, none needed with the I&sup2;C chips</td><td>10 on the ADC: PA0 to PA7, PB0, PB1</td></tr>
+<tr><td>Encoders</td><td>Interrupts or the PCNT counter (a few channels)</td><td>Timers have a hardware <strong>encoder mode</strong>, no interrupts needed</td></tr>
+<tr><td>Wi-Fi / Bluetooth</td><td>Built in</td><td>None (add a module)</td></tr>
+<tr><td>Best for</td><td>Slow to medium line followers, wireless tuning and telemetry</td><td>Fast line followers and anything that needs many analog inputs or tight timing</td></tr>
+</tbody></table></div>
+<ul>
+<li><strong>The ESP32 route is enough when</strong> your robot is a learning platform or a moderate-speed follower, you like having Wi-Fi or Bluetooth for tuning, and a 50 to 80 Hz sensor loop is fine.</li>
+<li><strong>Move to the STM32F411 Black Pill when</strong> you push for speed and need sensor readings many hundreds of times per second, when you want more than 8 analog inputs, or when you want hardware encoder counting with zero interrupt load.</li>
+</ul>
+<p>Programming the Black Pill is similar: use the STM32duino core in the Arduino IDE, with the same C++ you have written so far. Two differences to remember: <code>analogRead()</code> returns 10-bit values by default, so call <code>analogReadResolution(12)</code> to get 0 to 4095; and the ADC input limit is 3.3 V.</p>
+<h3>A starting pin plan for the Black Pill</h3>
+<p>The F411's ADC pins are shared with timer pins, so plan them together. This is a <strong>suggestion</strong> based on the usual timer and I&sup2;C pin options of the STM32F411; <strong>check each pin against the STM32F411 datasheet (alternate-function table) and your Black Pill's pinout before wiring</strong>.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Job</th><th>Pins</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td>8 line sensors</td><td>PA0 to PA7 (ADC1 channels 0 to 7)</td><td>No ADS1115 chips needed</td></tr>
+<tr><td>Left encoder</td><td>PB6, PB7 (TIM4 channels 1, 2)</td><td>Timer encoder mode</td></tr>
+<tr><td>Right encoder</td><td>PA8, PA9 (TIM1 channels 1, 2)</td><td>Timer encoder mode</td></tr>
+<tr><td>IMU, OLED</td><td>PB8 (SCL), PB9 (SDA) on I&sup2;C1</td><td>PB6 and PB7 are left free for the TIM4 encoder</td></tr>
+<tr><td>Motor PWM</td><td>PB0, PB1 (TIM3 channels 3, 4)</td><td>A different timer from both encoders, so nothing clashes</td></tr>
+</tbody></table></div>
+<p>Hardware encoder mode makes the timer count up and down by itself from the A and B signals, with no code in between. You only read the counter. The timer counters used here (TIM4 and TIM1) are 16-bit, so compute differences between two readings as signed 16-bit numbers. The exact STM32duino calls for encoder mode depend on your core version, so follow its <code>HardwareTimer</code> documentation. The rest of this lesson uses the ESP32, and the function names (<code>leftTicks()</code>, <code>readLinePosition()</code> and so on) stay the same on either board, so your higher-level code does not change.</p>
+</section>
+
+<section id="encoders">
+<h2>Encoders: counting wheel rotation</h2>
+<p>A <strong>quadrature encoder</strong> on an N20 motor is a small magnetic disc on the motor shaft and two Hall sensors beside it. As the shaft turns, each sensor produces a square wave. The two sensors, called <strong>channel A</strong> and <strong>channel B</strong>, are placed so that their waves are shifted by a quarter of a cycle (90 degrees). That shift is the trick: it tells you <strong>which way</strong> the shaft turns.</p>
+<figure><img src="/study-materials/stage-2/content/img/3-1.svg" alt="Quadrature waveforms: A leads B when going forward, B leads A when going backward, every edge is one count" loading="lazy"><figcaption>Quadrature signals. The order of the edges gives the direction. Every edge of A or B is one count.</figcaption></figure>
+<h3>PPR, counts and x1, x2, x4</h3>
+<ul>
+<li><strong>PPR</strong> (pulses per revolution) is how many pulses <em>one channel</em> makes per turn of the encoder disc, here assumed 7.</li>
+<li><strong>x1 decoding</strong> counts only the rising edge of A: 7 counts per motor turn.</li>
+<li><strong>x2 decoding</strong> counts both edges of A: 14 counts per motor turn.</li>
+<li><strong>x4 decoding</strong> counts every edge of both A and B: <strong>28 counts per motor turn</strong>.</li>
+</ul>
+<p>With the assumed 50:1 gearbox, the wheel turns once for 50 motor turns, so one wheel revolution is 50 &times; 28 = <strong>1400 counts</strong> (<code>TICKS_PER_REV</code>). Counts are also called <em>ticks</em>. x4 gives the best resolution: one tick moves the wheel by &pi; &times; 34 / 1400 &asymp; <strong>0.0763 mm</strong>.</p>
+<div class="callout callout-caution"><div class="callout-title">Voltage check before connecting</div><p>Many encoder boards work from 3.3 V to 5 V, and their outputs swing up to the supply voltage. Power the encoders from the ESP32's <strong>3.3 V</strong> so the A and B outputs are safe for the ESP32 pins. Do not feed 5 V signals to an ESP32 input. Also, GPIO34 to GPIO39 have no internal pull-up resistors, so use encoders with push-pull outputs or add external pull-ups (the datasheet of your encoder tells which).</p></div>
+<h3>x4 decoding with interrupts</h3>
+<p>Both A and B must trigger an interrupt on <strong>every change</strong> (<code>CHANGE</code>). In the interrupt we read the two pins into a 2-bit state, join it with the previous state to make a 4-bit number, and look the answer up in a table. A valid step gives +1 or &minus;1, and an impossible jump (a missed edge or noise) gives 0.</p>
+<pre><code class="language-cpp">const int ENC_L_A = 34, ENC_L_B = 35;       // left encoder
+const int ENC_R_A = 36, ENC_R_B = 18;       // right encoder (GPIO39 stays free for the battery divider)
+
+const int   TICKS_PER_REV     = 1400;       // x4 decoding, assumption
+const float WHEEL_DIAMETER_MM = 34.0;
+const float WHEEL_BASE_MM     = 85.0;
+const float MM_PER_TICK = PI * WHEEL_DIAMETER_MM / TICKS_PER_REV;   // about 0.0763 mm
+
+volatile long ticksL = 0, ticksR = 0;
+volatile uint8_t prevL = 0, prevR = 0;      // previous 2-bit state (A &lt;&lt; 1 | B)
+portMUX_TYPE encMux = portMUX_INITIALIZER_UNLOCKED;
+
+// Index = (previous state &lt;&lt; 2) | new state. A leading B (00 &gt; 10 &gt; 11 &gt; 01) counts +1.
+DRAM_ATTR static const int8_t QSTEP[16] = {
+   0, -1, +1,  0,
+  +1,  0,  0, -1,
+  -1,  0,  0, +1,
+   0, +1, -1,  0
+};
+
+void IRAM_ATTR isrLeft() {
+  uint8_t cur = (digitalRead(ENC_L_A) &lt;&lt; 1) | digitalRead(ENC_L_B);
+  ticksL = ticksL + QSTEP[(prevL &lt;&lt; 2) | cur];
+  prevL = cur;
+}
+
+void IRAM_ATTR isrRight() {
+  uint8_t cur = (digitalRead(ENC_R_A) &lt;&lt; 1) | digitalRead(ENC_R_B);
+  ticksR = ticksR + QSTEP[(prevR &lt;&lt; 2) | cur];
+  prevR = cur;
+}
+
+void encodersBegin() {
+  pinMode(ENC_L_A, INPUT); pinMode(ENC_L_B, INPUT);
+  pinMode(ENC_R_A, INPUT); pinMode(ENC_R_B, INPUT);
+  prevL = (digitalRead(ENC_L_A) &lt;&lt; 1) | digitalRead(ENC_L_B);
+  prevR = (digitalRead(ENC_R_A) &lt;&lt; 1) | digitalRead(ENC_R_B);
+  attachInterrupt(digitalPinToInterrupt(ENC_L_A), isrLeft,  CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENC_L_B), isrLeft,  CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENC_R_A), isrRight, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENC_R_B), isrRight, CHANGE);
+}
+
+long leftTicks() {
+  portENTER_CRITICAL(&amp;encMux);
+  long t = ticksL;
+  portEXIT_CRITICAL(&amp;encMux);
+  return t;
+}
+
+long rightTicks() {
+  portENTER_CRITICAL(&amp;encMux);
+  long t = ticksR;
+  portEXIT_CRITICAL(&amp;encMux);
+  return t;
+}
+
+void resetEncoders() {
+  portENTER_CRITICAL(&amp;encMux);
+  ticksL = 0;
+  ticksR = 0;
+  portEXIT_CRITICAL(&amp;encMux);
+}</code></pre>
+<p>This follows the rules from Lesson 02: the interrupt routines are marked <code>IRAM_ATTR</code> and stay very short, the shared counters are <code>volatile</code>, and the main program reads them inside a critical section so it never sees a half-updated value. The lookup table is placed in fast memory with <code>DRAM_ATTR</code> so the interrupt never has to wait for flash.</p>
+<div class="callout callout-note"><div class="callout-title">Fix directions by testing, not by thinking</div><p>Turn the left wheel forward by hand and print <code>leftTicks()</code>. It should go <strong>up</strong>. If it goes down, swap the A and B pins for that encoder (or swap the signs in the table). The two motors are mounted facing opposite ways, so for one of them the "forward" direction may need this fix. Do the same for the right wheel.</p></div>
+<h3>The more robust alternative: hardware counting</h3>
+<p>At full speed our wheel makes about 5 revolutions per second, which is 7000 ticks per second; the interrupts handle that comfortably. But interrupts have costs: with two encoders, Wi-Fi and a control loop all busy, an interrupt can be delayed. The ESP32 has a <strong>PCNT (pulse counter)</strong> peripheral that decodes quadrature in hardware, with no interrupt per edge. The <strong>ESP32Encoder</strong> library (install from the Library Manager) wraps it: create an <code>ESP32Encoder</code> object, call <code>attachFullQuad(pinA, pinB)</code> for x4 decoding, and read the count with <code>getCount()</code>. You could implement <code>leftTicks()</code> and <code>rightTicks()</code> with it and keep the rest of your code unchanged. Check the library's README for the current API of the version you install.</p>
+</section>
+
+<section id="rpm-and-speed">
+<h2>RPM and wheel speed</h2>
+<p>Ticks tell you how far a wheel has turned. To get <strong>speed</strong>, count how many ticks arrive in a <strong>fixed time interval</strong>:</p>
+<ul>
+<li>revolutions = &Delta;ticks / <code>TICKS_PER_REV</code></li>
+<li><strong>RPM</strong> = revolutions &times; 60000 / interval in ms</li>
+<li><strong>speed (mm/s)</strong> = &Delta;ticks &times; <code>MM_PER_TICK</code> &times; 1000 / interval in ms</li>
+</ul>
+<p>Worked example with a 20 ms interval. Suppose 28 ticks arrive:</p>
+<ul>
+<li>revolutions = 28 / 1400 = 0.02</li>
+<li>RPM = 0.02 &times; 60000 / 20 = <strong>60 RPM</strong> (1 revolution per second)</li>
+<li>speed = 28 &times; 0.0763 &times; 1000 / 20 &asymp; <strong>107 mm/s</strong> (that is exactly one wheel circumference, &pi; &times; 34 &asymp; 106.8 mm, per second)</li>
+</ul>
+<p>At the motor's rated 300 RPM the wheel would make 7000 ticks per second, about 534 mm/s. (Real motors run slower than their label under load and on a battery that is not full.)</p>
+<pre><code class="language-cpp">const unsigned long SPEED_PERIOD_MS = 20;     // measure every 20 ms (50 Hz)
+unsigned long lastSpeedMs = 0;
+long prevTicksL = 0, prevTicksR = 0;
+float rpmL = 0, rpmR = 0;                     // smoothed values
+float mmpsL = 0, mmpsR = 0;
+const float SMOOTHING = 0.3;                  // 0..1, smaller = smoother but slower
+
+void updateSpeed() {                          // call this from loop()
+  unsigned long now = millis();
+  if (now - lastSpeedMs &lt; SPEED_PERIOD_MS) return;
+  lastSpeedMs += SPEED_PERIOD_MS;             // keeps the period steady
+
+  long l = leftTicks(), r = rightTicks();
+  long dL = l - prevTicksL, dR = r - prevTicksR;
+  prevTicksL = l; prevTicksR = r;
+
+  float newRpmL  = dL * 60000.0f / (TICKS_PER_REV * (float)SPEED_PERIOD_MS);
+  float newRpmR  = dR * 60000.0f / (TICKS_PER_REV * (float)SPEED_PERIOD_MS);
+  float newMmpsL = dL * MM_PER_TICK * 1000.0f / SPEED_PERIOD_MS;
+  float newMmpsR = dR * MM_PER_TICK * 1000.0f / SPEED_PERIOD_MS;
+
+  rpmL  += SMOOTHING * (newRpmL  - rpmL);     // low-pass filter
+  rpmR  += SMOOTHING * (newRpmR  - rpmR);
+  mmpsL += SMOOTHING * (newMmpsL - mmpsL);
+  mmpsR += SMOOTHING * (newMmpsR - mmpsR);
+}</code></pre>
+<h3>Why the numbers jitter</h3>
+<p>Ticks come in whole numbers. In a 20 ms window, one tick more or less changes the RPM by 1 / 1400 &times; 60000 / 20 &asymp; <strong>2.1 RPM</strong>. That is the resolution of your speed measurement at this interval. Two ways to calm it down:</p>
+<ul>
+<li><strong>Longer interval:</strong> 50 ms gives finer steps, but a slower answer.</li>
+<li><strong>Low-pass filter (averaging):</strong> the <code>SMOOTHING</code> line above mixes 30% of the new value with 70% of the old one. It smooths the jitter, at the cost of a small delay. Tune it by looking at the printed values.</li>
+</ul>
+<p>(Counting the time between two ticks is another method that works better at low speed. You will not need it for now.)</p>
+</section>
+
+<section id="imu">
+<h2>IMU: sensing rotation with the MPU6050</h2>
+<p>An <strong>IMU</strong> (inertial measurement unit) measures motion inside the robot itself. The <strong>MPU6050</strong> contains two sensors on one chip, both read over I&sup2;C at address <code>0x68</code>:</p>
+<div class="card-grid">
+<div class="info-card"><h4>Accelerometer (3 axes)</h4><p>Measures acceleration, including gravity. At rest it feels gravity, so it can tell you how the board is <strong>tilted</strong>. Moving and vibrating robots make it noisy, and it cannot tell you which way the robot faces (yaw).</p></div>
+<div class="info-card"><h4>Gyroscope (3 axes)</h4><p>Measures <strong>how fast</strong> the board is rotating, in degrees per second. Smooth and fast, but it gives rate, not angle.</p></div>
+</div>
+<p>For a flat, ground-driving robot, the useful number is the <strong>gyro Z axis</strong>: the rotation rate about the vertical axis, which is how fast the robot is turning left or right (<strong>yaw rate</strong>). Add up (integrate) that rate over time and you get the <strong>heading</strong>, the direction the robot faces. That helps you make accurate 90-degree turns and drive straight, even if the wheels slip. (With the chip lying flat, Z up, a positive Z rate means anticlockwise as seen from above. Test yours by turning the robot by hand.)</p>
+<h3>Reading the gyro</h3>
+<p>There are good MPU6050 libraries, but the chip is simple enough to read directly, which also shows you what happens underneath. These are the registers we need (from the MPU6050 register map):</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Register</th><th>Address</th><th>What we do</th></tr></thead>
+<tbody>
+<tr><td><code>PWR_MGMT_1</code></td><td><code>0x6B</code></td><td>The chip <strong>starts asleep</strong>. Write <code>0x01</code> to wake it (clears the sleep bit and picks the gyro PLL clock)</td></tr>
+<tr><td><code>CONFIG</code></td><td><code>0x1A</code></td><td>Write <code>0x03</code> to turn on a low-pass filter (about 40 Hz) that reduces noise</td></tr>
+<tr><td><code>GYRO_CONFIG</code></td><td><code>0x1B</code></td><td>Full-scale range. <code>0x00</code> = &plusmn;250, <code>0x08</code> = &plusmn;500, <code>0x10</code> = &plusmn;1000, <code>0x18</code> = &plusmn;2000 degrees per second</td></tr>
+<tr><td><code>GYRO_ZOUT_H / _L</code></td><td><code>0x47</code> / <code>0x48</code></td><td>Z-axis gyro reading, 16-bit signed, high byte first</td></tr>
+</tbody></table></div>
+<p>The scale (sensitivity) depends on the range: 131 counts per degree/s at &plusmn;250, <strong>65.5</strong> at &plusmn;500, 32.8 at &plusmn;1000 and 16.4 at &plusmn;2000. We choose &plusmn;500 &deg;/s, enough for a robot spinning about one and a half turns per second, and divide the raw reading by 65.5.</p>
+<h3>Calibrating the bias and finding the heading</h3>
+<pre><code class="language-cpp">const uint8_t MPU_ADDR = 0x68;
+const float GYRO_COUNTS_PER_DPS = 65.5f;     // for the +/-500 deg/s range
+
+float gyroBiasZ = 0;                         // deg/s, measured at start-up
+float headingDeg = 0;                        // integrated heading
+unsigned long lastImuUs = 0;
+
+void mpuWrite(uint8_t reg, uint8_t value) {
+  Wire.beginTransmission(MPU_ADDR);
+  Wire.write(reg);
+  Wire.write(value);
+  Wire.endTransmission();
+}
+
+float readGyroZRaw() {                       // deg/s, bias not removed
+  Wire.beginTransmission(MPU_ADDR);
+  Wire.write(0x47);                          // GYRO_ZOUT_H
+  Wire.endTransmission(false);               // keep the bus for the read
+  Wire.requestFrom((int)MPU_ADDR, 2);
+  uint8_t hi = Wire.read();                  // read in two steps: the order matters
+  uint8_t lo = Wire.read();
+  int16_t raw = (int16_t)((hi &lt;&lt; 8) | lo);
+  return raw / GYRO_COUNTS_PER_DPS;
+}
+
+void imuBegin() {
+  mpuWrite(0x6B, 0x01);                      // wake up, use the gyro PLL clock
+  mpuWrite(0x1A, 0x03);                      // low-pass filter about 40 Hz
+  mpuWrite(0x1B, 0x08);                      // +/-500 deg/s
+  delay(100);
+}
+
+// Keep the robot completely still while this runs (about 1 second).
+void imuCalibrateGyro() {
+  const int SAMPLES = 500;
+  float sum = 0;
+  for (int i = 0; i &lt; SAMPLES; i++) {
+    sum += readGyroZRaw();
+    delay(2);
+  }
+  gyroBiasZ = sum / SAMPLES;
+  headingDeg = 0;
+  lastImuUs = micros();
+}
+
+// Call often (for example every 10 ms). Returns the heading in degrees.
+float imuUpdate() {
+  unsigned long now = micros();
+  float dt = (now - lastImuUs) * 1e-6f;      // seconds since the last call
+  lastImuUs = now;
+  float rate = readGyroZRaw() - gyroBiasZ;   // deg/s
+  headingDeg += rate * dt;                   // integrate rate to get angle
+  return headingDeg;
+}</code></pre>
+<p>The other axes work the same way: the accelerometer data starts at register <code>0x3B</code> and the gyro X and Y at <code>0x43</code> and <code>0x45</code>. Check the register map for the details.</p>
+<div class="callout callout-caution"><div class="callout-title">Why the heading drifts</div><p>Integration adds up every small error, forever:</p>
+<ul>
+<li><strong>Leftover bias:</strong> calibration is never perfect, and the bias changes slowly with temperature. A leftover error of just 0.2 &deg;/s becomes 12&deg; after one minute.</li>
+<li><strong>Noise:</strong> random noise in each reading also adds up as a slow random wander.</li>
+<li><strong>Scale error:</strong> a small error in the sensitivity makes big turns slightly wrong.</li>
+</ul>
+<p>So the gyro heading is excellent for a few seconds (a turn, a straight run) and untrustworthy for minutes. That is why robots <strong>combine</strong> sensors: the gyro for fast, smooth turning, and another reference (the encoders, the line, a wall) to correct the slow drift. Reset the heading when you have a good reference, for example at the start of every run. Some MPU6050 clone chips also have slightly different behaviour; if a reading looks wrong, check the datasheet of the exact chip you bought.</p></div>
+</section>
+
+<section id="odometry">
+<h2>Introduction to odometry</h2>
+<p><strong>Odometry</strong> means estimating where the robot is by adding up its own small movements. With wheel encoders you already know how far each wheel has moved, so you can work out how far the robot has moved and turned. Starting from a known position, you keep updating it. This is also called <strong>dead reckoning</strong>.</p>
+<h3>The maths for two wheels</h3>
+<p>Let <code>dL</code> and <code>dR</code> be the distances the left and right wheels moved since the last update (ticks &times; <code>MM_PER_TICK</code>), and <code>b</code> the wheel base (85 mm).</p>
+<ul>
+<li>The centre of the robot moves <strong>&Delta;s = (dL + dR) / 2</strong>.</li>
+<li>The robot turns <strong>&Delta;&theta; = (dR &minus; dL) / b</strong> (radians, positive = anticlockwise). If the right wheel travels further, the robot turns left.</li>
+<li>Update the pose using the middle heading of this small step: <strong>x += &Delta;s &times; cos(&theta; + &Delta;&theta;/2)</strong>, <strong>y += &Delta;s &times; sin(&theta; + &Delta;&theta;/2)</strong>, <strong>&theta; += &Delta;&theta;</strong>.</li>
+</ul>
+<figure><img src="/study-materials/stage-2/content/img/3-4.svg" alt="Differential-drive geometry: a robot moves from one pose to another, with the update formulas for x, y and heading" loading="lazy"><figcaption>One odometry step: the robot moves &Delta;s along a slight curve and turns by &Delta;&theta;.</figcaption></figure>
+<pre><code class="language-cpp">struct Pose {
+  float x = 0;        // mm
+  float y = 0;        // mm
+  float theta = 0;    // radians, 0 = facing +x, positive = anticlockwise
+};
+
+Pose pose;
+long odoPrevL = 0, odoPrevR = 0;
+
+void resetOdometry() {
+  resetEncoders();
+  odoPrevL = 0; odoPrevR = 0;
+  pose = Pose();
+}
+
+// Call regularly, for example every 10 ms.
+void updateOdometry() {
+  long l = leftTicks(), r = rightTicks();
+  float dL = (l - odoPrevL) * MM_PER_TICK;
+  float dR = (r - odoPrevR) * MM_PER_TICK;
+  odoPrevL = l; odoPrevR = r;
+
+  float ds     = (dL + dR) / 2.0f;
+  float dTheta = (dR - dL) / WHEEL_BASE_MM;
+
+  pose.x     += ds * cosf(pose.theta + dTheta / 2.0f);
+  pose.y     += ds * sinf(pose.theta + dTheta / 2.0f);
+  pose.theta += dTheta;
+}</code></pre>
+<h3>A worked example</h3>
+<p>The robot starts at (0, 0) facing +x. In one update the left encoder counts 1000 ticks and the right 1100 ticks.</p>
+<ul>
+<li>dL = 1000 &times; 0.0763 &asymp; 76.3 mm, dR = 1100 &times; 0.0763 &asymp; 83.9 mm</li>
+<li>&Delta;s = (76.3 + 83.9) / 2 &asymp; <strong>80.1 mm</strong></li>
+<li>&Delta;&theta; = (83.9 &minus; 76.3) / 85 &asymp; 0.0898 rad &asymp; <strong>5.1&deg;</strong> (turning left, because the right wheel went further)</li>
+<li>Middle heading = 0.0449 rad, so x = 80.1 &times; cos(0.0449) &asymp; <strong>80.0 mm</strong> and y = 80.1 &times; sin(0.0449) &asymp; <strong>3.6 mm</strong></li>
+</ul>
+<p>A handy check: to <strong>spin on the spot by 90&deg;</strong>, each wheel must travel (85 / 2) &times; (&pi; / 2) &asymp; 66.8 mm in opposite directions, which is about 875 ticks each. You will use exactly this in Lesson 05.</p>
+<h3>Why odometry drifts too</h3>
+<p>Odometry is simple, and it is only an <strong>estimate</strong> that gets worse over time, because every error adds up:</p>
+<ul>
+<li><strong>Wheel slip:</strong> if a wheel spins or skids, the encoder counts motion that did not happen.</li>
+<li><strong>Wheel diameter error:</strong> a 1% error in the wheel diameter is a 1% error in every distance (10 mm over one metre). Wheels with slightly different sizes also make the robot believe it curves. If the right wheel is 0.5% larger than the left, after 1 m the heading is wrong by about 5 mm / 85 mm &asymp; 3.4&deg;.</li>
+<li><strong>Wheel base error:</strong> the effective wheel base is hard to measure (the contact patch is not a point). A 1 mm error in 85 mm is about 1.2%, which is about 4&deg; error in a full 360&deg; spin.</li>
+<li><strong>Heading errors grow into position errors:</strong> a 5&deg; heading error after 1 m of driving puts the robot about 87 mm off sideways.</li>
+</ul>
+<p>The cure is the same as with the gyro: <strong>calibrate</strong> your wheel diameter and wheel base, and <strong>re-anchor</strong> often using something that does not drift, such as a wall, a line crossing or a start square. This was only an introduction. Later lessons on maze solving build on it.</p>
+</section>
+
+<section id="key-takeaways">
+<h2>Key takeaways</h2>
+<ul>
+<li>A <strong>reflectance array</strong> gives a higher analog voltage over a dark line. Eight analog sensors do not fit on the ESP32's ADC1, so this build reads them through <strong>two ADS1115 chips</strong> (0x48 with ADDR on GND, 0x49 with ADDR on 3.3 V).</li>
+<li>The ADS1115 is slow: 860 samples per second per chip. A full 8-sensor scan is roughly 12 to 20 ms (an estimate), so <strong>measure it with <code>micros()</code></strong>. The STM32F411 Black Pill, with 10 ADC pins and hardware encoder timers, is the faster route.</li>
+<li><strong>Calibration</strong> records the minimum and maximum of each sensor and scales readings to 0 to 1000. The weighted average then turns 8 values into one <strong>line position from &minus;3500 to +3500</strong>.</li>
+<li>A <strong>quadrature encoder</strong> has channels A and B 90&deg; apart; the order of the edges gives the direction. With x4 decoding and the assumed numbers there are <strong>1400 counts per wheel revolution</strong>, about 0.0763 mm per tick.</li>
+<li>Use <code>CHANGE</code> interrupts with <code>IRAM_ATTR</code>, <code>volatile</code> counters and critical sections, or the ESP32's PCNT hardware (ESP32Encoder library) for a more robust count.</li>
+<li><strong>Speed</strong> comes from ticks counted over a fixed interval: RPM = ticks / 1400 &times; 60000 / interval(ms). Whole-tick steps cause jitter; use a longer interval or a low-pass filter.</li>
+<li>The <strong>MPU6050</strong> gyro Z gives yaw rate. Wake the chip, remove the start-up <strong>bias</strong>, and integrate to get heading, but expect <strong>drift</strong>.</li>
+<li><strong>Odometry</strong> turns tick counts into x, y and heading with &Delta;s = (dL + dR)/2 and &Delta;&theta; = (dR &minus; dL)/b. It drifts because of slip and measurement errors, so calibrate and re-anchor.</li>
+</ul>
+</section>

@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 320" role="img" aria-label="Top view of a differential drive robot in three cases: equal wheel speeds drive straight, a faster right wheel curves left around a point on the axle line, and opposite wheel speeds spin the robot on the spot">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#16a34a"/></marker>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#9333ea"/></marker>
+  </defs>
+  <rect width="680" height="320" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">
+    <!-- panel titles -->
+    <g text-anchor="middle" font-weight="700" font-size="14">
+      <text x="125" y="32">1. Equal speeds</text>
+      <text x="340" y="32">2. Right wheel faster</text>
+      <text x="555" y="32">3. Opposite speeds</text>
+    </g>
+
+    <!-- panel 1 robot (centre x=125) -->
+    <rect x="90" y="140" width="70" height="70" rx="8" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <rect x="80" y="150" width="10" height="50" rx="3" fill="#334155"/>
+    <rect x="160" y="150" width="10" height="50" rx="3" fill="#334155"/>
+    <path d="M115 150 L125 134 L135 150z" fill="#2563eb"/>
+    <g stroke="#16a34a" stroke-width="4" fill="none" marker-end="url(#a)">
+      <path d="M85 145 V85"/>
+      <path d="M165 145 V85"/>
+    </g>
+    <text x="85" y="78" text-anchor="middle" fill="#16a34a" font-weight="700">vL</text>
+    <text x="165" y="78" text-anchor="middle" fill="#16a34a" font-weight="700">vR</text>
+
+    <!-- panel 2 robot (centre x=340) -->
+    <rect x="305" y="140" width="70" height="70" rx="8" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <rect x="295" y="150" width="10" height="50" rx="3" fill="#334155"/>
+    <rect x="375" y="150" width="10" height="50" rx="3" fill="#334155"/>
+    <path d="M330 150 L340 134 L350 150z" fill="#2563eb"/>
+    <g stroke="#16a34a" stroke-width="4" fill="none" marker-end="url(#a)">
+      <path d="M300 145 V123"/>
+      <path d="M380 145 V79"/>
+    </g>
+    <text x="290" y="135" text-anchor="end" fill="#16a34a" font-weight="700">vL</text>
+    <text x="380" y="72" text-anchor="middle" fill="#16a34a" font-weight="700">vR</text>
+    <line x1="260" y1="175" x2="295" y2="175" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 4"/>
+    <path d="M340 175 A80 80 0 0 0 260 95" fill="none" stroke="#9333ea" stroke-width="3" stroke-dasharray="6 4" marker-end="url(#b)"/>
+    <circle cx="260" cy="175" r="6" fill="#dc2626"/>
+    <text x="260" y="200" text-anchor="middle" fill="#dc2626" font-weight="700">ICC</text>
+
+    <!-- panel 3 robot (centre x=555) -->
+    <rect x="520" y="140" width="70" height="70" rx="8" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <rect x="510" y="150" width="10" height="50" rx="3" fill="#334155"/>
+    <rect x="590" y="150" width="10" height="50" rx="3" fill="#334155"/>
+    <path d="M545 150 L555 134 L565 150z" fill="#2563eb"/>
+    <g stroke="#16a34a" stroke-width="4" fill="none" marker-end="url(#a)">
+      <path d="M595 145 V110"/>
+      <path d="M515 205 V240"/>
+    </g>
+    <text x="520" y="256" text-anchor="middle" fill="#16a34a" font-weight="700">vL (reverse)</text>
+    <text x="610" y="166" fill="#16a34a" font-weight="700">vR</text>
+    <path d="M640 175 A85 85 0 0 0 470 175" fill="none" stroke="#9333ea" stroke-width="3" stroke-dasharray="6 4" marker-end="url(#b)"/>
+    <circle cx="555" cy="175" r="6" fill="#dc2626"/>
+    <text x="555" y="230" text-anchor="middle" fill="#dc2626" font-weight="700">ICC</text>
+
+    <!-- formulas -->
+    <g text-anchor="middle" fill="#334155">
+      <text x="125" y="285">vR = vL: straight line</text>
+      <text x="340" y="285">vR &gt; vL: curves left</text>
+      <text x="555" y="285">vR = −vL: turns in place</text>
+      <text x="340" y="308" font-size="12" fill="#475569">ICC = instantaneous centre of rotation, always on the line through both wheels</text>
+    </g>
+  </g>
+</svg>

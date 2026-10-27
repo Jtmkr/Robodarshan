@@ -1,0 +1,443 @@
+<section id="debugging-method">
+<h2>A method for debugging, and the tools</h2>
+<p>Every robot misbehaves. The difference between a team that fixes it in ten minutes and a team that fights for a week is not talent, it is <strong>method</strong>. Debugging is the search for the cause of a symptom, and a random search is slow. A systematic one is fast.</p>
+<h3>The five rules</h3>
+<ol>
+<li><strong>Reproduce it.</strong> Make the fault happen on purpose. If you cannot make it happen, you cannot know whether you fixed it. Note the conditions: battery level, floor, speed, which button.</li>
+<li><strong>Isolate it.</strong> Find which subsystem is guilty: power, sensors, motors, encoders or communication. Lift the wheels, unplug things, run one part alone.</li>
+<li><strong>Test each subsystem alone</strong> with a small test sketch, not with your full robot program. A bug in your PID cannot hide a bad sensor if the sketch only prints the sensor.</li>
+<li><strong>Change one thing at a time.</strong> If you change the code, the wire and the battery together and it works, you have learned nothing.</li>
+<li><strong>Write it down.</strong> Keep a notebook or a text file: what you changed, what you measured, what happened. Numbers you wrote down tomorrow are worth more than a memory of &ldquo;it seemed better&rdquo;.</li>
+</ol>
+<figure><img src="/study-materials/stage-2/content/img/12-1.svg" alt="Flowchart: five questions in order, power first, then sensors, motors, encoders and communication, each leading to the subsystem to test" loading="lazy"><figcaption>Start at the top. Power problems cause so many other symptoms that you check them first.</figcaption></figure>
+<h3>Your tools</h3>
+<div class="card-grid">
+<div class="info-card"><h4>Multimeter</h4><p>Measures voltage, continuity (beeps for a connected wire) and resistance. It finds loose wires, shorts and sagging supplies. Learn it first.</p></div>
+<div class="info-card"><h4>Serial Monitor and Plotter</h4><p>Print values at 115200 baud. The <strong>Serial Plotter</strong> (Tools menu in the Arduino IDE) draws printed numbers as lines, which shows noise and drift instantly.</p></div>
+<div class="info-card"><h4>Logic analyzer</h4><p>A cheap USB one with 8 channels records digital signals (encoder A and B, I&sup2;C, UART) and shows them as waveforms in free software. It shows what really happened on the wire.</p></div>
+<div class="info-card"><h4>Oscilloscope (optional)</h4><p>Shows analog shapes: a sagging 5 V rail, noise spikes, ringing. Very useful, but not required to start.</p></div>
+<div class="info-card"><h4>LED or buzzer</h4><p>A way to tell what the robot is doing when the cable is unplugged and the robot is running on the floor.</p></div>
+<div class="info-card"><h4>Test sketches</h4><p>Tiny programs that exercise one part. You will write several below, and keep them in a folder named <code>tests</code>.</p></div>
+</div>
+<p>Here is a small helper you will reuse to signal events when no computer is attached. The on-board LED of most DevKits is on <code>GPIO2</code>.</p>
+<pre><code class="language-cpp">const int LED_PIN = 2;               // on-board LED on most DevKits
+
+// Blink n times: a cheap way to show "I reached this point" without Serial
+void blink(int n) {
+  pinMode(LED_PIN, OUTPUT);
+  for (int i = 0; i &lt; n; i++) {
+    digitalWrite(LED_PIN, HIGH); delay(120);
+    digitalWrite(LED_PIN, LOW);  delay(120);
+  }
+}</code></pre>
+<p>It also helps to know <strong>where each kind of fault lives</strong>. This map shows how the faults in this lesson attach to the robot:</p>
+<figure><img src="/study-materials/stage-2/content/img/12-4.svg" alt="System map: power, line sensor, motors, encoders and communication around the ESP32 with typical faults listed in each box" loading="lazy"><figcaption>Where each kind of fault lives.</figcaption></figure>
+<div class="callout callout-note"><div class="callout-title">Starter code, not tested on your robot</div><p>All the sketches in this lesson are starter code written without access to your hardware. They use the helper names from the other Stage 2 lessons (<code>drive()</code>, <code>readRaw()</code>, <code>leftTicks()</code> and so on). Pins, directions and numbers must be tested and tuned on the real robot. Test with the <strong>wheels lifted</strong> unless a section says otherwise.</p></div>
+</section>
+
+<section id="sensor-calibration">
+<h2>Sensor calibration</h2>
+<p>The QTR-8A gives 8 analog values. On this build they are read through two ADS1115 chips (the sensors lesson explains how). The sensor shines infrared light down and measures how much comes back. A dark line reflects little light and gives a <strong>higher</strong> output voltage; a white floor reflects a lot and gives a lower one. <strong>Calibration</strong> records the lowest and highest value each sensor sees on your floor and line, then scales every reading to 0 to 1000 (1000 = darkest). Without it, every channel has a different &ldquo;white&rdquo; and &ldquo;black&rdquo;, and the line position comes out wrong.</p>
+<h3>Symptom, cause, test, fix</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Symptom</th><th>Likely cause</th><th>Test</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Position jumps or never reaches the extremes</td><td>Bad min and max: the calibration sweep did not cross both line and floor for every sensor.</td><td>Print min and max per channel. A small span (max minus min) means a bad sweep.</td><td>Calibrate again, moving the robot slowly across the line so that <em>all</em> sensors see both line and floor.</td></tr>
+<tr><td>Works in one room, fails in another</td><td>Ambient light, especially sunlight or lamps that contain infrared.</td><td>Hold your hand over the sensor, or switch the lamp. Watch the raw values.</td><td>Calibrate in the place you will run, and shield the sensor with a skirt or lower it.</td></tr>
+<tr><td>Values drift or contrast is tiny</td><td>The sensor is too high. Reflectance sensors are meant to sit close to the floor; around 3 mm is the commonly recommended height, but check the QTR-8A datasheet.</td><td>Measure the height. Print the span at a few heights.</td><td>Fix the sensor at the recommended height with spacers, and keep the height the same every time.</td></tr>
+<tr><td>Line looks brighter than the floor, or both look the same</td><td>A shiny laminated floor that reflects light like a mirror, or a gray floor with weak contrast.</td><td>Compare raw readings over line and floor. A small difference means a poor surface.</td><td>Use matte black tape or paint; tilt the sensor slightly; calibrate for that surface.</td></tr>
+<tr><td>One channel stays constant (at 0 or at the maximum)</td><td>Dead channel: broken wire, bad solder joint or damaged sensor. A channel at the maximum may also be saturated.</td><td>Print raw values; wave the line under it. A dead channel does not move.</td><td>Check the wire and the solder with the multimeter, then swap the channel to another ADS1115 input to see if the fault follows the sensor or the chip.</td></tr>
+<tr><td>All values are 0 or random</td><td>Sensor or ADC not powered, or an I&sup2;C fault.</td><td>Run the I&sup2;C scanner from Lesson 01. Measure the sensor's supply voltage.</td><td>See the communication and power sections below.</td></tr>
+</tbody></table></div>
+<h3>A diagnostic sketch: raw values, min, max and bars</h3>
+<p>This sketch does not depend on your calibration routine. It tracks the min and max of every channel while you slide the robot over the line, and prints a bar for each channel so you can <em>see</em> what the sensor sees. It uses <code>sensorsBegin()</code> and <code>readRaw()</code> from the sensors lesson.</p>
+<pre><code class="language-cpp">// Sensor diagnostic: raw value, min/max seen, calibrated 0..1000 and a bar.
+const int NUM_SENSORS = 8;
+const uint16_t MIN_SPAN = 2000;      // ASSUMPTION: a healthy channel spans more than this.
+                                     // Depends on your ADS1115 gain: tune it.
+uint16_t rawMin[NUM_SENSORS], rawMax[NUM_SENSORS];
+
+void setup() {
+  Serial.begin(115200);
+  sensorsBegin();
+  for (int i = 0; i &lt; NUM_SENSORS; i++) { rawMin[i] = 65535; rawMax[i] = 0; }
+  Serial.println("Slide the sensor slowly across the line and the floor...");
+}
+
+void loop() {
+  uint16_t raw[NUM_SENSORS];
+  readRaw(raw);
+
+  for (int i = 0; i &lt; NUM_SENSORS; i++) {
+    if (raw[i] &lt; rawMin[i]) rawMin[i] = raw[i];
+    if (raw[i] &gt; rawMax[i]) rawMax[i] = raw[i];
+
+    uint16_t span = rawMax[i] - rawMin[i];
+    long cal = 0;
+    if (span &gt; 0) cal = (long)(raw[i] - rawMin[i]) * 1000L / span;   // 0..1000
+    cal = constrain(cal, 0, 1000);
+
+    Serial.print(i);
+    Serial.print(": raw=");  Serial.print(raw[i]);
+    Serial.print(" span=");  Serial.print(span);
+    Serial.print(" cal=");   Serial.print(cal);
+    Serial.print(" ");
+    for (int b = 0; b &lt; cal / 100; b++) Serial.print('#');      // bar, one # per 100
+    if (span &lt; MIN_SPAN) Serial.print("   &lt;-- LOW SPAN: dead, saturated or not swept");
+    Serial.println();
+  }
+  Serial.println("----");
+  delay(250);
+}</code></pre>
+<p>Reading the output: over the white floor every bar should be short, and over the line the sensors that are on the line should show long bars. A channel with a tiny span is suspicious. A channel whose raw value never changes is dead or saturated.</p>
+<div class="callout callout-tip"><div class="callout-title">Calibrate on the real surface, then check the result</div><p>Calibrate at the competition track, in the light of the competition hall, with the real battery. After calibration, put the robot with the line centred and check that the two centre sensors read high and the outer ones read low. Then move it left and right by a few millimetres and watch the position change smoothly.</p></div>
+</section>
+
+<section id="motor-matching">
+<h2>Motor matching</h2>
+<p>Two motors with the same part number are never identical. One has more friction, one a slightly tighter gearbox, one a weaker magnet, one a worse connection. Give both the same PWM and the robot slowly curves. That is not a bug in your code, it is physics, and you fix it by measuring.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Symptom</th><th>Likely cause</th><th>Test</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Robot curves with equal PWM</td><td>One motor is naturally faster.</td><td>Equal PWM for 2 seconds, compare encoder counts (below).</td><td>Apply a trim factor to the faster side.</td></tr>
+<tr><td>One wheel does not move at low PWM</td><td>Dead zone: the motor needs a minimum voltage to overcome friction.</td><td>Ramp PWM slowly and note when the counts start.</td><td>Add a per-side minimum PWM, or never command speeds inside the dead zone.</td></tr>
+<tr><td>A wheel turns the wrong way for &ldquo;forward&rdquo;</td><td>Motor wires reversed or the direction pins swapped.</td><td>Lift the wheels, command forward, watch the wheel.</td><td>Swap the two motor wires, or invert the sign in the code. Do one, not both.</td></tr>
+<tr><td>Curves on one battery level but not another</td><td>The match depends on voltage; low voltage widens the gap.</td><td>Repeat the test with a fresh and a partly used battery.</td><td>Recalibrate the trim; consider closed-loop speed control using encoders.</td></tr>
+<tr><td>Different speed forward and backward</td><td>Gearbox or driver asymmetry.</td><td>Repeat the test with negative PWM.</td><td>Use separate trims for each direction if it matters.</td></tr>
+</tbody></table></div>
+<h3>Finding the trim factor</h3>
+<p>The idea: drive both wheels with the same PWM for a fixed time, then compare encoder counts. The wheel that moved fewer counts is the slower one. Suppose we command PWM 120 on both sides for 2 seconds and read:</p>
+<ul>
+<li>left = 6400 counts, right = 5900 counts.</li>
+</ul>
+<p>The left motor is faster. Its trim factor is <code>trim<sub>L</sub> = right / left = 5900 / 6400 = 0.92</code>. Multiply every left command by 0.92 and the two sides should now match at this speed. If the right were faster you would use <code>trim<sub>R</sub> = left / right</code>.</p>
+<p>(These numbers are an example, not a measurement. For reference, a 300 RPM wheel with 1400 counts per revolution makes at most about 7000 counts per second with no load; the encoder constants are the assumptions from the other lessons.)</p>
+<pre><code class="language-cpp">// Motor matching test. LIFT THE WHEELS. Uses drive(), leftTicks(), rightTicks()
+// and resetEncoders() from the earlier lessons.
+const int  TEST_PWM = 120;           // try a speed you actually use in a run
+const unsigned long RUN_MS = 2000;
+
+// Which PWM makes a wheel start to turn? (dead zone)
+int findDeadZone(bool leftSide) {
+  for (int pwm = 0; pwm &lt;= 150; pwm += 5) {
+    resetEncoders();
+    if (leftSide) drive(pwm, 0); else drive(0, pwm);
+    delay(300);
+    drive(0, 0);
+    delay(200);
+    long t = leftSide ? leftTicks() : rightTicks();
+    if (abs(t) &gt;= 10) return pwm;      // it moved: this is the dead-zone edge
+  }
+  return -1;                           // never moved: check wiring
+}
+
+void setup() {
+  Serial.begin(115200);
+  motorsBegin();
+  encodersBegin();
+  delay(2000);                         // time to put the robot down safely
+
+  Serial.print("Dead zone left  = "); Serial.println(findDeadZone(true));
+  Serial.print("Dead zone right = "); Serial.println(findDeadZone(false));
+
+  // Equal PWM on both sides, compare counts
+  resetEncoders();
+  drive(TEST_PWM, TEST_PWM);
+  delay(RUN_MS);
+  drive(0, 0);
+  delay(300);
+  long l = abs(leftTicks());
+  long r = abs(rightTicks());
+  Serial.print("left = ");  Serial.print(l);
+  Serial.print("  right = "); Serial.println(r);
+
+  if (l == 0 || r == 0) {
+    Serial.println("A wheel did not count. Check motor or encoder wiring first.");
+    return;
+  }
+  float trimL = 1.0, trimR = 1.0;
+  if (l &gt; r) trimL = (float)r / l;     // left is faster: slow it down
+  else        trimR = (float)l / r;    // right is faster: slow it down
+  Serial.print("trimL = "); Serial.println(trimL, 3);
+  Serial.print("trimR = "); Serial.println(trimR, 3);
+}
+
+void loop() {}</code></pre>
+<p>Then use the numbers in one place so they are easy to change:</p>
+<pre><code class="language-cpp">float TRIM_L = 0.92;                 // from the test above (example value)
+float TRIM_R = 1.00;
+
+void driveTrimmed(int left, int right) {
+  drive((int)(left * TRIM_L), (int)(right * TRIM_R));
+}</code></pre>
+<div class="callout callout-caution"><div class="callout-title">A trim is not a cure for everything</div><p>Repeat the test at two or three speeds, with the same battery charge. If the trim changes a lot with speed, you are seeing a dead zone as well, and a closed-loop controller that uses the encoders (the PID lessons) will do far better than a single number. Also check for mechanical causes first: a wheel rubbing the chassis, a loose wheel, or a bent axle.</p></div>
+</section>
+
+<section id="encoder-errors">
+<h2>Encoder errors</h2>
+<p>With the assumptions of this course (7 pulses per revolution per channel on the motor shaft, 50:1 gearbox, x4 decoding) one wheel revolution should give <strong>1400 counts</strong>. If your motor is different, replace these with your datasheet values. Encoder errors usually look like a robot that drives the wrong distance or turns the wrong angle.</p>
+<figure><img src="/study-materials/stage-2/content/img/12-2.svg" alt="Encoder A and B waveforms: clean square waves, a noisy B channel with spikes, and a B channel that goes flat" loading="lazy"><figcaption>Good, noisy and lost encoder signals. Each edge on A or B is one count with x4 decoding.</figcaption></figure>
+<div class="table-wrap"><table>
+<thead><tr><th>Symptom</th><th>Likely cause</th><th>Test</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Count goes down when the robot goes forward</td><td>A and B swapped, or motor polarity reversed.</td><td>Turn the wheel forward by hand and watch the sign.</td><td>Swap channels A and B in code, or negate the count in the function. Keep both wheels consistent.</td></tr>
+<tr><td>Exactly half or a quarter of 1400 (700 or 350)</td><td>The decoding uses only one channel or only one edge.</td><td>Hand-turn one revolution and compare with 1400.</td><td>Attach the interrupt to <em>both</em> channels with change-on-either-edge, if your decoding expects x4.</td></tr>
+<tr><td>Count far more than expected, jumpy</td><td>Electrical noise or contact bounce creating false edges.</td><td>Watch with a logic analyzer; or hold the wheel still while the other motor runs and see if the count moves.</td><td>Twist the encoder wires, keep them away from motor wires, shorten them, add a 100 nF capacitor across each motor's terminals, and add a good ground.</td></tr>
+<tr><td>Count lost at high speed or in bursts</td><td>The interrupt handler is too slow or blocked by long operations.</td><td>Compare the hand-turn result with a fast motor run result.</td><td>Keep the ISR tiny; avoid <code>Serial</code> or <code>delay()</code> in it; do not write to flash or use long blocking calls while driving.</td></tr>
+<tr><td>Count stops or counts randomly in one channel</td><td>Loose connector, broken wire, or no supply to the encoder.</td><td>Multimeter: measure the encoder supply at the connector; check each wire for continuity.</td><td>Reseat or re-solder; use locking connectors.</td></tr>
+<tr><td>Input floats: random counts with no motion</td><td>An open-collector encoder output on GPIO34 to 39 has no pull-up (these pins have no internal pull-ups).</td><td>Print the pin state with the motor off: it wanders.</td><td>Add a 10 k&Omega; pull-up to 3.3 V on each encoder line (the carrier board footprints from Lesson 10).</td></tr>
+<tr><td>Everything counts oddly, but only sometimes</td><td>Encoder supplied from a sagging rail.</td><td>Measure the encoder supply while the motors run.</td><td>Power it from the regulated 3.3 V rail, check the supply section below.</td></tr>
+</tbody></table></div>
+<div class="callout callout-caution"><div class="callout-title">3.3 V only</div><p>The ESP32 inputs are 3.3 V devices. Many encoder boards can be powered from 3.3 V to 5 V and then give outputs at the same level. If you power an encoder from 5 V, its outputs can exceed 3.3 V and harm the ESP32. Check your motor's datasheet and use 3.3 V.</p></div>
+<h3>The one-revolution test</h3>
+<p>This is the best single test of an encoder. Lift the robot, press the button, turn <strong>one wheel</strong> forward by hand through exactly one revolution (use a mark on the tyre), and press the button again to see the count. It uses <code>encodersBegin()</code>, <code>leftTicks()</code>, <code>rightTicks()</code> and <code>resetEncoders()</code> from the earlier lessons and the button on <code>GPIO14</code>.</p>
+<pre><code class="language-cpp">// Encoder one-revolution test. Turn ONE wheel by hand through one revolution.
+const int BTN = 14;                  // button to GND, INPUT_PULLUP
+const int EXPECTED = 1400;           // ASSUMPTION: 7 x 50 x 4. Use your own motor's number.
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(BTN, INPUT_PULLUP);
+  pinMode(34, INPUT);  pinMode(35, INPUT);   // for the raw pin monitor below
+  encodersBegin();
+  resetEncoders();
+  Serial.println("Turn a wheel once, then press the button.");
+}
+
+void loop() {
+  static unsigned long lastPrint = 0;
+  if (millis() - lastPrint &gt; 200) {          // live view of both counters
+    lastPrint = millis();
+    Serial.print("L = "); Serial.print(leftTicks());
+    Serial.print("   R = "); Serial.print(rightTicks());
+    Serial.print("   A/B(left) = "); Serial.print(digitalRead(34));
+    Serial.println(digitalRead(35));
+  }
+
+  if (digitalRead(BTN) == LOW) {
+    delay(30);                                 // simple debounce
+    long l = leftTicks(), r = rightTicks();
+    Serial.println("=== result ===");
+    Serial.print("left = ");  Serial.print(l);
+    Serial.print("  error = "); Serial.print((abs(l) - EXPECTED) * 100.0 / EXPECTED, 1); Serial.println(" %");
+    Serial.print("right = "); Serial.print(r);
+    Serial.print("  error = "); Serial.print((abs(r) - EXPECTED) * 100.0 / EXPECTED, 1); Serial.println(" %");
+    resetEncoders();
+    while (digitalRead(BTN) == LOW) delay(10); // wait for release
+  }
+}</code></pre>
+<p>Reading the result: when you turn a wheel by hand, expect the count to be close to 1400, with a small error from where you started and stopped (a few counts, or a percent or so). The sign tells you the direction: forward should count up in both wheels. A result near 700 or 350 points to the decoding, not the wiring. If the counter does not change at all, watch the raw A/B pin states: they should change as the wheel turns. If they do not, the wiring is the problem.</p>
+<div class="callout callout-tip"><div class="callout-title">The interrupt handler rules</div><ul>
+<li>Mark handlers <code>IRAM_ATTR</code> on the ESP32 and keep them to a few lines: read the pins, update one counter.</li>
+<li>Variables shared with the main program must be <code>volatile</code>; read a multi-byte counter with interrupts briefly disabled if you need a perfectly consistent value.</li>
+<li>No <code>Serial</code>, <code>delay()</code>, I&sup2;C or Wi-Fi calls inside an ISR.</li>
+<li>Roughly, one wheel at full speed makes thousands of edges per second, so two wheels give several thousand interrupts per second. That is fine for the ESP32 if each handler is short. Measure it, do not trust this estimate blindly.</li>
+</ul></div>
+</section>
+
+<section id="communication-issues">
+<h2>Communication issues</h2>
+<p>Your robot talks to its chips on shared wires. When a chip goes silent, the symptoms are things like an OLED that stays blank, an MPU6050 that returns zeros, or sensors that suddenly freeze. A good rule: <strong>always scan first</strong>.</p>
+<h3>I&sup2;C</h3>
+<p>Run the scanner from Lesson 01. On this robot you expect four things: <code>0x3C</code> (OLED), <code>0x48</code> and <code>0x49</code> (the two ADS1115 chips) and <code>0x68</code> (MPU6050). This variation checks the list and prints the error code for anything missing:</p>
+<pre><code class="language-cpp">#include &lt;Wire.h&gt;
+
+const uint8_t EXPECTED[] = { 0x3C, 0x48, 0x49, 0x68 };
+const char*   NAMES[]    = { "OLED", "ADS1115 #0", "ADS1115 #1", "MPU6050" };
+
+void setup() {
+  Serial.begin(115200);
+  Wire.begin(21, 22);                // SDA, SCL
+  Wire.setClock(400000);
+}
+
+void loop() {
+  for (int i = 0; i &lt; 4; i++) {
+    Wire.beginTransmission(EXPECTED[i]);
+    byte err = Wire.endTransmission();     // 0 = answered
+    Serial.print(NAMES[i]);
+    Serial.print(" (0x"); Serial.print(EXPECTED[i], HEX); Serial.print("): ");
+    if (err == 0) Serial.println("OK");
+    else { Serial.print("MISSING, error "); Serial.println(err); }
+  }
+  Serial.println("----");
+  delay(2000);
+}</code></pre>
+<p>The error code gives a clue: <code>2</code> means no device answered at that address (wiring or address), <code>3</code> means the device did not accept data, and <code>4</code> is an unknown error (the ESP32 core can also report a timeout code, often a stuck bus).</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Symptom</th><th>Likely cause</th><th>Test</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Both ADS1115 chips give the same readings, or only one address appears</td><td>Address conflict: both chips have the <code>ADDR</code> pin on the same level.</td><td>Scan the bus. You need both 0x48 and 0x49.</td><td>The ADS1115 address is set by the <code>ADDR</code> pin: GND = 0x48, VDD = 0x49 (SDA and SCL select 0x4A and 0x4B). Wire one to GND and the other to VDD.</td></tr>
+<tr><td>Nothing found, or devices come and go</td><td>Missing pull-ups. Both SDA and SCL need pull-up resistors to 3.3 V.</td><td>Multimeter: with power on, each line should rest near 3.3 V.</td><td>Most breakouts have pull-ups; if yours do not, add 4.7 k&Omega; on each line.</td></tr>
+<tr><td>Bus works with one device, fails with all</td><td>Too many pull-ups in parallel make the combined resistance too low. Five boards with 4.7 k&Omega; each give about 0.94 k&Omega;, below a typical minimum of roughly 1 k&Omega; at 3.3 V.</td><td>Measure resistance from SDA to 3.3 V with the power off.</td><td>Remove or desolder the pull-ups on some breakouts so a few remain.</td></tr>
+<tr><td>Works on the desk, fails on the robot</td><td>Long wires, or wires running beside the motor wires.</td><td>Shorten wires; try a slower clock.</td><td>Keep I&sup2;C wires short (tens of centimetres at the most), twisted away from motor wires, and use <code>Wire.setClock(100000)</code>.</td></tr>
+<tr><td>Everything freezes mid-run; the code hangs on I&sup2;C</td><td>A stuck bus: a device is holding SDA low after a reset or glitch in the middle of a transfer.</td><td>Read SDA with <code>digitalRead(21)</code> when idle. It should be HIGH.</td><td>Recover the bus with the routine below, and look for power dips that cause this.</td></tr>
+</tbody></table></div>
+<p>Recovering a stuck bus: a device that thinks it is in the middle of a byte keeps SDA low until it sees enough clock pulses. You can supply them by hand and then send a STOP:</p>
+<pre><code class="language-cpp">const int SDA_PIN = 21, SCL_PIN = 22;
+
+void i2cRecover() {
+  Wire.end();                        // release the I2C peripheral
+  pinMode(SDA_PIN, INPUT_PULLUP);
+  pinMode(SCL_PIN, OUTPUT);
+  for (int i = 0; i &lt; 9 &amp;&amp; digitalRead(SDA_PIN) == LOW; i++) {   // up to 9 clock pulses
+    digitalWrite(SCL_PIN, LOW);  delayMicroseconds(5);
+    digitalWrite(SCL_PIN, HIGH); delayMicroseconds(5);
+  }
+  // Send a STOP: SDA goes low to high while SCL is high
+  pinMode(SDA_PIN, OUTPUT);
+  digitalWrite(SDA_PIN, LOW);  delayMicroseconds(5);
+  digitalWrite(SCL_PIN, HIGH); delayMicroseconds(5);
+  digitalWrite(SDA_PIN, HIGH); delayMicroseconds(5);
+  Wire.begin(SDA_PIN, SCL_PIN);      // start the bus again
+  Wire.setClock(400000);
+}</code></pre>
+<p>If the bus is stuck again and again, the recovery is only a band-aid. Look for a power dip, a loose wire or noise.</p>
+<h3>UART and SPI basics</h3>
+<ul>
+<li><strong>UART:</strong> both sides must use the same <strong>baud rate</strong> and format. Garbage characters usually mean a baud mismatch. Remember to <strong>cross TX and RX</strong>, and <strong>join the grounds</strong>. Keep to 3.3 V levels with the ESP32.</li>
+<li><strong>SPI:</strong> the <strong>mode</strong> (0 to 3), bit order and clock speed must match the device's datasheet. Check that the chip-select pin goes low for each transfer and that MISO, MOSI and SCK are not swapped. Slow the clock to test.</li>
+</ul>
+<h3>Wi-Fi issues</h3>
+<ul>
+<li>While Wi-Fi is on, <strong>ADC2</strong> pins cannot be read with <code>analogRead()</code>. Put analog inputs on ADC1 (GPIO32 to 39).</li>
+<li>The classic ESP32 supports <strong>2.4 GHz only</strong>; it cannot see a 5 GHz-only network.</li>
+<li>Wi-Fi uses short bursts of high current, which can cause brownouts on a weak supply (see the next section).</li>
+</ul>
+</section>
+
+<section id="power-issues">
+<h2>Power issues</h2>
+<p>A huge share of &ldquo;mystery&rdquo; robot bugs are power problems. A DC motor that starts draws a big burst of current (a start-up or stall current much higher than its running current). That burst pulls the battery voltage down. If the supply feeding the ESP32 dips too low even for a moment, the ESP32 resets and prints <code>Brownout detector was triggered</code>. Then the program restarts, the motors start again, and the cycle repeats.</p>
+<figure><img src="/study-materials/stage-2/content/img/12-3.svg" alt="Two graphs over time: battery voltage sags when the motors start and the 3.3 V rail dips below the brownout threshold, causing a reset, and the cycle repeats" loading="lazy"><figcaption>Battery sag leads to a brownout reset, then the same thing happens again. The shapes are examples, not measurements.</figcaption></figure>
+<div class="table-wrap"><table>
+<thead><tr><th>Symptom</th><th>Likely cause</th><th>Test</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>ESP32 resets when the motors start; &ldquo;Brownout detector was triggered&rdquo;</td><td>The supply dips under the motor's start-up current: weak or low battery, thin wires, loose connector, small buck converter, no bulk capacitor.</td><td>Multimeter on the battery, VM and 5 V while the motors run, or log the minimum with the sketch below.</td><td>Charge or replace the battery, shorten and thicken power wires, reseat or replace connectors, add bulk capacitance, use a stronger buck module, and ramp the motors up gradually.</td></tr>
+<tr><td>Reset only when the battery is low</td><td>Battery sag is worse as the cell empties.</td><td>Repeat with a freshly charged pack.</td><td>Stop and recharge earlier; see the low-battery note below.</td></tr>
+<tr><td>Random resets even without the motors</td><td>Loose connector, bad solder joint, or a missing decoupling capacitor.</td><td>Wiggle the wires while watching the serial output.</td><td>Re-solder, use locking connectors, add 100 nF near each IC and a larger capacitor on the supply.</td></tr>
+<tr><td>The regulator or a module gets hot</td><td>A linear regulator burning the difference between input and output as heat. The power wasted is <code>P = (V<sub>in</sub> &minus; V<sub>out</sub>) &times; I</code>.</td><td>Touch test with care (or an IR thermometer); calculate the loss.</td><td>Feed the DevKit with 5 V from a buck module, not 12 V into its small regulator.</td></tr>
+<tr><td>Sensor values or encoders act strangely when the motors run</td><td>Shared ground problems or supply noise from the motors.</td><td>Measure the ground between the driver and ESP32 under load; it should be very close to 0 V.</td><td>Join grounds at a good point, use thick ground wires, keep motor wires away from signal wires.</td></tr>
+<tr><td>5 V rail sags with the motors on</td><td>An undersized buck converter or too much current from one module.</td><td>Measure the 5 V with the motors running.</td><td>Use a buck module with a higher current rating than your worst-case load; power the motors straight from the battery through the driver, not through the 5 V rail.</td></tr>
+</tbody></table></div>
+<div class="callout callout-caution"><div class="callout-title">Do not just turn the detector off</div><p>It is possible to disable the ESP32 brownout detector in software. That hides the symptom, but the chip then runs below its voltage limits and can behave in random and dangerous ways. Fix the supply instead.</p></div>
+<h3>Measure it under load</h3>
+<p>A multimeter reading with the motors idle tells you almost nothing, because the fault only exists when the current flows. Measure the battery pins, the <strong>VM</strong> pin of the motor driver and the <strong>5 V</strong> rail <em>while</em> the motors run, and watch the lowest value. A meter's display is slow and can miss a very short dip; a logger or a scope shows it properly. A simple logger is the sketch below.</p>
+<p>It reads the battery through a resistor divider. A 3S pack reaches 12.6 V, far above the ESP32's 3.3 V limit. With 47 k&Omega; from battery positive to the pin and 12 k&Omega; from the pin to ground (the same divider as in Lesson 11), the pin sees 12.6 V &times; 12 / 59, which is about 2.56 V. Use <strong>1% resistors</strong>, and always check the resistor values before you connect the battery.</p>
+<div class="callout callout-note"><div class="callout-title">Assumptions in this sketch</div><ul>
+<li>Divider: 47 k&Omega; (top) and 10 k&Omega; (bottom). Change the constants if you use other values.</li>
+<li>The battery divider goes on <code>GPIO39</code>, an ADC1 input-only pin that works even when Wi-Fi is on. That is why the right encoder's B channel is on GPIO18 in this course's pin map. If you wire your robot differently, use any other ADC1 pin (GPIO32 to 39) that is free.</li>
+<li>The low-battery limit of 9.9 V is about 3.3 V per cell under load. It is only an example: follow the advice on your own pack.</li>
+</ul></div>
+<pre><code class="language-cpp">// Battery logger: prints the battery voltage and the lowest value seen each second.
+const int   BATT_PIN  = 39;          // ADC1, input-only pin (kept free for this in the pin map)
+const float R_TOP     = 47000.0;
+const float R_BOTTOM  = 12000.0;
+const float DIVIDER   = (R_TOP + R_BOTTOM) / R_BOTTOM;   // 4.92
+const float CAL       = 1.00;        // adjust until the reading matches a multimeter
+const float LOW_BATT_V = 9.9;        // example limit under load, 3S pack
+
+float readBatteryVolts() {
+  long sum = 0;
+  for (int i = 0; i &lt; 16; i++) sum += analogReadMilliVolts(BATT_PIN);  // average noise away
+  float pinVolts = sum / 16.0 / 1000.0;
+  return pinVolts * DIVIDER * CAL;
+}
+
+float minV = 99.0;
+unsigned long lastPrint = 0;
+
+void setup() {
+  Serial.begin(115200);
+  analogSetPinAttenuation(BATT_PIN, ADC_11db);   // allow up to about 3.1 V at the pin
+  // motorsBegin(); drive(150, 150);   // enable to see the sag when the motors run
+}
+
+void loop() {
+  float v = readBatteryVolts();
+  if (v &lt; minV) minV = v;
+
+  if (millis() - lastPrint &gt;= 1000) {
+    lastPrint = millis();
+    Serial.print("battery = "); Serial.print(v, 2);
+    Serial.print(" V   lowest this second = "); Serial.println(minV, 2);
+    if (minV &lt; LOW_BATT_V) Serial.println("LOW BATTERY: stop and recharge");
+    minV = 99.0;
+  }
+}</code></pre>
+<p>Compare the reading with your multimeter and adjust <code>CAL</code>. Run the motors and watch the lowest value. If it falls a lot when the motors start, the supply is the problem. If you start to see the lowest value near your cut-off, the battery is nearly empty.</p>
+<h3>Low-battery behaviour and good habits</h3>
+<ul>
+<li>A LiPo should not be run flat. Many packs state a minimum per-cell voltage on the label; stay above it. A common general advice is not to go below about 3.0 V per cell (9.0 V for 3S) at rest, and many people stop earlier. Follow your pack's label.</li>
+<li>As the battery empties, motors slow down and match worse, and the 5 V buck may start to drop out. Always compare tests at a similar charge.</li>
+<li>Use a LiPo alarm or a monitor, and never leave a charging LiPo unattended.</li>
+<li>Use locking connectors (XT60, JST-XH) for power, and check them for heat after a run.</li>
+</ul>
+</section>
+
+<section id="master-checklist">
+<h2>The master debugging checklist</h2>
+<p>When something is wrong and you do not know where to start, go through this list in order. Tick each item, and write down what you found.</p>
+<ol>
+<li><strong>Safety:</strong> wheels lifted, battery connected correctly, nothing hot or smelling of burning?</li>
+<li><strong>Battery:</strong> fully charged? Measure it at rest and under load.</li>
+<li><strong>Power rails:</strong> VM, 5 V and 3.3 V correct with the motors running?</li>
+<li><strong>Connections:</strong> wiggle test; continuity on every power and ground wire; all grounds common?</li>
+<li><strong>Serial:</strong> boot message present, no &ldquo;Brownout&rdquo; or &ldquo;Guru Meditation&rdquo; messages?</li>
+<li><strong>I&sup2;C scan:</strong> are 0x3C, 0x48, 0x49 and 0x68 all there?</li>
+<li><strong>Sensors:</strong> run the sensor diagnostic. Good span on all 8 channels? Calibrated on this surface and light?</li>
+<li><strong>Encoders:</strong> one-revolution test about 1400, forward counts positive, both wheels consistent?</li>
+<li><strong>Motors:</strong> both turn the right way; dead zones known; trim measured at the speed you use?</li>
+<li><strong>Code:</strong> a recent change? Undo it and test again. Are your constants (pins, wheel size, speeds) right?</li>
+<li><strong>Environment:</strong> same floor, light and battery level as the last good run?</li>
+<li><strong>Notes:</strong> write down the fix and the date.</li>
+</ol>
+</section>
+
+<section id="case-studies">
+<h2>Three case studies</h2>
+<h3>Case 1: the robot veers left</h3>
+<p><strong>Symptom:</strong> with the same command on both wheels, the robot slowly curves left on the floor.</p>
+<ol>
+<li><strong>Reproduce:</strong> drive straight at one speed on the same floor three times. It always curves left, so the cause is consistent, not random.</li>
+<li><strong>Isolate:</strong> lift the wheels and look. Both wheels turn forward, so the wiring is fine. Run the motor matching sketch.</li>
+<li><strong>Measure:</strong> equal PWM 120 for 2 s gives left = 5900 and right = 6400. The left wheel is slower, which is why the robot veers to the left.</li>
+<li><strong>Change one thing:</strong> set <code>TRIM_R = 5900.0 / 6400.0 = 0.92</code> and use <code>driveTrimmed()</code>.</li>
+<li><strong>Retest:</strong> it now goes straight at 120. At a slower speed it still veers a little. That means a dead-zone effect on the left motor, so measure the dead zones, add a minimum PWM, and later use a speed controller with encoders.</li>
+</ol>
+<h3>Case 2: the robot resets when it starts</h3>
+<p><strong>Symptom:</strong> the robot starts, the motors jerk, the ESP32 restarts, and the Serial Monitor shows <code>Brownout detector was triggered</code>.</p>
+<ol>
+<li><strong>Isolate:</strong> a reset exactly when the motors start points to power, not code.</li>
+<li><strong>Measure:</strong> run the battery logger. With the motors on, the lowest voltage in one second drops far below the resting voltage. The pack was also only half charged.</li>
+<li><strong>Change one thing:</strong> first charge the battery. The reset happens less often but still happens.</li>
+<li><strong>Next:</strong> inspect the wiring. A thin wire and a worn connector are between the battery and the driver and the buck module. Replace them with thicker wire and a proper XT60.</li>
+<li><strong>Next:</strong> add a bulk capacitor near the driver VM pin, and ramp the PWM up over a short time instead of jumping to a high value.</li>
+<li><strong>Verify:</strong> the lowest voltage no longer falls near the limit, and the resets are gone. Write down which change helped.</li>
+</ol>
+<h3>Case 3: the junction is never detected</h3>
+<p><strong>Symptom:</strong> on a track with a crossing, the robot follows the line but never realises there is a junction.</p>
+<ol>
+<li><strong>Reproduce:</strong> place the robot on the crossing, and print the 8 calibrated values.</li>
+<li><strong>Look:</strong> the junction logic needs the outer sensors (0 and 7) to read dark together with the centre ones. Channels 1 to 6 are high, channel 0 is low, and channel 7 stays at a fixed value.</li>
+<li><strong>Isolate:</strong> channel 7 never changes in the sensor diagnostic. Its span is tiny. A wire or solder joint is at fault, or that ADS1115 input is not read.</li>
+<li><strong>Test:</strong> multimeter on the channel 7 wire: it has no continuity to the connector. Re-solder the connector pin.</li>
+<li><strong>Retest:</strong> channel 7 now moves. Channel 0 still reads low over the line. The sensor is higher at the edge because the array is tilted, so measure the height at both ends and straighten it. Calibrate again.</li>
+<li><strong>Verify:</strong> both outer channels go high on the crossing. The junction detection works. Adjust the threshold only <em>after</em> the hardware is right.</li>
+</ol>
+<div class="callout callout-tip"><div class="callout-title">The pattern in all three cases</div><p>Measure first, change one thing, and check the result. In every case the fix came from a number, not from a guess.</p></div>
+</section>
+
+<section id="key-takeaways">
+<h2>Key takeaways</h2>
+<ul>
+<li>Debug with a method: reproduce, isolate, test each subsystem alone, change one thing at a time, and write down results.</li>
+<li>Use a multimeter, the Serial Monitor and Plotter, and a cheap logic analyzer. A scope is a bonus.</li>
+<li><strong>Sensor calibration:</strong> calibrate on the real floor and light, at the right height; check the span of every channel and watch for dead or saturated ones.</li>
+<li><strong>Motor matching:</strong> no two motors are equal. Compare encoder counts at equal PWM to find a trim factor, and measure the dead zones.</li>
+<li><strong>Encoder errors:</strong> do the one-revolution test (about 1400 counts with our assumptions). Check direction, decoding, noise, wiring, pull-ups, and keep the ISR short.</li>
+<li><strong>Communication:</strong> scan the I&sup2;C bus first. Different <code>ADDR</code> levels for the two ADS1115 chips, working pull-ups, short wires and a recovery routine for a stuck bus.</li>
+<li><strong>Power:</strong> measure VM and 5 V under load. Most brownouts come from battery sag, thin wires, loose connectors or weak converters. Fix the supply and never just disable the detector.</li>
+<li>Work through the master checklist in order, and keep a written log of your findings.</li>
+</ul>
+</section>

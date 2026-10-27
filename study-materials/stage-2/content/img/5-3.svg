@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 360" role="img" aria-label="Top view of a robot driving right along a dashed target line. Without correction it veers to the right because the left wheel is slightly faster. With speed matching it returns to the target line.">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#334155"/></marker>
+  </defs>
+  <rect width="680" height="360" rx="12" fill="#f8fafc"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#1e293b">
+    <text x="20" y="26" font-weight="700" font-size="15">Driving straight: top view, robot heading right</text>
+    <!-- target line -->
+    <line x1="70" y1="150" x2="650" y2="150" stroke="#334155" stroke-width="2" stroke-dasharray="8 6"/>
+    <text x="650" y="136" text-anchor="end" fill="#475569">target line</text>
+    <!-- robot icon -->
+    <rect x="34" y="134" width="40" height="32" rx="5" fill="#e0ecff" stroke="#2563eb" stroke-width="2"/>
+    <rect x="42" y="128" width="16" height="6" rx="2" fill="#334155"/>
+    <rect x="42" y="166" width="16" height="6" rx="2" fill="#334155"/>
+    <text x="50" y="122" text-anchor="middle" font-size="12">left</text>
+    <text x="50" y="188" text-anchor="middle" font-size="12">right</text>
+    <!-- uncorrected -->
+    <path d="M74 150 C 250 152 450 190 640 280" fill="none" stroke="#dc2626" stroke-width="3" marker-end="url(#a)"/>
+    <text x="640" y="304" text-anchor="end" fill="#dc2626" font-weight="700">no correction: left wheel a little faster, robot veers right</text>
+    <!-- corrected -->
+    <path d="M74 150 C 150 154 200 186 290 182 C 380 178 420 154 520 150 L 640 150" fill="none" stroke="#16a34a" stroke-width="3"/>
+    <text x="330" y="96" fill="#16a34a" font-weight="700">with speed matching: the difference is corrected</text>
+    <text x="330" y="114" fill="#16a34a" font-weight="700">and the robot is pulled back to the line</text>
+    <!-- formula -->
+    <rect x="20" y="318" width="640" height="30" rx="8" fill="#fff" stroke="#334155" stroke-width="1.5"/>
+    <text x="340" y="338" text-anchor="middle" font-size="13">error = leftTicks − rightTicks   →   leftPWM = base − Kp × error,   rightPWM = base + Kp × error</text>
+  </g>
+</svg>

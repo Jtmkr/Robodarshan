@@ -478,7 +478,7 @@
       <a class="item-row" href="${hrefFor(kind, item.id)}">
         <div class="item-row-main"><strong>${esc(item.title)}</strong>${subtitle ? `<span>${esc(subtitle)}</span>` : ''}</div>
         ${badge}
-        <span class="chip chip-xp">+${esc(item.xp_value)} XP</span>
+        ${Number(item.xp_value) > 0 ? `<span class="chip chip-xp">+${esc(item.xp_value)} XP</span>` : ''}
       </a>`;
   }
 
@@ -817,7 +817,7 @@
     const chips = `
       <div class="chip-row">
         <span class="chip">${KIND_LABEL[kind]}</span>
-        <span class="chip chip-xp">${ICONS.bolt}+${esc(item.xp_value)} XP</span>
+        ${Number(item.xp_value) > 0 ? `<span class="chip chip-xp">${ICONS.bolt}+${esc(item.xp_value)} XP</span>` : ''}
         ${statusChip(kind, item.id)}
         ${hasPdf ? `<a class="chip chip-link" href="${escAttr(item.pdf_url)}" target="_blank" rel="noopener noreferrer">${ICONS.pdf}Download PDF</a>` : ''}
       </div>`;

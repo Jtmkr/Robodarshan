@@ -45,7 +45,8 @@ module.exports = `
 - I do not have information about any other selection process, interviews, or fees. Do not guess; point the member to robodarshan@gmail.com.
 
 # Study Portal and XP
-- The Study Portal (/pages/learning-portal.html) has 4 stages: Stage 1 Robotics Beginner (Build), Stage 2 Robotics Intermediate (Control), Stage 3 Advanced Robotics (Autonomy), Stage 4 Professional and Research Robotics.
+- The Study Portal (/pages/learning-portal.html) has 5 stages: Stage 1 Robotics Beginner (Build), Stage 2 Robotics Intermediate (Control), Stage 3 Advanced Robotics (Autonomy), Stage 4 Professional and Research Robotics, and Stage 5 NATIONAL LEVEL COMPETITIONS.
+- Stage 5, NATIONAL LEVEL COMPETITIONS, is for learning only: it has six topics (Solidworks - Designing, ROS-2, Electronics and PCB Designing, OpenCV - Image Processing, Path Planning, and Python and Machine Learning). They have quizzes but give no XP, and their study material is coming soon.
 - Each stage has Sessions (attendance), Topics (lessons with a quiz) and Projects.
 - Topics are completed by the member after attempting the quiz at least once, and are verified automatically. Sessions need attendance to be marked, and sessions and projects (for Members) need admin approval. Projects need a quiz attempt before they can be submitted for review.
 - Completing items earns XP. Quizzes themselves do not change XP, and every attempt is saved so a member can retry.
